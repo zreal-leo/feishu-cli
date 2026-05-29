@@ -22,7 +22,6 @@
 
 ```bash
 pnpm install
-cp .env.example .env
 ```
 
 如果 `pnpm install` 提示 `Ignored build scripts`，需要允许当前项目依赖构建原生模块：
@@ -30,16 +29,6 @@ cp .env.example .env
 ```bash
 pnpm approve-builds --all
 pnpm rebuild sqlite3
-```
-
-编辑 `.env`：
-
-```bash
-CURSOR_API_KEY=cursor_xxx
-CURSOR_MODEL=composer-2.5
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=xxx
-FEISHU_ENCRYPT_KEY=
 ```
 
 然后启动：
