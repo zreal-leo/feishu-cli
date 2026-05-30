@@ -27,6 +27,7 @@ const DEFAULT_CLOUD_PLAYER_PLAY_TYPE = 1;
 const DEFAULT_CLOUD_PLAYER_REPEAT_MODE = -1;
 const DEFAULT_CLOUD_PLAYER_REPEAT_TIME = 1;
 const DEFAULT_CLOUD_PLAYER_TYPE = 1;
+const DEFAULT_CLOUD_PLAYER_VIDEO_URL = 'https://media.comein.cn/video/344317-1740031837920.mp4';
 
 export type CloudPlayerMediaStreamType = 1 | 2;
 export type CloudPlayerPlayType = 1;
@@ -156,7 +157,19 @@ export function buildCursorPrompt(text: string): string {
 }
 
 export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | null {
-    const match = text.trim().match(/^创建会议(?:\s+(.+))?$/s);
+    const trimmedText = text.trim();
+    if (trimmedText === '创建会议并创建云播') {
+        return {
+            type: 'create_meeting',
+            title: DEFAULT_MEETING_TOPIC,
+            cloudPlayer: buildCloudPlayerOptions({
+                mediaStreamType: 2,
+                streamUrl: DEFAULT_CLOUD_PLAYER_VIDEO_URL
+            })
+        };
+    }
+
+    const match = trimmedText.match(/^创建会议(?:\s+(.+))?$/s);
     if (!match) {
         return null;
     }
@@ -328,21 +341,34 @@ export function toFeishuReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE)
 }
 
 function parseCloudPlayerOptions(commandBody: string): { titleEndIndex: number; options: CloudPlayerCommandOptions } | null {
-    const match = commandBody.match(/(?:^|\s)(音频)?云播\s+(https?:\/\/\S+)\s*$/i);
+    const match = commandBody.match(/(?:^|\s)(音频)?云播(?:\s+(https?:\/\/\S+))?\s*$/i);
     if (!match || match.index === undefined) {
+        return null;
+    }
+
+    const isAudio = Boolean(match[1]);
+    const streamUrl = match[2] ?? (isAudio ? undefined : DEFAULT_CLOUD_PLAYER_VIDEO_URL);
+    if (!streamUrl) {
         return null;
     }
 
     return {
         titleEndIndex: match.index,
-        options: {
-            mediaStreamType: match[1] ? 1 : 2,
-            streamUrl: match[2],
-            playType: DEFAULT_CLOUD_PLAYER_PLAY_TYPE,
-            repeatMode: DEFAULT_CLOUD_PLAYER_REPEAT_MODE,
-            repeatTime: DEFAULT_CLOUD_PLAYER_REPEAT_TIME,
-            type: DEFAULT_CLOUD_PLAYER_TYPE
-        }
+        options: buildCloudPlayerOptions({
+            mediaStreamType: isAudio ? 1 : 2,
+            streamUrl
+        })
+    };
+}
+
+function buildCloudPlayerOptions(options: { mediaStreamType: CloudPlayerMediaStreamType; streamUrl: string }): CloudPlayerCommandOptions {
+    return {
+        mediaStreamType: options.mediaStreamType,
+        streamUrl: options.streamUrl,
+        playType: DEFAULT_CLOUD_PLAYER_PLAY_TYPE,
+        repeatMode: DEFAULT_CLOUD_PLAYER_REPEAT_MODE,
+        repeatTime: DEFAULT_CLOUD_PLAYER_REPEAT_TIME,
+        type: DEFAULT_CLOUD_PLAYER_TYPE
     };
 }
 

@@ -101,6 +101,36 @@ describe('parseCreateMeetingCommand', () => {
         });
     });
 
+    it('parses default video cloud player without requiring a title or URL', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议 云播'), {
+            type: 'create_meeting',
+            title: '会议',
+            cloudPlayer: {
+                mediaStreamType: 2,
+                streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
+    it('parses natural create meeting and cloud player wording', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议并创建云播'), {
+            type: 'create_meeting',
+            title: '会议',
+            cloudPlayer: {
+                mediaStreamType: 2,
+                streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
     it('parses explicit audio cloud player media', () => {
         assert.deepEqual(parseCreateMeetingCommand('创建会议 语音会议 音频云播 https://media.comein.cn/audio/demo.mp3'), {
             type: 'create_meeting',

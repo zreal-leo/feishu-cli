@@ -293,6 +293,41 @@ describe('createFeishuMessageProcessor', () => {
         ]);
     });
 
+    it('uses the default title and video URL for a default cloud player command', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor';
+            },
+            createMeeting: async request => {
+                actions.push(`create-meeting:${request.title}:${request.cloudPlayer?.streamUrl}:${request.cloudPlayer?.mediaStreamType}`);
+                return {
+                    title: 'BOT: 会议 15:33',
+                    roadshowId: 123456,
+                    eventId: 789012,
+                    netLiveUrl: 'http://s.comein.cn/live',
+                    cloudPlayerCreated: true
+                };
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_create_default_cloud_player', '创建会议 云播'));
+        await processor.drain();
+
+        assert.deepEqual(actions, [
+            'create-meeting:会议:https://media.comein.cn/video/344317-1740031837920.mp4:2',
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: 会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live', '云播：已创建'].join('\n')}`
+        ]);
+    });
+
     it('creates a clickable Feishu card for a manager meeting command', async () => {
         const actions: string[] = [];
 
