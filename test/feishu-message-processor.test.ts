@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { createFeishuMessageProcessor } from '../src/feishu-message-processor.js';
 import type { FeishuIncomingMessageEvent } from '../src/message.js';
 import type { FeishuMessageMention } from '../src/message.js';
+import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/message.js';
 
 const silentLogger = {
     info() {},
@@ -23,6 +24,55 @@ function createTextEvent(messageId: string, text = '你好', mentions?: FeishuMe
 }
 
 describe('createFeishuMessageProcessor', () => {
+    it('streams the Cursor reply into a Feishu card', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamingUpdateIntervalMs: 0,
+            addMessageReaction: async (messageId, emojiType) => {
+                actions.push(`reaction:${messageId}:${emojiType}`);
+                return { reactionId: 'reaction_1' };
+            },
+            removeMessageReaction: async (messageId, reactionId) => {
+                actions.push(`remove-reaction:${messageId}:${reactionId}`);
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '第一段';
+                yield '第二段';
+            },
+            sendCardMessage: async (chatId, card) => {
+                const markdownElement = card.body.elements[0];
+                actions.push(`send-card:${chatId}:${String(markdownElement.content)}:${String(card.config.streaming_mode)}`);
+                return { messageId: 'om_reply', cardId: 'card_reply' };
+            },
+            updateCardElementContent: async (cardId, elementId, content, sequence) => {
+                actions.push(`update-card:${cardId}:${elementId}:${content}:${sequence}`);
+            },
+            finishCardStreaming: async (cardId, sequence, summary) => {
+                actions.push(`finish-card:${cardId}:${sequence}:${summary}`);
+            },
+            sendTextMessage: async () => {
+                actions.push('send-text:fallback');
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_card_stream'));
+        await processor.drain();
+
+        assert.deepEqual(actions, [
+            'reaction:om_card_stream:Typing',
+            'cursor:start',
+            'send-card:chat_1:第一段:true',
+            `update-card:card_reply:${CURSOR_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`,
+            'finish-card:card_reply:2:第一段第二段',
+            'remove-reaction:om_card_stream:reaction_1'
+        ]);
+    });
+
     it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
         const actions: string[] = [];
 
@@ -207,6 +257,43 @@ describe('createFeishuMessageProcessor', () => {
             `send:chat_1:${['会议创建成功', '会议标题：BOT: 跨项目接入测试会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`,
             'remove-reaction:om_create_meeting:reaction_1'
         ]);
+    });
+
+    it('creates a clickable Feishu card for a manager meeting command', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor';
+            },
+            createMeeting: async request => {
+                actions.push(`create-meeting:${request.title}`);
+                return {
+                    title: 'BOT: 跨项目接入测试会议 15:33',
+                    roadshowId: 123456,
+                    eventId: 789012,
+                    netLiveUrl: 'http://s.comein.cn/live'
+                };
+            },
+            sendCardMessage: async (chatId, card) => {
+                const actionButton = card.body.elements.at(-1);
+                assert.ok(card.card_link);
+                actions.push(`send-card:${chatId}:${card.card_link.url}:${actionButton?.url}`);
+                return { messageId: 'om_meeting_card', cardId: 'card_meeting' };
+            },
+            sendTextMessage: async () => {
+                actions.push('send-text:fallback');
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_create_meeting_card', '创建会议 跨项目接入测试会议'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['create-meeting:跨项目接入测试会议', 'send-card:chat_1:http://s.comein.cn/live:http://s.comein.cn/live']);
     });
 
     it('creates a manager meeting when a group message mentions the bot before the command', async () => {

@@ -4,7 +4,7 @@ import type { ManagerMeetingConfig } from './config.js';
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
 import { createManagerMeetingClient } from './manager-meeting.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
-import { toFeishuReactionPayload, toFeishuTextContent } from './message.js';
+import { toFeishuCardReferenceContent, toFeishuReactionPayload, toFeishuTextContent } from './message.js';
 
 export type StartBotOptions = {
     cursorApiKey: string;
@@ -70,6 +70,67 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                 data: {
                     msg_type: 'text',
                     content: toFeishuTextContent(text)
+                }
+            });
+        },
+        sendCardMessage: async (chatId, card) => {
+            const cardResponse = await client.cardkit.v1.card.create({
+                data: {
+                    type: 'card_json',
+                    data: JSON.stringify(card)
+                }
+            });
+            const cardId = cardResponse.data?.card_id;
+
+            if (!cardId) {
+                throw new Error('飞书卡片创建失败：缺少 card_id');
+            }
+
+            const messageResponse = await client.im.v1.message.create({
+                params: {
+                    receive_id_type: 'chat_id'
+                },
+                data: {
+                    receive_id: chatId,
+                    msg_type: 'interactive',
+                    content: toFeishuCardReferenceContent(cardId)
+                }
+            });
+
+            return {
+                cardId,
+                messageId: messageResponse.data?.message_id
+            };
+        },
+        updateCardElementContent: async (cardId, elementId, content, sequence) => {
+            await client.cardkit.v1.cardElement.content({
+                path: {
+                    card_id: cardId,
+                    element_id: elementId
+                },
+                data: {
+                    content,
+                    sequence,
+                    uuid: `content_${cardId}_${sequence}`
+                }
+            });
+        },
+        finishCardStreaming: async (cardId, sequence, summary) => {
+            await client.cardkit.v1.card.settings({
+                path: {
+                    card_id: cardId
+                },
+                data: {
+                    settings: JSON.stringify({
+                        config: {
+                            streaming_mode: false,
+                            summary: {
+                                content: summary
+                            }
+                        }
+                    }),
+                    sequence,
+                    uuid: `settings_${cardId}_${sequence}`
                 }
             });
         },
