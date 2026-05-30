@@ -8,13 +8,13 @@
 
 ### 常用命令
 
-| 任务 | 命令 |
-|------|------|
+| 任务     | 命令                                                     |
+| -------- | -------------------------------------------------------- |
 | 安装依赖 | `pnpm install`（见根目录 `.npmrc`，使用 npmmirror 镜像） |
-| 开发运行 | `pnpm dev`（`tsx src/index.ts`，长驻进程） |
-| 测试 | `pnpm test` |
-| 类型检查 | `pnpm typecheck` |
-| 格式化 | `pnpm prettier` |
+| 开发运行 | `pnpm dev`（`tsx src/index.ts`，长驻进程）               |
+| 测试     | `pnpm test`                                              |
+| 类型检查 | `pnpm typecheck`                                         |
+| 格式化   | `pnpm prettier`                                          |
 
 无 ESLint、无 `build` 脚本。
 
