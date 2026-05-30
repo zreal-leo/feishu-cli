@@ -1,6 +1,8 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
+import type { ManagerMeetingConfig } from './config.js';
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
+import { createManagerMeetingClient } from './manager-meeting.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
 import { toFeishuReactionPayload, toFeishuTextContent } from './message.js';
 
@@ -10,6 +12,7 @@ export type StartBotOptions = {
     feishuAppId: string;
     feishuAppSecret: string;
     feishuEncryptKey?: string;
+    managerMeeting: ManagerMeetingConfig;
 };
 
 export function startFeishuCursorBot(options: StartBotOptions): void {
@@ -19,6 +22,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
     };
 
     const client = new Lark.Client(baseConfig);
+    const managerMeetingClient = createManagerMeetingClient(options.managerMeeting);
     const wsClient = new Lark.WSClient({
         ...baseConfig,
         loggerLevel: Lark.LoggerLevel.info
@@ -68,6 +72,9 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                     content: toFeishuTextContent(text)
                 }
             });
+        },
+        createMeeting: async request => {
+            return managerMeetingClient.createMeeting(request);
         }
     });
 
