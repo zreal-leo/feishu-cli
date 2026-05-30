@@ -35,12 +35,25 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
             });
         },
         sendTextMessage: async (chatId, text) => {
-            await client.im.v1.message.create({
+            const response = await client.im.v1.message.create({
                 params: {
                     receive_id_type: 'chat_id'
                 },
                 data: {
                     receive_id: chatId,
+                    msg_type: 'text',
+                    content: toFeishuTextContent(text)
+                }
+            });
+
+            return { messageId: response.data?.message_id };
+        },
+        updateTextMessage: async (messageId, text) => {
+            await client.im.v1.message.update({
+                path: {
+                    message_id: messageId
+                },
+                data: {
                     msg_type: 'text',
                     content: toFeishuTextContent(text)
                 }

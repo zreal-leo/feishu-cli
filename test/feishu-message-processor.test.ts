@@ -21,13 +21,14 @@ function createTextEvent(messageId: string, text = '你好'): FeishuIncomingMess
 }
 
 describe('createFeishuMessageProcessor', () => {
-    it('adds a reaction before streaming the Cursor reply', async () => {
+    it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
         const actions: string[] = [];
 
         const processor = createFeishuMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
+            streamingUpdateIntervalMs: 0,
             addMessageReaction: async (messageId, emojiType) => {
                 actions.push(`reaction:${messageId}:${emojiType}`);
             },
@@ -38,13 +39,17 @@ describe('createFeishuMessageProcessor', () => {
             },
             sendTextMessage: async (chatId, text) => {
                 actions.push(`send:${chatId}:${text}`);
+                return { messageId: 'om_reply' };
+            },
+            updateTextMessage: async (messageId, text) => {
+                actions.push(`update:${messageId}:${text}`);
             }
         });
 
         processor.handleEvent(createTextEvent('om_stream'));
         await processor.drain();
 
-        assert.deepEqual(actions, ['reaction:om_stream:THUMBSUP', 'cursor:start', 'send:chat_1:第一段', 'send:chat_1:第二段']);
+        assert.deepEqual(actions, ['reaction:om_stream:get', 'cursor:start', 'send:chat_1:第一段', 'update:om_reply:第一段第二段']);
     });
 
     it('returns after queueing without waiting for Cursor', async () => {
@@ -74,6 +79,59 @@ describe('createFeishuMessageProcessor', () => {
         await processor.drain();
 
         assert.deepEqual(sentMessages, [{ chatId: 'chat_1', text: '收到' }]);
+    });
+
+    it('sends one complete message when message updates are unavailable', async () => {
+        const sentMessages: Array<{ chatId: string; text: string }> = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamCursorReply: async function* () {
+                yield '第一段';
+                yield '第二段';
+            },
+            sendTextMessage: async (chatId, text) => {
+                sentMessages.push({ chatId, text });
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_no_update'));
+        await processor.drain();
+
+        assert.deepEqual(sentMessages, [{ chatId: 'chat_1', text: '第一段第二段' }]);
+    });
+
+    it('falls back to a complete final message when the sent message id is missing', async () => {
+        const actions: string[] = [];
+        const logger = {
+            info() {},
+            error(message: string) {
+                actions.push(`error:${message}`);
+            }
+        };
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger,
+            streamCursorReply: async function* () {
+                yield '第一段';
+                yield '第二段';
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            },
+            updateTextMessage: async (messageId, text) => {
+                actions.push(`update:${messageId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_missing_reply_id'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['send:chat_1:第一段', 'error:[feishu-bot] streaming update skipped because sent message_id is missing chatId=chat_1', 'send:chat_1:第一段第二段']);
     });
 
     it('ignores duplicate events for the same message id', async () => {
