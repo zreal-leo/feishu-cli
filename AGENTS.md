@@ -8,13 +8,13 @@
 
 ### 常用命令
 
-| 任务 | 命令 |
-|------|------|
+| 任务     | 命令                                                     |
+| -------- | -------------------------------------------------------- |
 | 安装依赖 | `pnpm install`（见根目录 `.npmrc`，使用 npmmirror 镜像） |
-| 开发运行 | `pnpm dev`（`tsx src/index.ts`，长驻进程） |
-| 测试 | `pnpm test` |
-| 类型检查 | `pnpm typecheck` |
-| 格式化 | `pnpm prettier` |
+| 开发运行 | `pnpm dev`（`tsx src/index.ts`，长驻进程）               |
+| 测试     | `pnpm test`                                              |
+| 类型检查 | `pnpm typecheck`                                         |
+| 格式化   | `pnpm prettier`                                          |
 
 无 ESLint、无 `build` 脚本。
 
@@ -27,7 +27,7 @@
 
 ### 原生依赖
 
-`pnpm-workspace.yaml` 已允许 `protobufjs`、`sqlite3` 的 postinstall。若 `pnpm install` 仍提示忽略 `esbuild` 等构建脚本且 `tsx` 异常，再考虑在 workspace 中扩展 `allowBuilds`（一般测试/开发无需交互式 `pnpm approve-builds`）。
+`pnpm-workspace.yaml` 已允许 `esbuild`、`protobufjs`、`sqlite3` 的 postinstall（一般测试/开发无需交互式 `pnpm approve-builds`）。
 
 ### 端到端手动验证
 
