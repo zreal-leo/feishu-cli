@@ -108,6 +108,33 @@ describe('createFeishuMessageProcessor', () => {
         ]);
     });
 
+    it('merges whitespace-only Cursor chunks into the next streamed Feishu message', async () => {
+        const sentMessages: Array<{ chatId: string; text: string }> = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamingUpdateIntervalMs: 0,
+            streamCursorReply: async function* () {
+                yield '第一段';
+                yield '\n\n';
+                yield '第二段';
+            },
+            sendTextMessage: async (chatId, text) => {
+                sentMessages.push({ chatId, text });
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_whitespace_chunk'));
+        await processor.drain();
+
+        assert.deepEqual(sentMessages, [
+            { chatId: 'chat_1', text: '第一段' },
+            { chatId: 'chat_1', text: '\n\n第二段' }
+        ]);
+    });
+
     it('ignores duplicate events for the same message id', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
         let cursorCalls = 0;

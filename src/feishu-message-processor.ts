@@ -193,9 +193,17 @@ type StreamReplyToFeishuMessageOptions = {
 async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
     let hasSentReplyChunk = false;
     let lastSendAt = 0;
+    let pendingWhitespace = '';
 
     for await (const replyChunk of cursorReply) {
-        if (replyChunk.length === 0 || (!hasSentReplyChunk && replyChunk.trim().length === 0)) {
+        if (replyChunk.length === 0) {
+            continue;
+        }
+
+        if (replyChunk.trim().length === 0) {
+            if (hasSentReplyChunk) {
+                pendingWhitespace += replyChunk;
+            }
             continue;
         }
 
@@ -206,7 +214,8 @@ async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIter
             }
         }
 
-        await options.sendTextMessage(chatId, replyChunk);
+        await options.sendTextMessage(chatId, pendingWhitespace + replyChunk);
+        pendingWhitespace = '';
         hasSentReplyChunk = true;
         lastSendAt = Date.now();
     }
