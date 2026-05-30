@@ -15,6 +15,41 @@ describe('extractIncomingText', () => {
         assert.equal(text, '帮我看一下这个项目');
     });
 
+    it('removes leading Feishu mention keys from text messages', () => {
+        const text = extractIncomingText({
+            message: {
+                message_type: 'text',
+                content: JSON.stringify({ text: '@_user_1 创建会议 AI总结' }),
+                mentions: [{ key: '@_user_1', name: '会议机器人' }]
+            }
+        });
+
+        assert.equal(text, '创建会议 AI总结');
+    });
+
+    it('removes leading named bot mentions from text messages', () => {
+        const text = extractIncomingText({
+            message: {
+                message_type: 'text',
+                content: JSON.stringify({ text: '@会议机器人 创建会议 AI总结' }),
+                mentions: [{ key: '@_user_1', name: '会议机器人' }]
+            }
+        });
+
+        assert.equal(text, '创建会议 AI总结');
+    });
+
+    it('removes leading Feishu at tags from text messages', () => {
+        const text = extractIncomingText({
+            message: {
+                message_type: 'text',
+                content: JSON.stringify({ text: '<at user_id="ou_bot">会议机器人</at> 创建会议 AI总结' })
+            }
+        });
+
+        assert.equal(text, '创建会议 AI总结');
+    });
+
     it('ignores non-text message events', () => {
         const text = extractIncomingText({
             message: {

@@ -1,9 +1,15 @@
+export type FeishuMessageMention = {
+    key?: string;
+    name?: string;
+};
+
 export type FeishuIncomingMessageEvent = {
     message?: {
         message_id?: string;
         message_type?: string;
         content?: string;
         chat_id?: string;
+        mentions?: FeishuMessageMention[];
     };
     sender?: {
         sender_type?: string;
@@ -36,11 +42,36 @@ export function extractIncomingText(event: FeishuIncomingMessageEvent): string |
 
     try {
         const content = JSON.parse(event.message.content) as { text?: unknown };
-        const text = typeof content.text === 'string' ? content.text.trim() : '';
+        const text = typeof content.text === 'string' ? stripLeadingMentions(content.text, event.message.mentions).trim() : '';
         return text.length > 0 ? text : null;
     } catch {
         return null;
     }
+}
+
+function stripLeadingMentions(text: string, mentions: FeishuMessageMention[] = []): string {
+    let result = text.trimStart();
+    let previous = '';
+
+    while (result !== previous) {
+        previous = result;
+        result = result.replace(/^<at\b[^>]*>.*?<\/at>\s*/i, '').trimStart();
+
+        for (const mention of mentions) {
+            const mentionTexts = [mention.key, mention.name ? `@${mention.name}` : undefined, mention.name].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+            for (const mentionText of mentionTexts) {
+                result = result.replace(new RegExp(`^${escapeRegExp(mentionText)}(?:\\s+|$)`), '').trimStart();
+            }
+        }
+
+        result = result.replace(/^@\S+\s+/, '').trimStart();
+    }
+
+    return result;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function buildCursorPrompt(text: string): string {
