@@ -27,7 +27,7 @@
 
 ### 原生依赖
 
-`pnpm-workspace.yaml` 已允许 `protobufjs`、`sqlite3` 的 postinstall。若 `pnpm install` 仍提示忽略 `esbuild` 等构建脚本且 `tsx` 异常，再考虑在 workspace 中扩展 `allowBuilds`（一般测试/开发无需交互式 `pnpm approve-builds`）。
+`pnpm-workspace.yaml` 已允许 `esbuild`、`protobufjs`、`sqlite3` 的 postinstall（一般测试/开发无需交互式 `pnpm approve-builds`）。
 
 ### 端到端手动验证
 
