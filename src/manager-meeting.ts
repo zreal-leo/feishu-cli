@@ -52,17 +52,33 @@ export function createManagerMeetingClient(config: ManagerMeetingConfig, fetchIm
 }
 
 export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): Promise<string> {
-    if (!config.loginName || !config.password || !config.loginId || !config.code) {
-        throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD、MANAGER_LOGIN_ID、MANAGER_CODE。');
+    if (!config.loginName || !config.password) {
+        throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD。');
     }
 
-    const url = new URL(joinManagerUrl(config.baseUrl, '/system/verifyCode'));
-    url.searchParams.set('loginName', config.loginName);
-    url.searchParams.set('password', config.password);
-    url.searchParams.set('id', config.loginId);
-    url.searchParams.set('code', config.code);
-
-    const body = await readManagerJson(await fetchImpl(url, { method: 'GET' }), '获取后台 token');
+    const body = await readManagerJson(
+        await fetchImpl(joinManagerUrl(config.baseUrl, '/system/login'), {
+            method: 'POST',
+            headers: {
+                accept: '*/*',
+                b: '3.0.3',
+                browse: 'Netscape',
+                'content-type': 'application/json;charset=utf-8',
+                currentuid: '297',
+                origin: 'https://manager-test.comein.cn',
+                token: 'null',
+                ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+                uc: 'comein-pc',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
+            },
+            body: JSON.stringify({
+                loginName: config.loginName,
+                password: config.password,
+                origin: 'manager-test.comein.cn'
+            })
+        }),
+        '获取后台 token'
+    );
     const token = getNestedString(body, ['data', 'token']);
     if (!token) {
         throw new Error(`获取后台 token 失败: ${JSON.stringify(body)}`);

@@ -16,8 +16,6 @@ export type ManagerMeetingConfig = {
     baseUrl: string;
     loginName?: string;
     password?: string;
-    loginId?: string;
-    code?: string;
 };
 
 function requireEnv(name: string): string {
@@ -39,9 +37,7 @@ export function loadConfig(): Config {
             env: DEFAULT_CONFIG.managerMeeting.env,
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
             loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
-            password: process.env.MANAGER_PASSWORD?.trim() || undefined,
-            loginId: process.env.MANAGER_LOGIN_ID?.trim() || undefined,
-            code: process.env.MANAGER_CODE?.trim() || undefined
+            password: process.env.MANAGER_PASSWORD?.trim() || undefined
         }
     };
 }

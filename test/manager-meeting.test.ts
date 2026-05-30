@@ -10,8 +10,6 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
         baseUrl: 'https://testserver.comein.cn/comein/manager',
         loginName: 'admin',
         password: 'password',
-        loginId: 'login_id',
-        code: '1234',
         ...overrides
     };
 }
@@ -37,28 +35,42 @@ describe('buildMeetingPayload', () => {
 describe('getManagerToken', () => {
     it('fetches a token with manager login credentials', async () => {
         let requestedUrl = '';
-        const fetchImpl = (async input => {
+        let requestInit: RequestInit | undefined;
+        const fetchImpl = (async (input, init) => {
             requestedUrl = String(input);
+            requestInit = init;
             return new Response(JSON.stringify({ code: '0', data: { token: 'login_token' } }), { status: 200 });
         }) as typeof fetch;
 
         const token = await getManagerToken(
             createTestConfig({
                 loginName: 'admin',
-                password: 'password',
-                loginId: 'login_id',
-                code: '1234'
+                password: 'password'
             }),
             fetchImpl
         );
 
         const url = new URL(requestedUrl);
         assert.equal(token, 'login_token');
-        assert.equal(url.pathname, '/comein/manager/system/verifyCode');
-        assert.equal(url.searchParams.get('loginName'), 'admin');
-        assert.equal(url.searchParams.get('password'), 'password');
-        assert.equal(url.searchParams.get('id'), 'login_id');
-        assert.equal(url.searchParams.get('code'), '1234');
+        assert.equal(url.pathname, '/comein/manager/system/login');
+        assert.equal(requestInit?.method, 'POST');
+        assert.deepEqual(requestInit?.headers, {
+            accept: '*/*',
+            b: '3.0.3',
+            browse: 'Netscape',
+            'content-type': 'application/json;charset=utf-8',
+            currentuid: '297',
+            origin: 'https://manager-test.comein.cn',
+            token: 'null',
+            ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+            uc: 'comein-pc',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
+        });
+        assert.deepEqual(JSON.parse(String(requestInit?.body)), {
+            loginName: 'admin',
+            password: 'password',
+            origin: 'manager-test.comein.cn'
+        });
     });
 });
 
@@ -108,7 +120,7 @@ describe('createManagerMeetingClient', () => {
         const fetchImpl = (async (input, init) => {
             const url = String(input);
             requestedUrls.push(url);
-            if (url.includes('/system/verifyCode')) {
+            if (url.includes('/system/login')) {
                 return new Response(JSON.stringify({ code: '0', data: { token: 'login_token' } }), { status: 200 });
             }
 
@@ -121,7 +133,7 @@ describe('createManagerMeetingClient', () => {
         await client.createMeeting({ title: '第一次会议', stimeMs: 1760000000000 });
         await client.createMeeting({ title: '第二次会议', stimeMs: 1760000000000 });
 
-        assert.equal(requestedUrls.filter(url => url.includes('/system/verifyCode')).length, 1);
+        assert.equal(requestedUrls.filter(url => url.includes('/system/login')).length, 1);
         assert.equal(requestedUrls.filter(url => url.includes('/managecenter/roadshow/create')).length, 2);
         assert.deepEqual(requestedTokens, ['login_token', 'login_token']);
     });
@@ -135,7 +147,7 @@ describe('createManagerMeetingClient', () => {
             const url = String(input);
             requestedUrls.push(url);
 
-            if (url.includes('/system/verifyCode')) {
+            if (url.includes('/system/login')) {
                 loginCount += 1;
                 return new Response(JSON.stringify({ code: '0', data: { token: `login_token_${loginCount}` } }), { status: 200 });
             }
@@ -157,7 +169,7 @@ describe('createManagerMeetingClient', () => {
             eventId: 2,
             netLiveUrl: 'http://s.comein.cn/live'
         });
-        assert.equal(requestedUrls.filter(url => url.includes('/system/verifyCode')).length, 2);
+        assert.equal(requestedUrls.filter(url => url.includes('/system/login')).length, 2);
         assert.equal(requestedUrls.filter(url => url.includes('/managecenter/roadshow/create')).length, 2);
         assert.deepEqual(requestedTokens, ['login_token_1', 'login_token_2']);
     });
