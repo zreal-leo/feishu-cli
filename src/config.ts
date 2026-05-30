@@ -14,11 +14,8 @@ type Config = {
 export type ManagerMeetingConfig = {
     env: 'test';
     baseUrl: string;
-    token?: string;
     loginName?: string;
     password?: string;
-    loginId?: string;
-    code?: string;
 };
 
 function requireEnv(name: string): string {
@@ -39,11 +36,8 @@ export function loadConfig(): Config {
         managerMeeting: {
             env: DEFAULT_CONFIG.managerMeeting.env,
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
-            token: process.env.MANAGER_TOKEN?.trim() || undefined,
             loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
-            password: process.env.MANAGER_PASSWORD?.trim() || undefined,
-            loginId: process.env.MANAGER_LOGIN_ID?.trim() || undefined,
-            code: process.env.MANAGER_CODE?.trim() || undefined
+            password: process.env.MANAGER_PASSWORD?.trim() || undefined
         }
     };
 }

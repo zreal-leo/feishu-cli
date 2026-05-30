@@ -21,32 +21,44 @@ export type ManagerMeetingClient = {
 
 const DEFAULT_START_AFTER_MINUTES = 20;
 
+class ManagerTokenExpiredError extends Error {
+    constructor(body: unknown) {
+        super(`后台 token 已失效: ${JSON.stringify(body)}`);
+        this.name = 'ManagerTokenExpiredError';
+    }
+}
+
 export function createManagerMeetingClient(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): ManagerMeetingClient {
-    let cachedToken = config.token;
+    let cachedToken: string | undefined;
 
     return {
         async createMeeting(request) {
             const token = cachedToken || (await getManagerToken(config, fetchImpl));
             cachedToken = token;
-            return createManagerMeeting(config, request, token, fetchImpl);
+            try {
+                return await createManagerMeeting(config, request, token, fetchImpl);
+            } catch (error) {
+                if (!(error instanceof ManagerTokenExpiredError)) {
+                    throw error;
+                }
+
+                cachedToken = undefined;
+                const refreshedToken = await getManagerToken(config, fetchImpl);
+                cachedToken = refreshedToken;
+                return createManagerMeeting(config, request, refreshedToken, fetchImpl);
+            }
         }
     };
 }
 
 export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): Promise<string> {
-    if (config.token) {
-        return config.token;
-    }
-
-    if (!config.loginName || !config.password || !config.loginId || !config.code) {
-        throw new Error('缺少 MANAGER_TOKEN，且验证码登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD、MANAGER_LOGIN_ID、MANAGER_CODE 不完整。');
+    if (!config.loginName || !config.password) {
+        throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD。');
     }
 
     const url = new URL(joinManagerUrl(config.baseUrl, '/system/verifyCode'));
     url.searchParams.set('loginName', config.loginName);
     url.searchParams.set('password', config.password);
-    url.searchParams.set('id', config.loginId);
-    url.searchParams.set('code', config.code);
 
     const body = await readManagerJson(await fetchImpl(url, { method: 'GET' }), '获取后台 token');
     const token = getNestedString(body, ['data', 'token']);
@@ -72,6 +84,10 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
         }),
         '创建会议'
     );
+
+    if (isManagerTokenExpiredResponse(body)) {
+        throw new ManagerTokenExpiredError(body);
+    }
 
     if (String(getObjectValue(body, 'code')) !== '0') {
         throw new Error(`创建会议失败: ${JSON.stringify(body)}`);
@@ -258,6 +274,19 @@ function getNestedString(value: unknown, path: string[]): string | undefined {
 
 function getObjectValue(value: unknown, key: string): unknown {
     return typeof value === 'object' && value !== null && key in value ? (value as Record<string, unknown>)[key] : undefined;
+}
+
+function isManagerTokenExpiredResponse(body: unknown): boolean {
+    return getResponseCode(body, 'errorcode') === '201' || getResponseCode(body, 'errorCode') === '201' || getResponseCode(body, 'code') === '201';
+}
+
+function getResponseCode(value: unknown, key: string): string | undefined {
+    const rawValue = getObjectValue(value, key);
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        return String(rawValue);
+    }
+
+    return typeof rawValue === 'string' && rawValue.trim() ? rawValue.trim() : undefined;
 }
 
 function getNumberValue(value: unknown, key: string): number | undefined {

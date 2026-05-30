@@ -8,7 +8,8 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
     return {
         env: 'test',
         baseUrl: 'https://testserver.comein.cn/comein/manager',
-        token: 'manager_token',
+        loginName: 'admin',
+        password: 'password',
         ...overrides
     };
 }
@@ -32,13 +33,7 @@ describe('buildMeetingPayload', () => {
 });
 
 describe('getManagerToken', () => {
-    it('returns MANAGER_TOKEN when provided', async () => {
-        const token = await getManagerToken(createTestConfig());
-
-        assert.equal(token, 'manager_token');
-    });
-
-    it('fetches a token with the verify code login variables', async () => {
+    it('fetches a token with manager login credentials', async () => {
         let requestedUrl = '';
         const fetchImpl = (async input => {
             requestedUrl = String(input);
@@ -47,11 +42,8 @@ describe('getManagerToken', () => {
 
         const token = await getManagerToken(
             createTestConfig({
-                token: undefined,
                 loginName: 'admin',
-                password: 'password',
-                loginId: 'login_id',
-                code: '1234'
+                password: 'password'
             }),
             fetchImpl
         );
@@ -61,8 +53,8 @@ describe('getManagerToken', () => {
         assert.equal(url.pathname, '/comein/manager/system/verifyCode');
         assert.equal(url.searchParams.get('loginName'), 'admin');
         assert.equal(url.searchParams.get('password'), 'password');
-        assert.equal(url.searchParams.get('id'), 'login_id');
-        assert.equal(url.searchParams.get('code'), '1234');
+        assert.equal(url.searchParams.get('id'), null);
+        assert.equal(url.searchParams.get('code'), null);
     });
 });
 
@@ -106,8 +98,9 @@ describe('createManagerMeeting', () => {
 });
 
 describe('createManagerMeetingClient', () => {
-    it('caches a token fetched through verify code login', async () => {
+    it('caches a token fetched through manager login credentials', async () => {
         const requestedUrls: string[] = [];
+        const requestedTokens: string[] = [];
         const fetchImpl = (async (input, init) => {
             const url = String(input);
             requestedUrls.push(url);
@@ -115,24 +108,62 @@ describe('createManagerMeetingClient', () => {
                 return new Response(JSON.stringify({ code: '0', data: { token: 'login_token' } }), { status: 200 });
             }
 
+            requestedTokens.push(getRequestToken(init));
             return new Response(JSON.stringify({ code: '0', data: { id: 1, eid: 2, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
         }) as typeof fetch;
 
-        const client = createManagerMeetingClient(
-            createTestConfig({
-                token: undefined,
-                loginName: 'admin',
-                password: 'password',
-                loginId: 'login_id',
-                code: '1234'
-            }),
-            fetchImpl
-        );
+        const client = createManagerMeetingClient(createTestConfig(), fetchImpl);
 
         await client.createMeeting({ title: '第一次会议', stimeMs: 1760000000000 });
         await client.createMeeting({ title: '第二次会议', stimeMs: 1760000000000 });
 
         assert.equal(requestedUrls.filter(url => url.includes('/system/verifyCode')).length, 1);
         assert.equal(requestedUrls.filter(url => url.includes('/managecenter/roadshow/create')).length, 2);
+        assert.deepEqual(requestedTokens, ['login_token', 'login_token']);
+    });
+
+    it('clears the cached token and logs in again when meeting creation returns errorcode 201', async () => {
+        const requestedUrls: string[] = [];
+        const requestedTokens: string[] = [];
+        let loginCount = 0;
+        let createCount = 0;
+        const fetchImpl = (async (input, init) => {
+            const url = String(input);
+            requestedUrls.push(url);
+
+            if (url.includes('/system/verifyCode')) {
+                loginCount += 1;
+                return new Response(JSON.stringify({ code: '0', data: { token: `login_token_${loginCount}` } }), { status: 200 });
+            }
+
+            createCount += 1;
+            requestedTokens.push(getRequestToken(init));
+            if (createCount === 1) {
+                return new Response(JSON.stringify({ errorcode: 201, msg: 'token invalid' }), { status: 200 });
+            }
+
+            return new Response(JSON.stringify({ code: '0', data: { id: 1, eid: 2, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
+        }) as typeof fetch;
+
+        const client = createManagerMeetingClient(createTestConfig(), fetchImpl);
+        const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: 1760000000000 });
+
+        assert.deepEqual(result, {
+            roadshowId: 1,
+            eventId: 2,
+            netLiveUrl: 'http://s.comein.cn/live'
+        });
+        assert.equal(requestedUrls.filter(url => url.includes('/system/verifyCode')).length, 2);
+        assert.equal(requestedUrls.filter(url => url.includes('/managecenter/roadshow/create')).length, 2);
+        assert.deepEqual(requestedTokens, ['login_token_1', 'login_token_2']);
     });
 });
+
+function getRequestToken(init: RequestInit | undefined): string {
+    const headers = init?.headers;
+    if (headers && typeof headers === 'object' && !Array.isArray(headers) && !(headers instanceof Headers)) {
+        return String((headers as Record<string, unknown>).token);
+    }
+
+    return '';
+}

@@ -4,7 +4,7 @@ import { afterEach, describe, it } from 'node:test';
 import { loadConfig } from '../src/config.js';
 import { DEFAULT_CONFIG } from '../src/default-config.js';
 
-const managedEnvNames = ['CURSOR_API_KEY', 'CURSOR_MODEL', 'FEISHU_APP_ID', 'FEISHU_APP_SECRET', 'FEISHU_ENCRYPT_KEY', 'ENV', 'MANAGER_BASE_URL', 'MANAGER_TOKEN'] as const;
+const managedEnvNames = ['CURSOR_API_KEY', 'CURSOR_MODEL', 'FEISHU_APP_ID', 'FEISHU_APP_SECRET', 'FEISHU_ENCRYPT_KEY', 'ENV', 'MANAGER_BASE_URL', 'MANAGER_LOGIN_NAME', 'MANAGER_PASSWORD'] as const;
 const originalEnv = new Map<string, string | undefined>(managedEnvNames.map(name => [name, process.env[name]]));
 
 afterEach(() => {
@@ -26,7 +26,8 @@ describe('loadConfig', () => {
         process.env.FEISHU_ENCRYPT_KEY = 'encrypt_key';
         process.env.ENV = 'env_value_should_be_ignored';
         process.env.MANAGER_BASE_URL = 'https://env.example.com/manager';
-        process.env.MANAGER_TOKEN = 'manager_token';
+        process.env.MANAGER_LOGIN_NAME = 'admin';
+        process.env.MANAGER_PASSWORD = 'password';
 
         const config = loadConfig();
 
@@ -38,11 +39,8 @@ describe('loadConfig', () => {
         assert.deepEqual(config.managerMeeting, {
             env: DEFAULT_CONFIG.managerMeeting.env,
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
-            token: 'manager_token',
-            loginName: undefined,
-            password: undefined,
-            loginId: undefined,
-            code: undefined
+            loginName: 'admin',
+            password: 'password'
         });
     });
 });
