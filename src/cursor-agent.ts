@@ -2,9 +2,8 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 
-import { Agent, CursorAgentError } from '@cursor/sdk';
-
 const require = createRequire(import.meta.url);
+type CursorSdkModule = typeof import('@cursor/sdk');
 
 export type AskCursorOptions = {
     apiKey: string;
@@ -13,10 +12,47 @@ export type AskCursorOptions = {
     cwd?: string;
 };
 
+export function getCursorSdkPlatformPackageName(platform: NodeJS.Platform = process.platform, arch: NodeJS.Architecture = process.arch): string | undefined {
+    if (platform === 'darwin' && (arch === 'arm64' || arch === 'x64')) {
+        return `@cursor/sdk-darwin-${arch}`;
+    }
+
+    if (platform === 'linux' && (arch === 'arm64' || arch === 'x64')) {
+        return `@cursor/sdk-linux-${arch}`;
+    }
+
+    if (platform === 'win32' && arch === 'x64') {
+        return '@cursor/sdk-win32-x64';
+    }
+
+    return undefined;
+}
+
+export function getRipgrepExecutableName(platform: NodeJS.Platform = process.platform): string {
+    return platform === 'win32' ? 'rg.exe' : 'rg';
+}
+
+function resolvePackageRipgrepPath(packageName: string, executable: string): string | undefined {
+    try {
+        const packageJsonPath = require.resolve(`${packageName}/package.json`);
+        const candidate = join(dirname(packageJsonPath), 'bin', executable);
+
+        return existsSync(candidate) ? candidate : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 function resolveBundledRipgrepPath(): string | undefined {
+    const executable = getRipgrepExecutableName();
+    const platformPackageName = getCursorSdkPlatformPackageName();
+    const platformPackageRipgrepPath = platformPackageName ? resolvePackageRipgrepPath(platformPackageName, executable) : undefined;
+    if (platformPackageRipgrepPath) {
+        return platformPackageRipgrepPath;
+    }
+
     const sdkEntry = require.resolve('@cursor/sdk');
     const sdkRoot = resolve(dirname(sdkEntry), '../..');
-    const executable = process.platform === 'win32' ? 'rg.exe' : 'rg';
     const candidate = join(sdkRoot, 'node_modules', '.bin', executable);
 
     return existsSync(candidate) ? candidate : undefined;
@@ -33,6 +69,11 @@ export function ensureCursorRipgrepPath(): void {
     }
 }
 
+async function loadCursorSdk(): Promise<CursorSdkModule> {
+    ensureCursorRipgrepPath();
+    return import('@cursor/sdk');
+}
+
 export async function askCursor(options: AskCursorOptions): Promise<string> {
     const chunks: string[] = [];
     for await (const chunk of streamCursorReply(options)) {
@@ -43,10 +84,13 @@ export async function askCursor(options: AskCursorOptions): Promise<string> {
 }
 
 export async function* streamCursorReply(options: AskCursorOptions): AsyncGenerator<string, void> {
-    try {
-        ensureCursorRipgrepPath();
+    let CursorAgentError: CursorSdkModule['CursorAgentError'] | undefined;
 
-        const agent = await Agent.create({
+    try {
+        const cursorSdk = await loadCursorSdk();
+        CursorAgentError = cursorSdk.CursorAgentError;
+
+        const agent = await cursorSdk.Agent.create({
             apiKey: options.apiKey,
             model: { id: options.model },
             local: { cwd: options.cwd ?? process.cwd() }
@@ -82,7 +126,7 @@ export async function* streamCursorReply(options: AskCursorOptions): AsyncGenera
             await agent[Symbol.asyncDispose]();
         }
     } catch (error) {
-        if (error instanceof CursorAgentError) {
+        if (CursorAgentError && error instanceof CursorAgentError) {
             yield `Cursor 启动失败：${error.message}`;
             return;
         }
