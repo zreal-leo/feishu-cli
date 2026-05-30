@@ -7,6 +7,21 @@ export type CreateManagerMeetingRequest = {
     startAfterMinutes?: number;
     stimeMs?: number;
     now?: Date;
+    cloudPlayer?: ManagerCloudPlayerOptions;
+};
+
+export type ManagerCloudPlayerMediaStreamType = 1 | 2;
+export type ManagerCloudPlayerPlayType = 1;
+export type ManagerCloudPlayerRepeatMode = -1 | 1 | 2;
+export type ManagerCloudPlayerType = 0 | 1 | 2;
+
+export type ManagerCloudPlayerOptions = {
+    mediaStreamType: ManagerCloudPlayerMediaStreamType;
+    streamUrl: string;
+    playType: ManagerCloudPlayerPlayType;
+    repeatMode: ManagerCloudPlayerRepeatMode;
+    repeatTime: number;
+    type: ManagerCloudPlayerType;
 };
 
 export type ManagerMeetingResult = {
@@ -14,6 +29,8 @@ export type ManagerMeetingResult = {
     roadshowId: number;
     eventId: number;
     netLiveUrl: string;
+    cloudPlayerCreated?: boolean;
+    cloudPlayerError?: string;
 };
 
 export type ManagerMeetingClient = {
@@ -172,12 +189,23 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
         throw new Error(`创建会议响应缺少必要字段: ${JSON.stringify(body)}`);
     }
 
-    return {
+    const result: ManagerMeetingResult = {
         title,
         roadshowId,
         eventId,
         netLiveUrl
     };
+
+    if (request.cloudPlayer) {
+        try {
+            await createManagerCloudPlayer(config, request.cloudPlayer, roadshowId, Math.floor(stimeMs / 1000), token, fetchImpl);
+            result.cloudPlayerCreated = true;
+        } catch (error) {
+            result.cloudPlayerError = error instanceof Error ? error.message : String(error);
+        }
+    }
+
+    return result;
 }
 
 export function buildMeetingPayload(title: string, stimeMs: number): Record<string, unknown> {
@@ -298,6 +326,34 @@ function resolveStartTimeMs(request: CreateManagerMeetingRequest): number {
 
     const nowMs = request.now?.getTime() ?? Date.now();
     return nowMs + (request.startAfterMinutes ?? DEFAULT_START_AFTER_MINUTES) * 60 * 1000;
+}
+
+async function createManagerCloudPlayer(config: ManagerMeetingConfig, cloudPlayer: ManagerCloudPlayerOptions, roadshowId: number, playTs: number, token: string, fetchImpl: FetchLike): Promise<void> {
+    const body = await readManagerJson(
+        await fetchImpl(joinManagerUrl(config.baseUrl, '/managecenter/cloud-player/create'), {
+            method: 'POST',
+            headers: {
+                token,
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                roadshowId,
+                mediaStreamType: cloudPlayer.mediaStreamType,
+                streamUrl: cloudPlayer.streamUrl,
+                playType: cloudPlayer.playType,
+                repeatMode: cloudPlayer.repeatMode,
+                repeatTime: cloudPlayer.repeatTime,
+                playTs,
+                region: null,
+                type: cloudPlayer.type
+            })
+        }),
+        '创建云播'
+    );
+
+    if (String(getObjectValue(body, 'code')) !== '0') {
+        throw new Error(`创建云播失败: ${JSON.stringify(body)}`);
+    }
 }
 
 async function readManagerJson(response: Response, action: string): Promise<unknown> {

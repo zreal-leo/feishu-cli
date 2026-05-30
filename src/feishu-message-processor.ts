@@ -14,7 +14,7 @@ import {
     parseCreateMeetingCommand,
     summarizeCardText
 } from './message.js';
-import type { MeetingCreatedReplyData } from './message.js';
+import type { CloudPlayerCommandOptions, CreateMeetingCommand, MeetingCreatedReplyData } from './message.js';
 import { createSegmentTimer, formatDurationMs } from './timing.js';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
@@ -22,7 +22,7 @@ type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
 type SendTextMessageResult = { messageId?: string } | void;
 type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
-type CreateMeeting = (request: { title: string }) => Promise<MeetingCreatedReplyData>;
+type CreateMeeting = (request: { title: string; cloudPlayer?: CloudPlayerCommandOptions }) => Promise<MeetingCreatedReplyData>;
 
 const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 250;
 
@@ -98,7 +98,7 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                     const createMeetingCommand = parseCreateMeetingCommand(text);
 
                     if (createMeetingCommand) {
-                        await handleCreateMeetingCommand(chatId, createMeetingCommand.title, {
+                        await handleCreateMeetingCommand(chatId, createMeetingCommand, {
                             createMeeting: options.createMeeting,
                             logger,
                             messageId,
@@ -181,13 +181,13 @@ type HandleCreateMeetingCommandOptions = {
     timer: ReturnType<typeof createSegmentTimer>;
 };
 
-async function handleCreateMeetingCommand(chatId: string, title: string, options: HandleCreateMeetingCommandOptions): Promise<void> {
+async function handleCreateMeetingCommand(chatId: string, command: CreateMeetingCommand, options: HandleCreateMeetingCommandOptions): Promise<void> {
     try {
         if (!options.createMeeting) {
             throw new Error('创建会议能力未配置。');
         }
 
-        const meeting = await options.createMeeting({ title });
+        const meeting = await options.createMeeting({ title: command.title, cloudPlayer: command.cloudPlayer });
         await sendMeetingCreatedReply(chatId, meeting, options);
         const createTiming = options.timer.mark();
         options.logger.info(
