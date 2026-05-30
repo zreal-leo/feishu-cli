@@ -18,10 +18,29 @@ export type FeishuIncomingMessageEvent = {
 
 export const DEFAULT_REACTION_EMOJI_TYPE = 'Typing';
 const DEFAULT_MEETING_TOPIC = '会议';
+const DEFAULT_CLOUD_PLAYER_PLAY_TYPE = 1;
+const DEFAULT_CLOUD_PLAYER_REPEAT_MODE = -1;
+const DEFAULT_CLOUD_PLAYER_REPEAT_TIME = 1;
+const DEFAULT_CLOUD_PLAYER_TYPE = 1;
+
+export type CloudPlayerMediaStreamType = 1 | 2;
+export type CloudPlayerPlayType = 1;
+export type CloudPlayerRepeatMode = -1 | 1 | 2;
+export type CloudPlayerType = 0 | 1 | 2;
 
 export type CreateMeetingCommand = {
     type: 'create_meeting';
     title: string;
+    cloudPlayer?: CloudPlayerCommandOptions;
+};
+
+export type CloudPlayerCommandOptions = {
+    mediaStreamType: CloudPlayerMediaStreamType;
+    streamUrl: string;
+    playType: CloudPlayerPlayType;
+    repeatMode: CloudPlayerRepeatMode;
+    repeatTime: number;
+    type: CloudPlayerType;
 };
 
 export type MeetingCreatedReplyData = {
@@ -29,6 +48,8 @@ export type MeetingCreatedReplyData = {
     roadshowId: number;
     eventId: number;
     netLiveUrl: string;
+    cloudPlayerCreated?: boolean;
+    cloudPlayerError?: string;
 };
 
 export function extractIncomingText(event: FeishuIncomingMessageEvent): string | null {
@@ -84,15 +105,29 @@ export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | 
         return null;
     }
 
-    const title = match[1]?.trim() || DEFAULT_MEETING_TOPIC;
-    return {
+    const commandBody = match[1]?.trim() || '';
+    const cloudPlayer = parseCloudPlayerOptions(commandBody);
+    const titleText = cloudPlayer ? commandBody.slice(0, cloudPlayer.titleEndIndex).trim() : commandBody;
+    const command: CreateMeetingCommand = {
         type: 'create_meeting',
-        title
+        title: titleText || DEFAULT_MEETING_TOPIC
     };
+    if (cloudPlayer) {
+        command.cloudPlayer = cloudPlayer.options;
+    }
+
+    return command;
 }
 
 export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
-    return [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`].join('\n');
+    const lines = [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`];
+    if (data.cloudPlayerCreated) {
+        lines.push('云播：已创建');
+    } else if (data.cloudPlayerError) {
+        lines.push(`云播：创建失败（${data.cloudPlayerError}）`);
+    }
+
+    return lines.join('\n');
 }
 
 export function formatMeetingCreateFailedReply(error: unknown): string {
@@ -108,6 +143,25 @@ export function toFeishuReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE)
     return {
         reaction_type: {
             emoji_type: emojiType
+        }
+    };
+}
+
+function parseCloudPlayerOptions(commandBody: string): { titleEndIndex: number; options: CloudPlayerCommandOptions } | null {
+    const match = commandBody.match(/(?:^|\s)(音频)?云播\s+(https?:\/\/\S+)\s*$/i);
+    if (!match || match.index === undefined) {
+        return null;
+    }
+
+    return {
+        titleEndIndex: match.index,
+        options: {
+            mediaStreamType: match[1] ? 1 : 2,
+            streamUrl: match[2],
+            playType: DEFAULT_CLOUD_PLAYER_PLAY_TYPE,
+            repeatMode: DEFAULT_CLOUD_PLAYER_REPEAT_MODE,
+            repeatTime: DEFAULT_CLOUD_PLAYER_REPEAT_TIME,
+            type: DEFAULT_CLOUD_PLAYER_TYPE
         }
     };
 }
