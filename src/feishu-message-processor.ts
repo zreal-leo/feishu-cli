@@ -262,55 +262,65 @@ async function streamReplyToFeishuCard(chatId: string, cursorReply: AsyncIterabl
     let lastUpdateAt = 0;
     let sequence = 0;
 
-    for await (const replyChunk of cursorReply) {
-        if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
-            continue;
-        }
+    try {
+        for await (const replyChunk of cursorReply) {
+            if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
+                continue;
+            }
 
-        replyText += replyChunk;
+            replyText += replyChunk;
 
-        if (!options.updateCardElementContent || !options.finishCardStreaming) {
-            continue;
-        }
+            if (!options.updateCardElementContent || !options.finishCardStreaming) {
+                continue;
+            }
 
-        if (!sentInitialCard) {
-            sentInitialCard = true;
-            initialCardText = replyText;
-            sentCardId = extractSentCardId(await sendCardMessage(chatId, buildCursorReplyCard(replyText, { streaming: true })));
+            if (!sentInitialCard) {
+                sentInitialCard = true;
+                initialCardText = replyText;
+                sentCardId = extractSentCardId(await sendCardMessage(chatId, buildCursorReplyCard(replyText, { streaming: true })));
+
+                if (!sentCardId) {
+                    fallbackToFinalCard = true;
+                    options.logger.error(`[feishu-bot] streaming card update skipped because sent card_id is missing chatId=${chatId}`);
+                }
+
+                continue;
+            }
 
             if (!sentCardId) {
-                fallbackToFinalCard = true;
-                options.logger.error(`[feishu-bot] streaming card update skipped because sent card_id is missing chatId=${chatId}`);
+                continue;
             }
 
-            continue;
-        }
-
-        if (!sentCardId) {
-            continue;
-        }
-
-        if (lastUpdateAt > 0) {
-            const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastUpdateAt);
-            if (delayMs > 0) {
-                await sleep(delayMs);
+            if (lastUpdateAt > 0) {
+                const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastUpdateAt);
+                if (delayMs > 0) {
+                    await sleep(delayMs);
+                }
             }
-        }
 
-        await options.updateCardElementContent(sentCardId, CURSOR_REPLY_CARD_ELEMENT_ID, replyText, ++sequence);
-        lastUpdateAt = Date.now();
+            await options.updateCardElementContent(sentCardId, CURSOR_REPLY_CARD_ELEMENT_ID, replyText, ++sequence);
+            lastUpdateAt = Date.now();
+        }
+    } finally {
+        if (sentCardId && options.finishCardStreaming) {
+            await finishStreamingCardBestEffort(sentCardId, ++sequence, summarizeCardText(replyText), options);
+        }
     }
 
     if (!sentInitialCard && replyText.trim().length > 0) {
         await sendCardMessage(chatId, buildCursorReplyCard(replyText));
     }
 
-    if (sentCardId && options.finishCardStreaming) {
-        await options.finishCardStreaming(sentCardId, ++sequence, summarizeCardText(replyText));
-    }
-
     if (fallbackToFinalCard && replyText !== initialCardText && replyText.trim().length > 0) {
         await sendCardMessage(chatId, buildCursorReplyCard(replyText));
+    }
+}
+
+async function finishStreamingCardBestEffort(cardId: string, sequence: number, summary: string, options: Pick<StreamReplyToFeishuMessageOptions, 'finishCardStreaming' | 'logger'>): Promise<void> {
+    try {
+        await options.finishCardStreaming?.(cardId, sequence, summary);
+    } catch (error) {
+        options.logger.error(`[feishu-bot] streaming card finish failed cardId=${cardId}`, error);
     }
 }
 
