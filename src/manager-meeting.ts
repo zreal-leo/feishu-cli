@@ -10,6 +10,7 @@ export type CreateManagerMeetingRequest = {
 };
 
 export type ManagerMeetingResult = {
+    title: string;
     roadshowId: number;
     eventId: number;
     netLiveUrl: string;
@@ -19,8 +20,10 @@ export type ManagerMeetingClient = {
     createMeeting: (request: CreateManagerMeetingRequest) => Promise<ManagerMeetingResult>;
 };
 
-const DEFAULT_START_AFTER_MINUTES = 20;
+const DEFAULT_START_AFTER_MINUTES = 5;
 const MANAGER_LOGIN_ORIGIN = 'manager-test.comein.cn';
+const DEFAULT_MEETING_LOGO = 'https://image.comein.cn/comein-files/img/1ead173108694842bcbea9227c70b4ce.jpg';
+const MANAGER_BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
 
 type ManagerLoginVerificationPayload = {
     id: string | number;
@@ -66,6 +69,26 @@ export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: F
     const loginBody = await readManagerJson(
         await fetchImpl(joinManagerUrl(config.baseUrl, '/system/login'), {
             method: 'POST',
+            headers: {
+                accept: '*/*',
+                'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                b: '3.0.3',
+                browse: 'Netscape',
+                'content-type': 'application/json;charset=utf-8',
+                currentuid: '297',
+                origin: 'https://manager-test.comein.cn',
+                priority: 'u=1, i',
+                'sec-ch-ua': '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-site',
+                token: 'null',
+                ua: MANAGER_BROWSER_UA,
+                uc: 'comein-pc',
+                'user-agent': MANAGER_BROWSER_UA
+            },
             body: JSON.stringify({
                 loginName: config.loginName,
                 password: config.password,
@@ -115,6 +138,10 @@ function buildLoginVerificationPayload(loginBody: unknown): ManagerLoginVerifica
 export async function createManagerMeeting(config: ManagerMeetingConfig, request: CreateManagerMeetingRequest, token: string, fetchImpl: FetchLike = fetch): Promise<ManagerMeetingResult> {
     const stimeMs = resolveStartTimeMs(request);
     const payload = buildMeetingPayload(request.title, stimeMs);
+    const title = getStringValue(payload, 'title');
+    if (!title) {
+        throw new Error('创建会议 payload 缺少 title。');
+    }
 
     const body = await readManagerJson(
         await fetchImpl(joinManagerUrl(config.baseUrl, '/managecenter/roadshow/create'), {
@@ -146,6 +173,7 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
     }
 
     return {
+        title,
         roadshowId,
         eventId,
         netLiveUrl
@@ -153,16 +181,16 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
 }
 
 export function buildMeetingPayload(title: string, stimeMs: number): Record<string, unknown> {
-    const fullTitle = `${title}_${formatTitleTimestamp(new Date())}`;
+    const fullTitle = formatMeetingTitle(title, new Date(stimeMs));
 
     return {
         eventType: 2,
         htmlInfo: { title: '内容：', content: '直播间测试' },
         stime: stimeMs,
-        logo: 'https://example.com/logo.png',
-        logoWeb: 'https://example.com/logo-web.png',
-        logoWall: 'https://example.com/logo-wall.png',
-        logoWall169: 'https://example.com/logo-wall-169.png',
+        logo: DEFAULT_MEETING_LOGO,
+        logoWeb: DEFAULT_MEETING_LOGO,
+        logoWall: DEFAULT_MEETING_LOGO,
+        logoWall169: DEFAULT_MEETING_LOGO,
         isDownload: 1,
         description: '欢迎来到直播间',
         length: 120,
@@ -190,7 +218,7 @@ export function buildMeetingPayload(title: string, stimeMs: number): Record<stri
         adminId: 22,
         adminName: '管理员账号',
         contentInfo: '测试使用123',
-        serviceType: 7,
+        serviceType: 0,
         serviceId: '1357',
         eventMode: 567,
         marketTagIds: '519,520',
@@ -293,13 +321,10 @@ function joinManagerUrl(baseUrl: string, path: string): string {
     return `${baseUrl.replace(/\/+$/, '')}${path}`;
 }
 
-function formatTitleTimestamp(date: Date): string {
-    const month = pad2(date.getMonth() + 1);
-    const day = pad2(date.getDate());
+function formatMeetingTitle(topic: string, date: Date): string {
     const hours = pad2(date.getHours());
     const minutes = pad2(date.getMinutes());
-    const seconds = pad2(date.getSeconds());
-    return `${month}-${day}_${hours}:${minutes}:${seconds}`;
+    return `BOT: ${topic} ${hours}:${minutes}`;
 }
 
 function pad2(value: number): string {

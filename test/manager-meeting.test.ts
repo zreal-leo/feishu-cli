@@ -4,6 +4,28 @@ import { describe, it } from 'node:test';
 import type { ManagerMeetingConfig } from '../src/config.js';
 import { buildMeetingPayload, createManagerMeeting, createManagerMeetingClient, getManagerToken } from '../src/manager-meeting.js';
 
+const expectedLogoUrl = 'https://image.comein.cn/comein-files/img/1ead173108694842bcbea9227c70b4ce.jpg';
+const expectedLoginHeaders = {
+    accept: '*/*',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    b: '3.0.3',
+    browse: 'Netscape',
+    'content-type': 'application/json;charset=utf-8',
+    currentuid: '297',
+    origin: 'https://manager-test.comein.cn',
+    priority: 'u=1, i',
+    'sec-ch-ua': '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-site',
+    token: 'null',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+    uc: 'comein-pc',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
+};
+
 function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): ManagerMeetingConfig {
     return {
         env: 'test',
@@ -16,14 +38,19 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
 
 describe('buildMeetingPayload', () => {
     it('uses test environment defaults', () => {
-        const payload = buildMeetingPayload('自动化会议', 1760000000000);
+        const stimeMs = new Date(2026, 4, 30, 15, 33).getTime();
+        const payload = buildMeetingPayload('AI总结', stimeMs);
 
-        assert.equal(payload.stime, 1760000000000);
-        assert.match(String(payload.title), /^自动化会议_/);
+        assert.equal(payload.stime, stimeMs);
+        assert.equal(payload.title, 'BOT: AI总结 15:33');
+        assert.equal(payload.logo, expectedLogoUrl);
+        assert.equal(payload.logoWeb, expectedLogoUrl);
+        assert.equal(payload.logoWall, expectedLogoUrl);
+        assert.equal(payload.logoWall169, expectedLogoUrl);
         assert.equal(payload.uid, 15281329);
         assert.equal(payload.organizationId, 747);
         assert.equal(payload.eventMode, 567);
-        assert.equal(payload.serviceType, 7);
+        assert.equal(payload.serviceType, 0);
         assert.equal(payload.serviceId, '1357');
         assert.equal(payload.isTest, 0);
         assert.equal(payload.isHide, 0);
@@ -33,7 +60,7 @@ describe('buildMeetingPayload', () => {
 });
 
 describe('getManagerToken', () => {
-    it('fetches a token through login and verifyCode requests without custom headers', async () => {
+    it('fetches a token through login and verifyCode requests', async () => {
         const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
         const fetchImpl = (async (input, init) => {
             const url = String(input);
@@ -58,7 +85,7 @@ describe('getManagerToken', () => {
 
         assert.equal(new URL(requests[0].url).pathname, '/comein/manager/system/login');
         assert.equal(requests[0].init?.method, 'POST');
-        assert.equal(requests[0].init?.headers, undefined);
+        assert.deepEqual(requests[0].init?.headers, expectedLoginHeaders);
         assert.deepEqual(JSON.parse(String(requests[0].init?.body)), {
             loginName: 'admin',
             password: 'password',
@@ -79,7 +106,7 @@ describe('getManagerToken', () => {
 });
 
 describe('createManagerMeeting', () => {
-    it('posts the meeting payload and extracts the meeting result', async () => {
+    it('posts the meeting payload with a default start time and extracts the meeting result', async () => {
         let requestedUrl = '';
         let requestInit: RequestInit | undefined;
         const fetchImpl = (async (input, init) => {
@@ -88,9 +115,10 @@ describe('createManagerMeeting', () => {
             return new Response(JSON.stringify({ code: '0', msg: 'success', data: { id: 123456, eid: 789012, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
         }) as typeof fetch;
 
-        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', stimeMs: 1760000000000 }, 'manager_token', fetchImpl);
+        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date(2026, 4, 30, 15, 28) }, 'manager_token', fetchImpl);
 
         assert.deepEqual(result, {
+            title: 'BOT: 跨项目接入测试会议 15:33',
             roadshowId: 123456,
             eventId: 789012,
             netLiveUrl: 'http://s.comein.cn/live'
@@ -102,8 +130,8 @@ describe('createManagerMeeting', () => {
         });
 
         const payload = JSON.parse(String(requestInit?.body)) as Record<string, unknown>;
-        assert.equal(payload.stime, 1760000000000);
-        assert.match(String(payload.title), /^跨项目接入测试会议_/);
+        assert.equal(payload.stime, new Date(2026, 4, 30, 15, 33).getTime());
+        assert.equal(payload.title, 'BOT: 跨项目接入测试会议 15:33');
         assert.equal(payload.uid, 15281329);
         assert.equal(payload.organizationId, 747);
     });
@@ -175,9 +203,10 @@ describe('createManagerMeetingClient', () => {
         }) as typeof fetch;
 
         const client = createManagerMeetingClient(createTestConfig(), fetchImpl);
-        const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: 1760000000000 });
+        const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: new Date(2026, 4, 30, 15, 33).getTime() });
 
         assert.deepEqual(result, {
+            title: 'BOT: 刷新 token 会议 15:33',
             roadshowId: 1,
             eventId: 2,
             netLiveUrl: 'http://s.comein.cn/live'

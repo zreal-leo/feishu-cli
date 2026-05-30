@@ -185,6 +185,7 @@ describe('createFeishuMessageProcessor', () => {
             createMeeting: async request => {
                 actions.push(`create-meeting:${request.title}`);
                 return {
+                    title: 'BOT: 跨项目接入测试会议 15:33',
                     roadshowId: 123456,
                     eventId: 789012,
                     netLiveUrl: 'http://s.comein.cn/live'
@@ -201,7 +202,7 @@ describe('createFeishuMessageProcessor', () => {
         assert.deepEqual(actions, [
             'reaction:om_create_meeting:Typing',
             'create-meeting:跨项目接入测试会议',
-            `send:chat_1:${['会议创建成功', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`,
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: 跨项目接入测试会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`,
             'remove-reaction:om_create_meeting:reaction_1'
         ]);
     });

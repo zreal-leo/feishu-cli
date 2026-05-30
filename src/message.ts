@@ -11,7 +11,7 @@ export type FeishuIncomingMessageEvent = {
 };
 
 export const DEFAULT_REACTION_EMOJI_TYPE = 'Typing';
-const DEFAULT_MEETING_TITLE = '飞书创建会议';
+const DEFAULT_MEETING_TOPIC = '会议';
 
 export type CreateMeetingCommand = {
     type: 'create_meeting';
@@ -19,6 +19,7 @@ export type CreateMeetingCommand = {
 };
 
 export type MeetingCreatedReplyData = {
+    title: string;
     roadshowId: number;
     eventId: number;
     netLiveUrl: string;
@@ -52,7 +53,7 @@ export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | 
         return null;
     }
 
-    const title = match[1]?.trim() || DEFAULT_MEETING_TITLE;
+    const title = match[1]?.trim() || DEFAULT_MEETING_TOPIC;
     return {
         type: 'create_meeting',
         title
@@ -60,7 +61,7 @@ export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | 
 }
 
 export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
-    return [`会议创建成功`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`].join('\n');
+    return [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`].join('\n');
 }
 
 export function formatMeetingCreateFailedReply(error: unknown): string {

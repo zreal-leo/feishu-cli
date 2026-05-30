@@ -40,7 +40,7 @@ describe('parseCreateMeetingCommand', () => {
     it('parses the default create meeting command', () => {
         assert.deepEqual(parseCreateMeetingCommand('创建会议'), {
             type: 'create_meeting',
-            title: '飞书创建会议'
+            title: '会议'
         });
     });
 
@@ -58,7 +58,10 @@ describe('parseCreateMeetingCommand', () => {
 
 describe('formatMeetingCreatedReply', () => {
     it('formats the manager meeting result for Feishu', () => {
-        assert.equal(formatMeetingCreatedReply({ roadshowId: 123456, eventId: 789012, netLiveUrl: 'http://s.comein.cn/live' }), ['会议创建成功', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n'));
+        assert.equal(
+            formatMeetingCreatedReply({ title: 'BOT: AI总结 15:33', roadshowId: 123456, eventId: 789012, netLiveUrl: 'http://s.comein.cn/live' }),
+            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')
+        );
     });
 });
 
