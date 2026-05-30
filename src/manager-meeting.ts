@@ -52,13 +52,15 @@ export function createManagerMeetingClient(config: ManagerMeetingConfig, fetchIm
 }
 
 export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): Promise<string> {
-    if (!config.loginName || !config.password) {
-        throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD。');
+    if (!config.loginName || !config.password || !config.loginId || !config.code) {
+        throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD、MANAGER_LOGIN_ID、MANAGER_CODE。');
     }
 
     const url = new URL(joinManagerUrl(config.baseUrl, '/system/verifyCode'));
     url.searchParams.set('loginName', config.loginName);
     url.searchParams.set('password', config.password);
+    url.searchParams.set('id', config.loginId);
+    url.searchParams.set('code', config.code);
 
     const body = await readManagerJson(await fetchImpl(url, { method: 'GET' }), '获取后台 token');
     const token = getNestedString(body, ['data', 'token']);

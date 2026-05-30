@@ -10,6 +10,8 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
         baseUrl: 'https://testserver.comein.cn/comein/manager',
         loginName: 'admin',
         password: 'password',
+        loginId: 'login_id',
+        code: '1234',
         ...overrides
     };
 }
@@ -43,7 +45,9 @@ describe('getManagerToken', () => {
         const token = await getManagerToken(
             createTestConfig({
                 loginName: 'admin',
-                password: 'password'
+                password: 'password',
+                loginId: 'login_id',
+                code: '1234'
             }),
             fetchImpl
         );
@@ -53,8 +57,8 @@ describe('getManagerToken', () => {
         assert.equal(url.pathname, '/comein/manager/system/verifyCode');
         assert.equal(url.searchParams.get('loginName'), 'admin');
         assert.equal(url.searchParams.get('password'), 'password');
-        assert.equal(url.searchParams.get('id'), null);
-        assert.equal(url.searchParams.get('code'), null);
+        assert.equal(url.searchParams.get('id'), 'login_id');
+        assert.equal(url.searchParams.get('code'), '1234');
     });
 });
 
