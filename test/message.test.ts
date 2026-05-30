@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, buildMeetingCreatedCard, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
+import {
+    DEFAULT_REACTION_EMOJI_TYPE,
+    buildCursorPrompt,
+    buildFeishuDocCursorPrompt,
+    buildMeetingCreatedCard,
+    extractIncomingText,
+    formatMeetingCreatedReply,
+    parseCreateMeetingCommand,
+    parseFeishuDocCommand,
+    toFeishuReactionPayload,
+    toFeishuTextContent
+} from '../src/message.js';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {
@@ -148,6 +159,49 @@ describe('parseCreateMeetingCommand', () => {
 
     it('ignores non-command text', () => {
         assert.equal(parseCreateMeetingCommand('请帮我总结这段内容'), null);
+    });
+});
+
+describe('parseFeishuDocCommand', () => {
+    it('extracts a docx link and instruction from text', () => {
+        assert.deepEqual(parseFeishuDocCommand('列出文档中所有需要国际化的文本 https://example.feishu.cn/docx/AbcD1234?from=from_copylink'), {
+            type: 'feishu_doc',
+            url: 'https://example.feishu.cn/docx/AbcD1234?from=from_copylink',
+            resourceType: 'docx',
+            token: 'AbcD1234',
+            instruction: '列出文档中所有需要国际化的文本'
+        });
+    });
+
+    it('extracts a wiki link when the instruction follows the URL', () => {
+        assert.deepEqual(parseFeishuDocCommand('https://example.feishu.cn/wiki/WikiToken01 列出所有 TODO'), {
+            type: 'feishu_doc',
+            url: 'https://example.feishu.cn/wiki/WikiToken01',
+            resourceType: 'wiki',
+            token: 'WikiToken01',
+            instruction: '列出所有 TODO'
+        });
+    });
+
+    it('uses a default instruction when only a document link is provided', () => {
+        assert.equal(parseFeishuDocCommand('https://example.feishu.cn/docx/DocOnly01。')?.instruction, '请总结这份文档的核心内容。');
+    });
+
+    it('ignores non-Feishu document links', () => {
+        assert.equal(parseFeishuDocCommand('请看 https://example.com/docx/AbcD1234'), null);
+    });
+});
+
+describe('buildFeishuDocCursorPrompt', () => {
+    it('wraps the document content with the user instruction', () => {
+        const command = parseFeishuDocCommand('列出文档中所有需要国际化的文本 https://example.feishu.cn/docx/AbcD1234');
+        assert.ok(command);
+
+        const prompt = buildFeishuDocCursorPrompt(command, '按钮：提交\n占位符：请输入姓名');
+
+        assert.match(prompt, /列出文档中所有需要国际化的文本/);
+        assert.match(prompt, /按钮：提交/);
+        assert.match(prompt, /只能根据下方“文档内容”回答/);
     });
 });
 

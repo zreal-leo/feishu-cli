@@ -396,6 +396,58 @@ describe('createFeishuMessageProcessor', () => {
         assert.deepEqual(actions, ['create-meeting:AI总结', `send:chat_1:${['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`]);
     });
 
+    it('reads a Feishu doc and sends the instruction plus document content to Cursor', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamingUpdateIntervalMs: 0,
+            fetchFeishuDocContent: async command => {
+                actions.push(`fetch-doc:${command.resourceType}:${command.token}:${command.instruction}`);
+                return { content: '按钮：提交\n占位符：请输入姓名' };
+            },
+            streamCursorReply: async function* (options) {
+                actions.push(`cursor:${options.prompt.includes('列出文档中所有需要国际化的文本')}:${options.prompt.includes('按钮：提交')}`);
+                yield '提交\n请输入姓名';
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_doc', '列出文档中所有需要国际化的文本 https://example.feishu.cn/docx/DocToken01?from=copy'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['fetch-doc:docx:DocToken01:列出文档中所有需要国际化的文本', 'cursor:true:true', 'send:chat_1:提交\n请输入姓名']);
+    });
+
+    it('sends a readable error when Feishu doc fetching fails', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            fetchFeishuDocContent: async () => {
+                throw new Error('无权限读取文档');
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor';
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_doc_failed', '列出标题 https://example.feishu.cn/docx/NoAccess01'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['send:chat_1:读取飞书文档失败：无权限读取文档']);
+    });
+
     it('sends an error message when manager meeting creation fails', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
 

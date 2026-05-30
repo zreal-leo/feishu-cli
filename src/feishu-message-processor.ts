@@ -1,20 +1,24 @@
 import { streamCursorReply as defaultStreamCursorReply } from './cursor-agent.js';
 import type { AskCursorOptions } from './cursor-agent.js';
+import type { FetchFeishuDocContent } from './feishu-doc.js';
 import type { FeishuCard, FeishuIncomingMessageEvent } from './message.js';
 import {
     CURSOR_REPLY_CARD_ELEMENT_ID,
     DEFAULT_REACTION_EMOJI_TYPE,
     buildCursorPrompt,
+    buildFeishuDocCursorPrompt,
     buildCursorReplyCard,
     buildMeetingCreateFailedCard,
     buildMeetingCreatedCard,
     extractIncomingText,
+    formatFeishuDocReadFailedReply,
     formatMeetingCreateFailedReply,
     formatMeetingCreatedReply,
     parseCreateMeetingCommand,
+    parseFeishuDocCommand,
     summarizeCardText
 } from './message.js';
-import type { CloudPlayerCommandOptions, CreateMeetingCommand, MeetingCreatedReplyData } from './message.js';
+import type { CloudPlayerCommandOptions, CreateMeetingCommand, FeishuDocCommand, MeetingCreatedReplyData } from './message.js';
 import { createSegmentTimer, formatDurationMs } from './timing.js';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
@@ -40,6 +44,7 @@ export type FeishuMessageProcessorOptions = {
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
+    fetchFeishuDocContent?: FetchFeishuDocContent;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
 };
@@ -109,6 +114,27 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                         return;
                     }
 
+                    const feishuDocCommand = parseFeishuDocCommand(text);
+
+                    if (feishuDocCommand) {
+                        await handleFeishuDocCommand(chatId, feishuDocCommand, {
+                            cursorApiKey: options.cursorApiKey,
+                            cursorModel: options.cursorModel,
+                            fetchFeishuDocContent: options.fetchFeishuDocContent,
+                            finishCardStreaming: options.finishCardStreaming,
+                            logger,
+                            messageId,
+                            sendCardMessage: options.sendCardMessage,
+                            sendTextMessage: options.sendTextMessage,
+                            streamCursorReply,
+                            streamingUpdateIntervalMs,
+                            timer,
+                            updateCardElementContent: options.updateCardElementContent,
+                            updateTextMessage: options.updateTextMessage
+                        });
+                        return;
+                    }
+
                     const cursorReply = streamCursorReply({
                         apiKey: options.cursorApiKey,
                         model: options.cursorModel,
@@ -169,6 +195,62 @@ async function removeAddedReaction(messageId: string, reactionId: string, option
             `[feishu-bot] reaction removal failed chatId=${options.chatId} messageId=${messageId} reactionId=${reactionId} segment=${formatDurationMs(reactionRemovalFailureTiming.segmentMs)} total=${formatDurationMs(reactionRemovalFailureTiming.totalMs)}`,
             removeReactionError
         );
+    }
+}
+
+type HandleFeishuDocCommandOptions = {
+    cursorApiKey: string;
+    cursorModel: string;
+    fetchFeishuDocContent?: FetchFeishuDocContent;
+    finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
+    logger: Logger;
+    messageId?: string;
+    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
+    sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
+    streamCursorReply: CursorReplyStreamer;
+    streamingUpdateIntervalMs: number;
+    timer: ReturnType<typeof createSegmentTimer>;
+    updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
+    updateTextMessage?: (messageId: string, text: string) => Promise<void>;
+};
+
+async function handleFeishuDocCommand(chatId: string, command: FeishuDocCommand, options: HandleFeishuDocCommandOptions): Promise<void> {
+    try {
+        if (!options.fetchFeishuDocContent) {
+            throw new Error('飞书文档读取能力未配置。');
+        }
+
+        const doc = await options.fetchFeishuDocContent(command);
+        const fetchTiming = options.timer.mark();
+        options.logger.info(
+            `[feishu-bot] feishu doc fetched chatId=${chatId} messageId=${options.messageId ?? 'unknown'} resourceType=${command.resourceType} contentLength=${doc.content.length} segment=${formatDurationMs(fetchTiming.segmentMs)} total=${formatDurationMs(fetchTiming.totalMs)}`
+        );
+
+        const cursorReply = options.streamCursorReply({
+            apiKey: options.cursorApiKey,
+            model: options.cursorModel,
+            prompt: buildFeishuDocCursorPrompt(command, doc.content)
+        });
+
+        await streamReplyToFeishuMessage(chatId, cursorReply, {
+            finishCardStreaming: options.finishCardStreaming,
+            logger: options.logger,
+            sendCardMessage: options.sendCardMessage,
+            sendTextMessage: options.sendTextMessage,
+            streamingUpdateIntervalMs: options.streamingUpdateIntervalMs,
+            updateCardElementContent: options.updateCardElementContent,
+            updateTextMessage: options.updateTextMessage
+        });
+
+        const sendTiming = options.timer.mark();
+        options.logger.info(`[feishu-bot] feishu doc reply sent chatId=${chatId} messageId=${options.messageId ?? 'unknown'} segment=${formatDurationMs(sendTiming.segmentMs)} total=${formatDurationMs(sendTiming.totalMs)}`);
+    } catch (error) {
+        const failureTiming = options.timer.mark();
+        options.logger.error(
+            `[feishu-bot] feishu doc handling failed chatId=${chatId} messageId=${options.messageId ?? 'unknown'} segment=${formatDurationMs(failureTiming.segmentMs)} total=${formatDurationMs(failureTiming.totalMs)}`,
+            error
+        );
+        await options.sendTextMessage(chatId, formatFeishuDocReadFailedReply(error));
     }
 }
 

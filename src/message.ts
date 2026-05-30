@@ -28,6 +28,8 @@ const DEFAULT_CLOUD_PLAYER_REPEAT_MODE = -1;
 const DEFAULT_CLOUD_PLAYER_REPEAT_TIME = 1;
 const DEFAULT_CLOUD_PLAYER_TYPE = 1;
 const DEFAULT_CLOUD_PLAYER_VIDEO_URL = 'https://media.comein.cn/video/344317-1740031837920.mp4';
+const DEFAULT_FEISHU_DOC_INSTRUCTION = '请总结这份文档的核心内容。';
+const FEISHU_DOC_CONTENT_MAX_LENGTH = 60000;
 
 export type CloudPlayerMediaStreamType = 1 | 2;
 export type CloudPlayerPlayType = 1;
@@ -89,6 +91,16 @@ export type CreateMeetingCommand = {
     type: 'create_meeting';
     title: string;
     cloudPlayer?: CloudPlayerCommandOptions;
+};
+
+export type FeishuDocResourceType = 'docx' | 'wiki';
+
+export type FeishuDocCommand = {
+    type: 'feishu_doc';
+    url: string;
+    resourceType: FeishuDocResourceType;
+    token: string;
+    instruction: string;
 };
 
 export type CloudPlayerCommandOptions = {
@@ -186,6 +198,52 @@ export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | 
     }
 
     return command;
+}
+
+export function parseFeishuDocCommand(text: string): FeishuDocCommand | null {
+    const docLink = findFeishuDocLink(text);
+    if (!docLink) {
+        return null;
+    }
+
+    const instruction = normalizeInstruction(`${text.slice(0, docLink.startIndex)} ${text.slice(docLink.endIndex)}`);
+
+    return {
+        type: 'feishu_doc',
+        url: docLink.url,
+        resourceType: docLink.resourceType,
+        token: docLink.token,
+        instruction: instruction || DEFAULT_FEISHU_DOC_INSTRUCTION
+    };
+}
+
+export function buildFeishuDocCursorPrompt(command: FeishuDocCommand, docContent: string): string {
+    const { content, truncated } = truncateDocContent(docContent);
+    const lines = [
+        '你正在通过飞书机器人帮助用户分析一份飞书文档。',
+        '请用中文简洁回复，不要提及内部实现。',
+        '只能根据下方“文档内容”回答；如果文档内容不足以完成指令，请明确说明无法从文档判断。',
+        '',
+        '用户指令：',
+        command.instruction,
+        '',
+        '飞书文档链接：',
+        command.url,
+        '',
+        '文档内容：',
+        content || '（文档为空）'
+    ];
+
+    if (truncated) {
+        lines.push('', `注意：文档内容超过 ${FEISHU_DOC_CONTENT_MAX_LENGTH} 字，已截取前 ${FEISHU_DOC_CONTENT_MAX_LENGTH} 字用于分析。`);
+    }
+
+    return lines.join('\n');
+}
+
+export function formatFeishuDocReadFailedReply(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    return `读取飞书文档失败：${message}`;
 }
 
 export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
@@ -369,6 +427,88 @@ function buildCloudPlayerOptions(options: { mediaStreamType: CloudPlayerMediaStr
         repeatMode: DEFAULT_CLOUD_PLAYER_REPEAT_MODE,
         repeatTime: DEFAULT_CLOUD_PLAYER_REPEAT_TIME,
         type: DEFAULT_CLOUD_PLAYER_TYPE
+    };
+}
+
+type FeishuDocLinkMatch = {
+    url: string;
+    resourceType: FeishuDocResourceType;
+    token: string;
+    startIndex: number;
+    endIndex: number;
+};
+
+function findFeishuDocLink(text: string): FeishuDocLinkMatch | null {
+    const urlPattern = /https?:\/\/\S+/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = urlPattern.exec(text)) !== null) {
+        const candidate = trimUrlCandidate(match[0]);
+        const parsed = parseFeishuDocUrl(candidate);
+        if (!parsed) {
+            continue;
+        }
+
+        return {
+            ...parsed,
+            url: candidate,
+            startIndex: match.index,
+            endIndex: match.index + match[0].length
+        };
+    }
+
+    return null;
+}
+
+function trimUrlCandidate(value: string): string {
+    return value.replace(/[),，。；;、!?！？]+$/u, '');
+}
+
+function parseFeishuDocUrl(value: string): Pick<FeishuDocLinkMatch, 'resourceType' | 'token'> | null {
+    let url: URL;
+    try {
+        url = new URL(value);
+    } catch {
+        return null;
+    }
+
+    if (!isFeishuHost(url.hostname)) {
+        return null;
+    }
+
+    const segments = url.pathname.split('/').filter(Boolean);
+    const resourceIndex = segments.findIndex(segment => segment === 'docx' || segment === 'wiki');
+    if (resourceIndex < 0) {
+        return null;
+    }
+
+    const token = segments[resourceIndex + 1]?.trim();
+    if (!token || !/^[A-Za-z0-9_-]+$/.test(token)) {
+        return null;
+    }
+
+    return {
+        resourceType: segments[resourceIndex] as FeishuDocResourceType,
+        token
+    };
+}
+
+function isFeishuHost(hostname: string): boolean {
+    return hostname === 'feishu.cn' || hostname.endsWith('.feishu.cn') || hostname === 'larksuite.com' || hostname.endsWith('.larksuite.com');
+}
+
+function normalizeInstruction(value: string): string {
+    return value.replace(/\s+/g, ' ').trim();
+}
+
+function truncateDocContent(value: string): { content: string; truncated: boolean } {
+    if (value.length <= FEISHU_DOC_CONTENT_MAX_LENGTH) {
+        return { content: value, truncated: false };
+    }
+
+    return {
+        content: value.slice(0, FEISHU_DOC_CONTENT_MAX_LENGTH),
+        truncated: true
     };
 }
 

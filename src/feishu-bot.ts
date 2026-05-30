@@ -1,6 +1,7 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
 import type { ManagerMeetingConfig } from './config.js';
+import { createFeishuDocContentFetcher } from './feishu-doc.js';
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
 import { createManagerMeetingClient } from './manager-meeting.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
@@ -136,7 +137,8 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
         },
         createMeeting: async request => {
             return managerMeetingClient.createMeeting(request);
-        }
+        },
+        fetchFeishuDocContent: createFeishuDocContentFetcher(client)
     });
 
     const eventDispatcher = new Lark.EventDispatcher({
