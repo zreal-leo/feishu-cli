@@ -115,7 +115,7 @@ describe('createManagerMeeting', () => {
             return new Response(JSON.stringify({ code: '0', msg: 'success', data: { id: 123456, eid: 789012, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
         }) as typeof fetch;
 
-        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date(2026, 4, 30, 15, 28) }, 'manager_token', fetchImpl);
+        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date(2026, 4, 30, 15, 30) }, 'manager_token', fetchImpl);
 
         assert.deepEqual(result, {
             title: 'BOT: 跨项目接入测试会议 15:33',
