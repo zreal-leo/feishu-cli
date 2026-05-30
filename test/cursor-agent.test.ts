@@ -37,13 +37,14 @@ describe('ensureCursorRipgrepPath', () => {
             ensureCursorRipgrepPath();
 
             const platformPackageName = getCursorSdkPlatformPackageName();
-            assert.ok(process.env.CURSOR_RIPGREP_PATH);
-            assert.equal(isAbsolute(process.env.CURSOR_RIPGREP_PATH), true);
-            assert.equal(basename(process.env.CURSOR_RIPGREP_PATH), getRipgrepExecutableName());
+            const ripgrepPath = process.env.CURSOR_RIPGREP_PATH ?? '';
+            assert.notEqual(ripgrepPath, '');
+            assert.equal(isAbsolute(ripgrepPath), true);
+            assert.equal(basename(ripgrepPath), getRipgrepExecutableName());
             if (platformPackageName) {
-                assert.match(process.env.CURSOR_RIPGREP_PATH, new RegExp(platformPackageName.replace('/', '[+/\\\\]')));
+                assert.equal(ripgrepPath.includes(platformPackageName) || ripgrepPath.includes(platformPackageName.replace('/', '+')), true);
             }
-            assert.equal(process.env.CURSOR_RIPGREP_PATH.split(sep).at(-2), 'bin');
+            assert.equal(ripgrepPath.split(sep).at(-2), 'bin');
         } finally {
             if (previous === undefined) {
                 delete process.env.CURSOR_RIPGREP_PATH;

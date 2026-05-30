@@ -32,9 +32,9 @@ export function getRipgrepExecutableName(platform: NodeJS.Platform = process.pla
     return platform === 'win32' ? 'rg.exe' : 'rg';
 }
 
-function resolvePackageRipgrepPath(packageName: string, executable: string): string | undefined {
+function resolvePackageRipgrepPath(packageName: string, executable: string, fromDirectory: string): string | undefined {
     try {
-        const packageJsonPath = require.resolve(`${packageName}/package.json`);
+        const packageJsonPath = require.resolve(`${packageName}/package.json`, { paths: [fromDirectory] });
         const candidate = join(dirname(packageJsonPath), 'bin', executable);
 
         return existsSync(candidate) ? candidate : undefined;
@@ -45,14 +45,14 @@ function resolvePackageRipgrepPath(packageName: string, executable: string): str
 
 function resolveBundledRipgrepPath(): string | undefined {
     const executable = getRipgrepExecutableName();
+    const sdkEntry = require.resolve('@cursor/sdk');
+    const sdkRoot = resolve(dirname(sdkEntry), '../..');
     const platformPackageName = getCursorSdkPlatformPackageName();
-    const platformPackageRipgrepPath = platformPackageName ? resolvePackageRipgrepPath(platformPackageName, executable) : undefined;
+    const platformPackageRipgrepPath = platformPackageName ? resolvePackageRipgrepPath(platformPackageName, executable, sdkRoot) : undefined;
     if (platformPackageRipgrepPath) {
         return platformPackageRipgrepPath;
     }
 
-    const sdkEntry = require.resolve('@cursor/sdk');
-    const sdkRoot = resolve(dirname(sdkEntry), '../..');
     const candidate = join(sdkRoot, 'node_modules', '.bin', executable);
 
     return existsSync(candidate) ? candidate : undefined;
