@@ -34,23 +34,57 @@ export function ensureCursorRipgrepPath(): void {
 }
 
 export async function askCursor(options: AskCursorOptions): Promise<string> {
+    const chunks: string[] = [];
+    for await (const chunk of streamCursorReply(options)) {
+        chunks.push(chunk);
+    }
+
+    return chunks.join('').trim() || 'Cursor 没有返回可回复的内容。';
+}
+
+export async function* streamCursorReply(options: AskCursorOptions): AsyncGenerator<string, void> {
     try {
         ensureCursorRipgrepPath();
 
-        const result = await Agent.prompt(options.prompt, {
+        const agent = await Agent.create({
             apiKey: options.apiKey,
             model: { id: options.model },
             local: { cwd: options.cwd ?? process.cwd() }
         });
 
-        if (result.status === 'error') {
-            return `Cursor 运行失败，runId=${result.id}`;
-        }
+        try {
+            const run = await agent.send(options.prompt);
+            let streamedText = false;
 
-        return result.result?.trim() || 'Cursor 没有返回可回复的内容。';
+            for await (const event of run.stream()) {
+                if (event.type !== 'assistant') {
+                    continue;
+                }
+
+                for (const block of event.message.content) {
+                    if (block.type === 'text' && block.text.length > 0) {
+                        streamedText = true;
+                        yield block.text;
+                    }
+                }
+            }
+
+            const result = await run.wait();
+            if (result.status === 'error') {
+                yield `Cursor 运行失败，runId=${result.id}`;
+                return;
+            }
+
+            if (!streamedText && result.result?.trim()) {
+                yield result.result.trim();
+            }
+        } finally {
+            await agent[Symbol.asyncDispose]();
+        }
     } catch (error) {
         if (error instanceof CursorAgentError) {
-            return `Cursor 启动失败：${error.message}`;
+            yield `Cursor 启动失败：${error.message}`;
+            return;
         }
 
         throw error;

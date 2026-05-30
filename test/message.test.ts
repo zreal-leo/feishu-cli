@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildCursorPrompt, extractIncomingText, toFeishuTextContent } from '../src/message.js';
+import { buildCursorPrompt, extractIncomingText, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {
@@ -39,5 +39,15 @@ describe('buildCursorPrompt', () => {
 describe('toFeishuTextContent', () => {
     it('serializes Cursor text as Feishu text content', () => {
         assert.equal(toFeishuTextContent('收到，我来处理。'), JSON.stringify({ text: '收到，我来处理。' }));
+    });
+});
+
+describe('toFeishuReactionPayload', () => {
+    it('builds a Feishu message reaction payload', () => {
+        assert.deepEqual(toFeishuReactionPayload('THUMBSUP'), {
+            reaction_type: {
+                emoji_type: 'THUMBSUP'
+            }
+        });
     });
 });

@@ -21,6 +21,32 @@ function createTextEvent(messageId: string, text = '你好'): FeishuIncomingMess
 }
 
 describe('createFeishuMessageProcessor', () => {
+    it('adds a reaction before streaming the Cursor reply', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            addMessageReaction: async (messageId, emojiType) => {
+                actions.push(`reaction:${messageId}:${emojiType}`);
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '第一段';
+                yield '第二段';
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_stream'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['reaction:om_stream:THUMBSUP', 'cursor:start', 'send:chat_1:第一段', 'send:chat_1:第二段']);
+    });
+
     it('returns after queueing without waiting for Cursor', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
         let resolveCursor!: (reply: string) => void;

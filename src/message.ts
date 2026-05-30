@@ -10,6 +10,8 @@ export type FeishuIncomingMessageEvent = {
     };
 };
 
+export const DEFAULT_REACTION_EMOJI_TYPE = 'THUMBSUP';
+
 export function extractIncomingText(event: FeishuIncomingMessageEvent): string | null {
     if (event.sender?.sender_type === 'bot') {
         return null;
@@ -34,4 +36,12 @@ export function buildCursorPrompt(text: string): string {
 
 export function toFeishuTextContent(text: string): string {
     return JSON.stringify({ text });
+}
+
+export function toFeishuReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE): { reaction_type: { emoji_type: string } } {
+    return {
+        reaction_type: {
+            emoji_type: emojiType
+        }
+    };
 }

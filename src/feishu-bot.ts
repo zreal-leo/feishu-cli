@@ -2,7 +2,7 @@ import * as Lark from '@larksuiteoapi/node-sdk';
 
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
-import { toFeishuTextContent } from './message.js';
+import { toFeishuReactionPayload, toFeishuTextContent } from './message.js';
 
 export type StartBotOptions = {
     cursorApiKey: string;
@@ -26,6 +26,14 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
     const messageProcessor = createFeishuMessageProcessor({
         cursorApiKey: options.cursorApiKey,
         cursorModel: options.cursorModel,
+        addMessageReaction: async (messageId, emojiType) => {
+            await client.im.v1.messageReaction.create({
+                path: {
+                    message_id: messageId
+                },
+                data: toFeishuReactionPayload(emojiType)
+            });
+        },
         sendTextMessage: async (chatId, text) => {
             await client.im.v1.message.create({
                 params: {
