@@ -1,11 +1,21 @@
 import 'dotenv/config';
 
+import { DEFAULT_CONFIG } from './default-config.js';
+
 type Config = {
     cursorApiKey: string;
     cursorModel: string;
     feishuAppId: string;
     feishuAppSecret: string;
     feishuEncryptKey?: string;
+    managerMeeting: ManagerMeetingConfig;
+};
+
+export type ManagerMeetingConfig = {
+    env: 'test';
+    baseUrl: string;
+    loginName?: string;
+    password?: string;
 };
 
 function requireEnv(name: string): string {
@@ -19,9 +29,15 @@ function requireEnv(name: string): string {
 export function loadConfig(): Config {
     return {
         cursorApiKey: requireEnv('CURSOR_API_KEY'),
-        cursorModel: process.env.CURSOR_MODEL?.trim() || 'composer-2.5',
+        cursorModel: DEFAULT_CONFIG.cursorModel,
         feishuAppId: requireEnv('FEISHU_APP_ID'),
         feishuAppSecret: requireEnv('FEISHU_APP_SECRET'),
-        feishuEncryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined
+        feishuEncryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
+        managerMeeting: {
+            env: DEFAULT_CONFIG.managerMeeting.env,
+            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
+            loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
+            password: process.env.MANAGER_PASSWORD?.trim() || undefined
+        }
     };
 }

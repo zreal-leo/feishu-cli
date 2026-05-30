@@ -39,6 +39,22 @@ pnpm dev
 
 启动后，在飞书里给机器人发送文本消息，机器人会把消息交给 Cursor，并把 Cursor 的中文回复发回飞书。
 
+### 创建管理后台会议
+
+机器人收到以下文本时会跳过 Cursor，改为调用运营后台 `POST /managecenter/roadshow/create` 创建路演/直播会议：
+
+```text
+创建会议
+创建会议 跨项目接入测试会议
+```
+
+成功后会在同一飞书会话返回会议标题、会议 ID、事件 ID 和观看链接。默认 3 分钟后开始，标题格式为 `BOT: 主题 HH:mm`。`src/default-config.ts` 保存默认 Cursor 模型和测试运营后台域名；当前仅支持创建测试环境会议。创建会议会先调用运营后台登录接口，再用登录返回的信息换取并缓存 token：
+
+```bash
+MANAGER_LOGIN_NAME=admin
+MANAGER_PASSWORD=password
+```
+
 ### 构建后启动
 
 Cursor Agent 或生产环境可先构建 TypeScript，再执行构建产物：

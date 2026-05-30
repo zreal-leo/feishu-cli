@@ -1,9 +1,15 @@
+export type FeishuMessageMention = {
+    key?: string;
+    name?: string;
+};
+
 export type FeishuIncomingMessageEvent = {
     message?: {
         message_id?: string;
         message_type?: string;
         content?: string;
         chat_id?: string;
+        mentions?: FeishuMessageMention[];
     };
     sender?: {
         sender_type?: string;
@@ -11,6 +17,19 @@ export type FeishuIncomingMessageEvent = {
 };
 
 export const DEFAULT_REACTION_EMOJI_TYPE = 'Typing';
+const DEFAULT_MEETING_TOPIC = '会议';
+
+export type CreateMeetingCommand = {
+    type: 'create_meeting';
+    title: string;
+};
+
+export type MeetingCreatedReplyData = {
+    title: string;
+    roadshowId: number;
+    eventId: number;
+    netLiveUrl: string;
+};
 
 export function extractIncomingText(event: FeishuIncomingMessageEvent): string | null {
     if (event.sender?.sender_type === 'bot') {
@@ -23,15 +42,62 @@ export function extractIncomingText(event: FeishuIncomingMessageEvent): string |
 
     try {
         const content = JSON.parse(event.message.content) as { text?: unknown };
-        const text = typeof content.text === 'string' ? content.text.trim() : '';
+        const text = typeof content.text === 'string' ? stripLeadingMentions(content.text, event.message.mentions).trim() : '';
         return text.length > 0 ? text : null;
     } catch {
         return null;
     }
 }
 
+function stripLeadingMentions(text: string, mentions: FeishuMessageMention[] = []): string {
+    let result = text.trimStart();
+    let previous = '';
+
+    while (result !== previous) {
+        previous = result;
+        result = result.replace(/^<at\b[^>]*>.*?<\/at>\s*/i, '').trimStart();
+
+        for (const mention of mentions) {
+            const mentionTexts = [mention.key, mention.name ? `@${mention.name}` : undefined, mention.name].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+            for (const mentionText of mentionTexts) {
+                result = result.replace(new RegExp(`^${escapeRegExp(mentionText)}(?:\\s+|$)`), '').trimStart();
+            }
+        }
+
+        result = result.replace(/^@\S+\s+/, '').trimStart();
+    }
+
+    return result;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function buildCursorPrompt(text: string): string {
     return ['你正在通过飞书机器人回复用户。', '请用中文简洁回复，不要提及内部实现，除非用户明确询问。', '', '用户在飞书发送的消息：', text].join('\n');
+}
+
+export function parseCreateMeetingCommand(text: string): CreateMeetingCommand | null {
+    const match = text.trim().match(/^创建会议(?:\s+(.+))?$/s);
+    if (!match) {
+        return null;
+    }
+
+    const title = match[1]?.trim() || DEFAULT_MEETING_TOPIC;
+    return {
+        type: 'create_meeting',
+        title
+    };
+}
+
+export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
+    return [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`].join('\n');
+}
+
+export function formatMeetingCreateFailedReply(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    return `创建会议失败：${message}`;
 }
 
 export function toFeishuTextContent(text: string): string {

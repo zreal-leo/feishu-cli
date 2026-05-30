@@ -1,13 +1,15 @@
 import { streamCursorReply as defaultStreamCursorReply } from './cursor-agent.js';
 import type { AskCursorOptions } from './cursor-agent.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText } from './message.js';
+import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText, formatMeetingCreateFailedReply, formatMeetingCreatedReply, parseCreateMeetingCommand } from './message.js';
+import type { MeetingCreatedReplyData } from './message.js';
 import { createSegmentTimer, formatDurationMs } from './timing.js';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
 type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
 type SendTextMessageResult = { messageId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
+type CreateMeeting = (request: { title: string }) => Promise<MeetingCreatedReplyData>;
 
 const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 250;
 
@@ -21,6 +23,7 @@ export type FeishuMessageProcessorOptions = {
     reactionEmojiType?: string;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     updateTextMessage?: (messageId: string, text: string) => Promise<void>;
+    createMeeting?: CreateMeeting;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
 };
@@ -76,42 +79,46 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                         );
                     }
 
+                    const createMeetingCommand = parseCreateMeetingCommand(text);
+
+                    if (createMeetingCommand) {
+                        await handleCreateMeetingCommand(chatId, createMeetingCommand.title, {
+                            createMeeting: options.createMeeting,
+                            logger,
+                            messageId,
+                            sendTextMessage: options.sendTextMessage,
+                            timer
+                        });
+                        return;
+                    }
+
                     const cursorReply = streamCursorReply({
                         apiKey: options.cursorApiKey,
                         model: options.cursorModel,
                         prompt: buildCursorPrompt(text)
                     });
 
-                    try {
-                        await streamReplyToFeishuMessage(chatId, cursorReply, {
-                            logger,
-                            sendTextMessage: options.sendTextMessage,
-                            streamingUpdateIntervalMs,
-                            updateTextMessage: options.updateTextMessage
-                        });
+                    await streamReplyToFeishuMessage(chatId, cursorReply, {
+                        logger,
+                        sendTextMessage: options.sendTextMessage,
+                        streamingUpdateIntervalMs,
+                        updateTextMessage: options.updateTextMessage
+                    });
 
-                        const sendTiming = timer.mark();
-                        logger.info(`[feishu-bot] streaming reply sent chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(sendTiming.segmentMs)} total=${formatDurationMs(sendTiming.totalMs)}`);
-                    } finally {
-                        if (messageId && addedReactionId && options.removeMessageReaction) {
-                            try {
-                                await options.removeMessageReaction(messageId, addedReactionId);
-                                const reactionRemovalTiming = timer.mark();
-                                logger.info(
-                                    `[feishu-bot] reaction removed chatId=${chatId} messageId=${messageId} reactionId=${addedReactionId} segment=${formatDurationMs(reactionRemovalTiming.segmentMs)} total=${formatDurationMs(reactionRemovalTiming.totalMs)}`
-                                );
-                            } catch (removeReactionError) {
-                                const reactionRemovalFailureTiming = timer.mark();
-                                logger.error(
-                                    `[feishu-bot] reaction removal failed chatId=${chatId} messageId=${messageId} reactionId=${addedReactionId} segment=${formatDurationMs(reactionRemovalFailureTiming.segmentMs)} total=${formatDurationMs(reactionRemovalFailureTiming.totalMs)}`,
-                                    removeReactionError
-                                );
-                            }
-                        }
-                    }
+                    const sendTiming = timer.mark();
+                    logger.info(`[feishu-bot] streaming reply sent chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(sendTiming.segmentMs)} total=${formatDurationMs(sendTiming.totalMs)}`);
                 } catch (error) {
                     const failureTiming = timer.mark();
                     logger.error(`[feishu-bot] message handling failed chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(failureTiming.segmentMs)} total=${formatDurationMs(failureTiming.totalMs)}`, error);
+                } finally {
+                    if (messageId && addedReactionId && options.removeMessageReaction) {
+                        await removeAddedReaction(messageId, addedReactionId, {
+                            chatId,
+                            logger,
+                            removeMessageReaction: options.removeMessageReaction,
+                            timer
+                        });
+                    }
                 }
             });
         },
@@ -120,6 +127,59 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
             return queue;
         }
     };
+}
+
+type RemoveAddedReactionOptions = {
+    chatId: string;
+    logger: Logger;
+    removeMessageReaction: (messageId: string, reactionId: string) => Promise<void>;
+    timer: ReturnType<typeof createSegmentTimer>;
+};
+
+async function removeAddedReaction(messageId: string, reactionId: string, options: RemoveAddedReactionOptions): Promise<void> {
+    try {
+        await options.removeMessageReaction(messageId, reactionId);
+        const reactionRemovalTiming = options.timer.mark();
+        options.logger.info(
+            `[feishu-bot] reaction removed chatId=${options.chatId} messageId=${messageId} reactionId=${reactionId} segment=${formatDurationMs(reactionRemovalTiming.segmentMs)} total=${formatDurationMs(reactionRemovalTiming.totalMs)}`
+        );
+    } catch (removeReactionError) {
+        const reactionRemovalFailureTiming = options.timer.mark();
+        options.logger.error(
+            `[feishu-bot] reaction removal failed chatId=${options.chatId} messageId=${messageId} reactionId=${reactionId} segment=${formatDurationMs(reactionRemovalFailureTiming.segmentMs)} total=${formatDurationMs(reactionRemovalFailureTiming.totalMs)}`,
+            removeReactionError
+        );
+    }
+}
+
+type HandleCreateMeetingCommandOptions = {
+    createMeeting?: CreateMeeting;
+    logger: Logger;
+    messageId?: string;
+    sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
+    timer: ReturnType<typeof createSegmentTimer>;
+};
+
+async function handleCreateMeetingCommand(chatId: string, title: string, options: HandleCreateMeetingCommandOptions): Promise<void> {
+    try {
+        if (!options.createMeeting) {
+            throw new Error('创建会议能力未配置。');
+        }
+
+        const meeting = await options.createMeeting({ title });
+        await options.sendTextMessage(chatId, formatMeetingCreatedReply(meeting));
+        const createTiming = options.timer.mark();
+        options.logger.info(
+            `[feishu-bot] manager meeting created chatId=${chatId} messageId=${options.messageId ?? 'unknown'} roadshowId=${meeting.roadshowId} eventId=${meeting.eventId} segment=${formatDurationMs(createTiming.segmentMs)} total=${formatDurationMs(createTiming.totalMs)}`
+        );
+    } catch (error) {
+        const failureTiming = options.timer.mark();
+        options.logger.error(
+            `[feishu-bot] manager meeting creation failed chatId=${chatId} messageId=${options.messageId ?? 'unknown'} segment=${formatDurationMs(failureTiming.segmentMs)} total=${formatDurationMs(failureTiming.totalMs)}`,
+            error
+        );
+        await options.sendTextMessage(chatId, formatMeetingCreateFailedReply(error));
+    }
 }
 
 function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Promise<string>): CursorReplyStreamer {
