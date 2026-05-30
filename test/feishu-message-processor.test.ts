@@ -49,7 +49,7 @@ describe('createFeishuMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_stream'));
         await processor.drain();
 
-        assert.deepEqual(actions, ['reaction:om_stream:get', 'cursor:start', 'send:chat_1:第一段', 'update:om_reply:第一段第二段']);
+        assert.deepEqual(actions, ['reaction:om_stream:Typing', 'cursor:start', 'send:chat_1:第一段', 'update:om_reply:第一段第二段']);
     });
 
     it('returns after queueing without waiting for Cursor', async () => {

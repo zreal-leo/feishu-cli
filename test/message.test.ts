@@ -43,11 +43,11 @@ describe('toFeishuTextContent', () => {
 });
 
 describe('toFeishuReactionPayload', () => {
-    it('defaults to Feishu get emoji', () => {
-        assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'get');
+    it('defaults to Feishu Typing emoji', () => {
+        assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'Typing');
         assert.deepEqual(toFeishuReactionPayload(), {
             reaction_type: {
-                emoji_type: 'get'
+                emoji_type: 'Typing'
             }
         });
     });
