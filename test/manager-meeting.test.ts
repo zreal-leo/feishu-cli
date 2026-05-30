@@ -15,7 +15,7 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
 
 describe('buildMeetingPayload', () => {
     it('uses test environment defaults', () => {
-        const payload = buildMeetingPayload('自动化会议', 1760000000000, 'test');
+        const payload = buildMeetingPayload('自动化会议', 1760000000000);
 
         assert.equal(payload.stime, 1760000000000);
         assert.match(String(payload.title), /^自动化会议_/);
@@ -28,17 +28,6 @@ describe('buildMeetingPayload', () => {
         assert.equal(payload.isHide, 0);
         assert.deepEqual(payload.transDestLanguage, [0, 1, 2]);
         assert.deepEqual(payload.selectedTransChannels, ['cn', 'en', 'jp']);
-    });
-
-    it('uses production environment defaults', () => {
-        const payload = buildMeetingPayload('生产会议', 1760000000000, 'prod');
-
-        assert.equal(payload.uid, 2314049);
-        assert.equal(payload.organizationId, 20164);
-        assert.equal(payload.eventMode, 684);
-        assert.equal(payload.serviceId, '1002');
-        assert.equal(payload.isTest, 1);
-        assert.equal(payload.isHide, 1);
     });
 });
 

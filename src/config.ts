@@ -11,10 +11,8 @@ type Config = {
     managerMeeting: ManagerMeetingConfig;
 };
 
-export type ManagerMeetingEnv = 'test' | 'prod';
-
 export type ManagerMeetingConfig = {
-    env: ManagerMeetingEnv;
+    env: 'test';
     baseUrl: string;
     token?: string;
     loginName?: string;
@@ -32,8 +30,6 @@ function requireEnv(name: string): string {
 }
 
 export function loadConfig(): Config {
-    const managerEnv = DEFAULT_CONFIG.managerMeeting.env;
-
     return {
         cursorApiKey: requireEnv('CURSOR_API_KEY'),
         cursorModel: DEFAULT_CONFIG.cursorModel,
@@ -41,8 +37,8 @@ export function loadConfig(): Config {
         feishuAppSecret: requireEnv('FEISHU_APP_SECRET'),
         feishuEncryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
         managerMeeting: {
-            env: managerEnv,
-            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrls[managerEnv],
+            env: DEFAULT_CONFIG.managerMeeting.env,
+            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
             token: process.env.MANAGER_TOKEN?.trim() || undefined,
             loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
             password: process.env.MANAGER_PASSWORD?.trim() || undefined,

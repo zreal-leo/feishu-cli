@@ -25,7 +25,7 @@
 - **必填**：`CURSOR_API_KEY`、`FEISHU_APP_ID`、`FEISHU_APP_SECRET`
 - **可选**：`FEISHU_ENCRYPT_KEY`（仅当飞书事件订阅开启加密时）
 
-非敏感默认值（如 Cursor 模型、运营后台环境和域名）在 `src/default-config.ts` 中维护。
+非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
 
 ### 原生依赖
 

@@ -24,7 +24,7 @@ describe('loadConfig', () => {
         process.env.FEISHU_APP_ID = 'feishu_app_id';
         process.env.FEISHU_APP_SECRET = 'feishu_app_secret';
         process.env.FEISHU_ENCRYPT_KEY = 'encrypt_key';
-        process.env.ENV = 'prod';
+        process.env.ENV = 'env_value_should_be_ignored';
         process.env.MANAGER_BASE_URL = 'https://env.example.com/manager';
         process.env.MANAGER_TOKEN = 'manager_token';
 
@@ -37,7 +37,7 @@ describe('loadConfig', () => {
         assert.equal(config.feishuEncryptKey, 'encrypt_key');
         assert.deepEqual(config.managerMeeting, {
             env: DEFAULT_CONFIG.managerMeeting.env,
-            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrls[DEFAULT_CONFIG.managerMeeting.env],
+            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
             token: 'manager_token',
             loginName: undefined,
             password: undefined,

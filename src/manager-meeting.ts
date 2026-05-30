@@ -59,7 +59,7 @@ export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: F
 
 export async function createManagerMeeting(config: ManagerMeetingConfig, request: CreateManagerMeetingRequest, token: string, fetchImpl: FetchLike = fetch): Promise<ManagerMeetingResult> {
     const stimeMs = resolveStartTimeMs(request);
-    const payload = buildMeetingPayload(request.title, stimeMs, config.env);
+    const payload = buildMeetingPayload(request.title, stimeMs);
 
     const body = await readManagerJson(
         await fetchImpl(joinManagerUrl(config.baseUrl, '/managecenter/roadshow/create'), {
@@ -93,8 +93,7 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
     };
 }
 
-export function buildMeetingPayload(title: string, stimeMs: number, env: ManagerMeetingConfig['env']): Record<string, unknown> {
-    const isProd = env === 'prod';
+export function buildMeetingPayload(title: string, stimeMs: number): Record<string, unknown> {
     const fullTitle = `${title}_${formatTitleTimestamp(new Date())}`;
 
     return {
@@ -110,8 +109,8 @@ export function buildMeetingPayload(title: string, stimeMs: number, env: Manager
         length: 120,
         title: fullTitle,
         preparationMode: 0,
-        uid: isProd ? 2314049 : 15281329,
-        industryTagIds: isProd ? '' : '565,558',
+        uid: 15281329,
+        industryTagIds: '565,558',
         submit: 1,
         openStatus: 1,
         eventWays: 1,
@@ -124,7 +123,7 @@ export function buildMeetingPayload(title: string, stimeMs: number, env: Manager
         goodsPrice: 100,
         onStatus: 1,
         status: 0,
-        organizationId: isProd ? 20164 : 747,
+        organizationId: 747,
         interactiveMode: 0,
         isSupportConf: 1,
         isSyncAdvance: 1,
@@ -133,17 +132,17 @@ export function buildMeetingPayload(title: string, stimeMs: number, env: Manager
         adminName: '管理员账号',
         contentInfo: '测试使用123',
         serviceType: 7,
-        serviceId: isProd ? '1002' : '1357',
-        eventMode: isProd ? 684 : 567,
-        marketTagIds: isProd ? '696,697' : '519,520',
+        serviceId: '1357',
+        eventMode: 567,
+        marketTagIds: '519,520',
         researchDirectionTagIds: '1056',
         speakerTagIds: 1091,
-        topicIds: isProd ? '' : '942',
+        topicIds: '942',
         stockIds: '',
-        isTest: isProd ? 1 : 0,
-        isHide: isProd ? 1 : 0,
+        isTest: 0,
+        isHide: 0,
         isEx: 0,
-        needAssistant: isProd ? 0 : 1,
+        needAssistant: 1,
         assistantIds: '',
         liveNotice: '',
         subscribeUser: '',
