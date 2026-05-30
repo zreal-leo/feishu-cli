@@ -12,11 +12,13 @@
 | -------- | -------------------------------------------------------- |
 | 安装依赖 | `pnpm install`（见根目录 `.npmrc`，使用 npmmirror 镜像） |
 | 开发运行 | `pnpm dev`（`tsx src/index.ts`，长驻进程）               |
+| 构建     | `pnpm build`（输出到 `dist/`）                           |
+| 构建启动 | `pnpm start`（先构建，再执行 `node dist/index.js`）      |
 | 测试     | `pnpm test`                                              |
 | 类型检查 | `pnpm typecheck`                                         |
 | 格式化   | `pnpm prettier`                                          |
 
-无 ESLint、无 `build` 脚本。
+无 ESLint。
 
 ### 环境变量
 
@@ -32,12 +34,12 @@
 ### 端到端手动验证
 
 1. 在飞书开放平台配置自建应用（WebSocket、`im.message.receive_v1`、消息权限，机器人入群或私聊）。
-2. 配置上述环境变量后执行 `pnpm dev`。
+2. 配置上述环境变量后执行 `pnpm dev`，或在 Cursor Agent/生产环境执行 `pnpm start` 运行构建产物。
 3. 在飞书向机器人发送文本，确认收到 Cursor 中文回复。
 
 仅跑单元测试时**不需要**真实飞书或 Cursor 凭证（测试内 mock）。
 
 ### 开发运行注意
 
-- `pnpm dev` 会先打印 `Feishu Cursor bot is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
-- 使用 tmux 托管长驻 `pnpm dev` 进程，便于后续查看日志。
+- `pnpm dev` 与 `pnpm start` 都会先打印 `Feishu Cursor bot is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
+- 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。

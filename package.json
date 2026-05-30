@@ -4,7 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "build": "tsc -p tsconfig.build.json",
         "dev": "tsx src/index.ts",
+        "start": "pnpm build && node dist/index.js",
         "test": "tsx --test test/**/*.test.ts",
         "typecheck": "tsc --noEmit",
         "prettier": "prettier --write ."

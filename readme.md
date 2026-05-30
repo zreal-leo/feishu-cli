@@ -39,10 +39,29 @@ pnpm dev
 
 启动后，在飞书里给机器人发送文本消息，机器人会把消息交给 Cursor，并把 Cursor 的中文回复发回飞书。
 
+### 构建后启动
+
+Cursor Agent 或生产环境可先构建 TypeScript，再执行构建产物：
+
+```bash
+pnpm build
+node dist/index.js
+```
+
+也可以直接运行：
+
+```bash
+pnpm start
+```
+
+`pnpm start` 会先执行构建，再运行 `dist/index.js`。
+
 ### 常用命令
 
 ```bash
 pnpm test
 pnpm typecheck
+pnpm build
 pnpm dev
+pnpm start
 ```
