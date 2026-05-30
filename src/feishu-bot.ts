@@ -27,11 +27,21 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
         cursorApiKey: options.cursorApiKey,
         cursorModel: options.cursorModel,
         addMessageReaction: async (messageId, emojiType) => {
-            await client.im.v1.messageReaction.create({
+            const response = await client.im.v1.messageReaction.create({
                 path: {
                     message_id: messageId
                 },
                 data: toFeishuReactionPayload(emojiType)
+            });
+
+            return { reactionId: response.data?.reaction_id };
+        },
+        removeMessageReaction: async (messageId, reactionId) => {
+            await client.im.v1.messageReaction.delete({
+                path: {
+                    message_id: messageId,
+                    reaction_id: reactionId
+                }
             });
         },
         sendTextMessage: async (chatId, text) => {

@@ -31,6 +31,10 @@ describe('createFeishuMessageProcessor', () => {
             streamingUpdateIntervalMs: 0,
             addMessageReaction: async (messageId, emojiType) => {
                 actions.push(`reaction:${messageId}:${emojiType}`);
+                return { reactionId: 'reaction_1' };
+            },
+            removeMessageReaction: async (messageId, reactionId) => {
+                actions.push(`remove-reaction:${messageId}:${reactionId}`);
             },
             streamCursorReply: async function* () {
                 actions.push('cursor:start');
@@ -49,7 +53,7 @@ describe('createFeishuMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_stream'));
         await processor.drain();
 
-        assert.deepEqual(actions, ['reaction:om_stream:Typing', 'cursor:start', 'send:chat_1:第一段', 'update:om_reply:第一段第二段']);
+        assert.deepEqual(actions, ['reaction:om_stream:Typing', 'cursor:start', 'send:chat_1:第一段', 'update:om_reply:第一段第二段', 'remove-reaction:om_stream:reaction_1']);
     });
 
     it('returns after queueing without waiting for Cursor', async () => {
