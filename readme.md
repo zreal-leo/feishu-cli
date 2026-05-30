@@ -48,7 +48,7 @@ pnpm dev
 创建会议 跨项目接入测试会议
 ```
 
-成功后会在同一飞书会话返回会议 ID、事件 ID 和观看链接。`src/default-config.ts` 保存默认 Cursor 模型和测试运营后台域名；当前仅支持创建测试环境会议。创建会议会使用运营后台登录接口并缓存 token：
+成功后会在同一飞书会话返回会议 ID、事件 ID 和观看链接。`src/default-config.ts` 保存默认 Cursor 模型和测试运营后台域名；当前仅支持创建测试环境会议。创建会议会先调用运营后台登录接口，再用登录返回的信息换取并缓存 token：
 
 ```bash
 MANAGER_LOGIN_NAME=admin

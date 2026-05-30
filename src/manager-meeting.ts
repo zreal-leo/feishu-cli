@@ -20,6 +20,13 @@ export type ManagerMeetingClient = {
 };
 
 const DEFAULT_START_AFTER_MINUTES = 20;
+const MANAGER_LOGIN_ORIGIN = 'manager-test.comein.cn';
+
+type ManagerLoginVerificationPayload = {
+    id: string | number;
+    loginName: string;
+    password: string;
+};
 
 class ManagerTokenExpiredError extends Error {
     constructor(body: unknown) {
@@ -56,25 +63,26 @@ export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: F
         throw new Error('缺少运营后台登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD。');
     }
 
-    const body = await readManagerJson(
+    const loginBody = await readManagerJson(
         await fetchImpl(joinManagerUrl(config.baseUrl, '/system/login'), {
             method: 'POST',
-            headers: {
-                accept: '*/*',
-                b: '3.0.3',
-                browse: 'Netscape',
-                'content-type': 'application/json;charset=utf-8',
-                currentuid: '297',
-                origin: 'https://manager-test.comein.cn',
-                token: 'null',
-                ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
-                uc: 'comein-pc',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
-            },
             body: JSON.stringify({
                 loginName: config.loginName,
                 password: config.password,
-                origin: 'manager-test.comein.cn'
+                origin: MANAGER_LOGIN_ORIGIN
+            })
+        }),
+        '登录运营后台'
+    );
+    const verificationPayload = buildLoginVerificationPayload(loginBody);
+
+    const body = await readManagerJson(
+        await fetchImpl(joinManagerUrl(config.baseUrl, '/system/verifyCode'), {
+            method: 'POST',
+            body: JSON.stringify({
+                ...verificationPayload,
+                code: null,
+                origin: MANAGER_LOGIN_ORIGIN
             })
         }),
         '获取后台 token'
@@ -85,6 +93,23 @@ export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: F
     }
 
     return token;
+}
+
+function buildLoginVerificationPayload(loginBody: unknown): ManagerLoginVerificationPayload {
+    const data = getObjectValue(loginBody, 'data');
+    const id = getObjectValue(data, 'id');
+    const loginName = getStringValue(data, 'loginName');
+    const password = getStringValue(data, 'password');
+
+    if ((typeof id !== 'number' && typeof id !== 'string') || !loginName || !password) {
+        throw new Error(`登录运营后台响应缺少 id、loginName 或 password: ${JSON.stringify(loginBody)}`);
+    }
+
+    return {
+        id,
+        loginName,
+        password
+    };
 }
 
 export async function createManagerMeeting(config: ManagerMeetingConfig, request: CreateManagerMeetingRequest, token: string, fetchImpl: FetchLike = fetch): Promise<ManagerMeetingResult> {
