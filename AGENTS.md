@@ -25,7 +25,7 @@
 复制 `.env.example` 为 `.env`，或导出以下变量（`src/config.ts` 在启动时校验）：
 
 - **必填**：`CURSOR_API_KEY`、`FEISHU_APP_ID`、`FEISHU_APP_SECRET`
-- **可选**：`FEISHU_ENCRYPT_KEY`（仅当飞书事件订阅开启加密时）
+- **可选**：`FEISHU_ENCRYPT_KEY`（仅当飞书事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）
 
 非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
 
@@ -45,3 +45,5 @@
 
 - `pnpm dev` 与 `pnpm start` 都会先打印 `Feishu Cursor bot is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
 - 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。
+- 临时脚本请用 `pnpm exec tsx`（`tsx` 不在全局 PATH）；`-e` 内联脚本需包在 async IIFE 中，避免 top-level await 报错。
+- 格式化检查：`pnpm prettier --check .`（不写回文件）。
