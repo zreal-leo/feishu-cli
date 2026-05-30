@@ -1,6 +1,8 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
+import { createManagerMeeting } from './manager-meeting.js';
+import type { ManagerEnvironment } from './manager-meeting.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
 import { toFeishuReactionPayload, toFeishuTextContent } from './message.js';
 
@@ -10,6 +12,12 @@ export type StartBotOptions = {
     feishuAppId: string;
     feishuAppSecret: string;
     feishuEncryptKey?: string;
+    managerEnv: ManagerEnvironment;
+    managerToken?: string;
+    managerLoginName?: string;
+    managerPassword?: string;
+    managerLoginId?: string;
+    managerCode?: string;
 };
 
 export function startFeishuCursorBot(options: StartBotOptions): void {
@@ -67,6 +75,17 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                     msg_type: 'text',
                     content: toFeishuTextContent(text)
                 }
+            });
+        },
+        createManagerMeeting: async ({ title }) => {
+            return createManagerMeeting({
+                env: options.managerEnv,
+                title,
+                token: options.managerToken,
+                loginName: options.managerLoginName,
+                password: options.managerPassword,
+                loginId: options.managerLoginId,
+                code: options.managerCode
             });
         }
     });

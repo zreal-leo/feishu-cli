@@ -21,6 +21,64 @@ function createTextEvent(messageId: string, text = '你好'): FeishuIncomingMess
 }
 
 describe('createFeishuMessageProcessor', () => {
+    it('creates a manager meeting from a create meeting command without asking Cursor', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            askCursor: async () => {
+                actions.push('cursor:start');
+                return '不应调用 Cursor';
+            },
+            createManagerMeeting: async ({ title }) => {
+                actions.push(`create-manager-meeting:${title}`);
+                return {
+                    id: 123456,
+                    eid: 789012,
+                    netLiveUrl: 'http://s.comein.cn/live'
+                };
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_create_manager_meeting', '创建会议 跨项目接入测试'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['create-manager-meeting:跨项目接入测试', 'send:chat_1:会议已创建\n会议 ID：123456\n事件 ID：789012\n观看链接：http://s.comein.cn/live']);
+    });
+
+    it('replies with a failure hint when manager meeting creation fails', async () => {
+        const actions: string[] = [];
+        const logger = {
+            info() {},
+            error(message: string) {
+                actions.push(`error:${message}`);
+            }
+        };
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger,
+            createManagerMeeting: async () => {
+                throw new Error('invalid token');
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_create_manager_meeting_failed', '创建会议'));
+        await processor.drain();
+
+        assert.equal(actions[0], 'send:chat_1:创建会议失败，请检查管理后台 token 或稍后重试。');
+        assert.match(actions[1] ?? '', /^error:\[feishu-bot] message handling failed chatId=chat_1 messageId=om_create_manager_meeting_failed/);
+    });
+
     it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
         const actions: string[] = [];
 

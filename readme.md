@@ -39,6 +39,8 @@ pnpm dev
 
 启动后，在飞书里给机器人发送文本消息，机器人会把消息交给 Cursor，并把 Cursor 的中文回复发回飞书。
 
+发送 `创建会议`、`创建会议 跨项目接入测试` 或 `/meeting 跨项目接入测试` 时，机器人会按管理后台接口 `POST /managecenter/roadshow/create` 创建路演/直播会议，并回复会议 ID、事件 ID 和观看链接。非隐私默认 payload 写在代码里；只需要配置 `MANAGER_TOKEN`，或在 token 为空时配置 `MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`、`MANAGER_LOGIN_ID`、`MANAGER_CODE` 走验证码登录。`ENV=prod` 时使用生产后台，其他情况默认测试后台。
+
 ### 常用命令
 
 ```bash
