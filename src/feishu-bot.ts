@@ -1,5 +1,6 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
+import { createFeishuMeetingReservation } from './feishu-meeting.js';
 import { createFeishuMessageProcessor } from './feishu-message-processor.js';
 import type { FeishuIncomingMessageEvent } from './message.js';
 import { toFeishuReactionPayload, toFeishuTextContent } from './message.js';
@@ -67,6 +68,13 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                     msg_type: 'text',
                     content: toFeishuTextContent(text)
                 }
+            });
+        },
+        createMeeting: async ({ ownerOpenId, topic }) => {
+            return createFeishuMeetingReservation({
+                ownerOpenId,
+                topic,
+                applyReserve: payload => client.vc.v1.reserve.apply(payload)
             });
         }
     });
