@@ -1,5 +1,7 @@
 import 'dotenv/config';
 
+import { DEFAULT_CONFIG } from './default-config.js';
+
 type Config = {
     cursorApiKey: string;
     cursorModel: string;
@@ -9,8 +11,10 @@ type Config = {
     managerMeeting: ManagerMeetingConfig;
 };
 
+export type ManagerMeetingEnv = 'test' | 'prod';
+
 export type ManagerMeetingConfig = {
-    env: 'test' | 'prod';
+    env: ManagerMeetingEnv;
     baseUrl: string;
     token?: string;
     loginName?: string;
@@ -28,17 +32,17 @@ function requireEnv(name: string): string {
 }
 
 export function loadConfig(): Config {
-    const managerEnv = process.env.ENV?.trim() === 'prod' ? 'prod' : 'test';
+    const managerEnv = DEFAULT_CONFIG.managerMeeting.env;
 
     return {
         cursorApiKey: requireEnv('CURSOR_API_KEY'),
-        cursorModel: process.env.CURSOR_MODEL?.trim() || 'composer-2.5',
+        cursorModel: DEFAULT_CONFIG.cursorModel,
         feishuAppId: requireEnv('FEISHU_APP_ID'),
         feishuAppSecret: requireEnv('FEISHU_APP_SECRET'),
         feishuEncryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
         managerMeeting: {
             env: managerEnv,
-            baseUrl: process.env.MANAGER_BASE_URL?.trim() || (managerEnv === 'prod' ? 'https://server.comein.cn/comein/manager' : 'https://testserver.comein.cn/comein/manager'),
+            baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrls[managerEnv],
             token: process.env.MANAGER_TOKEN?.trim() || undefined,
             loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
             password: process.env.MANAGER_PASSWORD?.trim() || undefined,

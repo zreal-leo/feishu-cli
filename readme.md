@@ -48,10 +48,9 @@ pnpm dev
 创建会议 跨项目接入测试会议
 ```
 
-成功后会在同一飞书会话返回会议 ID、事件 ID 和观看链接。创建会议需要配置运营后台鉴权：
+成功后会在同一飞书会话返回会议 ID、事件 ID 和观看链接。`src/default-config.ts` 保存默认 Cursor 模型、运营后台环境和域名。创建会议只需要在环境变量里配置运营后台鉴权：
 
 ```bash
-ENV=test
 MANAGER_TOKEN=manager_token_xxx
 ```
 
@@ -63,8 +62,6 @@ MANAGER_PASSWORD=password
 MANAGER_LOGIN_ID=login_id
 MANAGER_CODE=1234
 ```
-
-`ENV=prod` 时默认使用生产运营后台域名；如需覆盖域名，设置 `MANAGER_BASE_URL`。
 
 ### 常用命令
 
