@@ -22,7 +22,6 @@ export type FeishuMessageProcessorOptions = {
     removeMessageReaction?: (messageId: string, reactionId: string) => Promise<void>;
     reactionEmojiType?: string;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
-    updateTextMessage?: (messageId: string, text: string) => Promise<void>;
     createMeeting?: CreateMeeting;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
@@ -99,10 +98,8 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                     });
 
                     await streamReplyToFeishuMessage(chatId, cursorReply, {
-                        logger,
                         sendTextMessage: options.sendTextMessage,
-                        streamingUpdateIntervalMs,
-                        updateTextMessage: options.updateTextMessage
+                        streamingUpdateIntervalMs
                     });
 
                     const sendTiming = timer.mark();
@@ -189,70 +186,30 @@ function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Pro
 }
 
 type StreamReplyToFeishuMessageOptions = {
-    logger: Logger;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     streamingUpdateIntervalMs: number;
-    updateTextMessage?: (messageId: string, text: string) => Promise<void>;
 };
 
 async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
-    let replyText = '';
-    let sentInitialMessage = false;
-    let sentMessageId: string | undefined;
-    let fallbackToFinalMessage = false;
-    let initialMessageText = '';
-    let lastUpdateAt = 0;
+    let hasSentReplyChunk = false;
+    let lastSendAt = 0;
 
     for await (const replyChunk of cursorReply) {
-        if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
+        if (replyChunk.length === 0 || (!hasSentReplyChunk && replyChunk.trim().length === 0)) {
             continue;
         }
 
-        replyText += replyChunk;
-
-        if (!options.updateTextMessage) {
-            continue;
-        }
-
-        if (!sentInitialMessage) {
-            sentInitialMessage = true;
-            initialMessageText = replyText;
-            sentMessageId = extractSentMessageId(await options.sendTextMessage(chatId, replyText));
-
-            if (!sentMessageId) {
-                fallbackToFinalMessage = true;
-                options.logger.error(`[feishu-bot] streaming update skipped because sent message_id is missing chatId=${chatId}`);
-            }
-
-            continue;
-        }
-
-        if (!sentMessageId) {
-            continue;
-        }
-
-        if (lastUpdateAt > 0) {
-            const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastUpdateAt);
+        if (lastSendAt > 0) {
+            const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastSendAt);
             if (delayMs > 0) {
                 await sleep(delayMs);
             }
         }
 
-        await options.updateTextMessage(sentMessageId, replyText);
-        lastUpdateAt = Date.now();
+        await options.sendTextMessage(chatId, replyChunk);
+        hasSentReplyChunk = true;
+        lastSendAt = Date.now();
     }
-
-    if (!sentInitialMessage && replyText.trim().length > 0) {
-        await options.sendTextMessage(chatId, replyText);
-    }
-
-    if (fallbackToFinalMessage && replyText !== initialMessageText && replyText.trim().length > 0) {
-        await options.sendTextMessage(chatId, replyText);
-    }
-}
-
-function extractSentMessageId(result: SendTextMessageResult): string | undefined {
-    return result?.messageId?.trim() || undefined;
 }
 
 function extractAddedReactionId(result: AddMessageReactionResult): string | undefined {

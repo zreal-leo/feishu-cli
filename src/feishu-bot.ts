@@ -62,17 +62,6 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
 
             return { messageId: response.data?.message_id };
         },
-        updateTextMessage: async (messageId, text) => {
-            await client.im.v1.message.update({
-                path: {
-                    message_id: messageId
-                },
-                data: {
-                    msg_type: 'text',
-                    content: toFeishuTextContent(text)
-                }
-            });
-        },
         createMeeting: async request => {
             return managerMeetingClient.createMeeting(request);
         }
