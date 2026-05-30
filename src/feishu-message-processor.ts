@@ -6,15 +6,22 @@ import { createSegmentTimer, formatDurationMs } from './timing.js';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
 type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
+type SendTextMessageResult = { messageId?: string } | void;
+type AddMessageReactionResult = { reactionId?: string } | void;
+
+const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 250;
 
 export type FeishuMessageProcessorOptions = {
     cursorApiKey: string;
     cursorModel: string;
     askCursor?: (options: AskCursorOptions) => Promise<string>;
     streamCursorReply?: CursorReplyStreamer;
-    addMessageReaction?: (messageId: string, emojiType: string) => Promise<void>;
+    addMessageReaction?: (messageId: string, emojiType: string) => Promise<AddMessageReactionResult>;
+    removeMessageReaction?: (messageId: string, reactionId: string) => Promise<void>;
     reactionEmojiType?: string;
-    sendTextMessage: (chatId: string, text: string) => Promise<void>;
+    sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
+    updateTextMessage?: (messageId: string, text: string) => Promise<void>;
+    streamingUpdateIntervalMs?: number;
     logger?: Logger;
 };
 
@@ -27,6 +34,7 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
     const streamCursorReply = options.streamCursorReply ?? (options.askCursor ? createCursorReplyStreamer(options.askCursor) : defaultStreamCursorReply);
     const logger = options.logger ?? console;
     const reactionEmojiType = options.reactionEmojiType ?? DEFAULT_REACTION_EMOJI_TYPE;
+    const streamingUpdateIntervalMs = Math.max(0, options.streamingUpdateIntervalMs ?? DEFAULT_STREAMING_UPDATE_INTERVAL_MS);
     const seenMessageIds = new Set<string>();
     let queue: Promise<void> = Promise.resolve();
 
@@ -57,11 +65,15 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
             logger.info(`[feishu-bot] received message chatId=${chatId} messageId=${messageId ?? 'unknown'} textLength=${text.length}`);
 
             enqueue(async () => {
+                let addedReactionId: string | undefined;
+
                 try {
                     if (messageId && options.addMessageReaction) {
-                        await options.addMessageReaction(messageId, reactionEmojiType);
+                        addedReactionId = extractAddedReactionId(await options.addMessageReaction(messageId, reactionEmojiType));
                         const reactionTiming = timer.mark();
-                        logger.info(`[feishu-bot] reaction added chatId=${chatId} messageId=${messageId} emojiType=${reactionEmojiType} segment=${formatDurationMs(reactionTiming.segmentMs)} total=${formatDurationMs(reactionTiming.totalMs)}`);
+                        logger.info(
+                            `[feishu-bot] reaction added chatId=${chatId} messageId=${messageId} emojiType=${reactionEmojiType} segment=${formatDurationMs(reactionTiming.segmentMs)} total=${formatDurationMs(reactionTiming.totalMs)}`
+                        );
                     }
 
                     const cursorReply = streamCursorReply({
@@ -70,16 +82,33 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                         prompt: buildCursorPrompt(text)
                     });
 
-                    for await (const replyChunk of cursorReply) {
-                        if (replyChunk.trim().length === 0) {
-                            continue;
+                    try {
+                        await streamReplyToFeishuMessage(chatId, cursorReply, {
+                            logger,
+                            sendTextMessage: options.sendTextMessage,
+                            streamingUpdateIntervalMs,
+                            updateTextMessage: options.updateTextMessage
+                        });
+
+                        const sendTiming = timer.mark();
+                        logger.info(`[feishu-bot] streaming reply sent chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(sendTiming.segmentMs)} total=${formatDurationMs(sendTiming.totalMs)}`);
+                    } finally {
+                        if (messageId && addedReactionId && options.removeMessageReaction) {
+                            try {
+                                await options.removeMessageReaction(messageId, addedReactionId);
+                                const reactionRemovalTiming = timer.mark();
+                                logger.info(
+                                    `[feishu-bot] reaction removed chatId=${chatId} messageId=${messageId} reactionId=${addedReactionId} segment=${formatDurationMs(reactionRemovalTiming.segmentMs)} total=${formatDurationMs(reactionRemovalTiming.totalMs)}`
+                                );
+                            } catch (removeReactionError) {
+                                const reactionRemovalFailureTiming = timer.mark();
+                                logger.error(
+                                    `[feishu-bot] reaction removal failed chatId=${chatId} messageId=${messageId} reactionId=${addedReactionId} segment=${formatDurationMs(reactionRemovalFailureTiming.segmentMs)} total=${formatDurationMs(reactionRemovalFailureTiming.totalMs)}`,
+                                    removeReactionError
+                                );
+                            }
                         }
-
-                        await options.sendTextMessage(chatId, replyChunk);
                     }
-
-                    const sendTiming = timer.mark();
-                    logger.info(`[feishu-bot] streaming reply sent chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(sendTiming.segmentMs)} total=${formatDurationMs(sendTiming.totalMs)}`);
                 } catch (error) {
                     const failureTiming = timer.mark();
                     logger.error(`[feishu-bot] message handling failed chatId=${chatId} messageId=${messageId ?? 'unknown'} segment=${formatDurationMs(failureTiming.segmentMs)} total=${formatDurationMs(failureTiming.totalMs)}`, error);
@@ -97,4 +126,81 @@ function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Pro
     return async function* streamFromAskCursor(options: AskCursorOptions): AsyncGenerator<string, void> {
         yield await askCursor(options);
     };
+}
+
+type StreamReplyToFeishuMessageOptions = {
+    logger: Logger;
+    sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
+    streamingUpdateIntervalMs: number;
+    updateTextMessage?: (messageId: string, text: string) => Promise<void>;
+};
+
+async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+    let replyText = '';
+    let sentInitialMessage = false;
+    let sentMessageId: string | undefined;
+    let fallbackToFinalMessage = false;
+    let initialMessageText = '';
+    let lastUpdateAt = 0;
+
+    for await (const replyChunk of cursorReply) {
+        if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
+            continue;
+        }
+
+        replyText += replyChunk;
+
+        if (!options.updateTextMessage) {
+            continue;
+        }
+
+        if (!sentInitialMessage) {
+            sentInitialMessage = true;
+            initialMessageText = replyText;
+            sentMessageId = extractSentMessageId(await options.sendTextMessage(chatId, replyText));
+
+            if (!sentMessageId) {
+                fallbackToFinalMessage = true;
+                options.logger.error(`[feishu-bot] streaming update skipped because sent message_id is missing chatId=${chatId}`);
+            }
+
+            continue;
+        }
+
+        if (!sentMessageId) {
+            continue;
+        }
+
+        if (lastUpdateAt > 0) {
+            const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastUpdateAt);
+            if (delayMs > 0) {
+                await sleep(delayMs);
+            }
+        }
+
+        await options.updateTextMessage(sentMessageId, replyText);
+        lastUpdateAt = Date.now();
+    }
+
+    if (!sentInitialMessage && replyText.trim().length > 0) {
+        await options.sendTextMessage(chatId, replyText);
+    }
+
+    if (fallbackToFinalMessage && replyText !== initialMessageText && replyText.trim().length > 0) {
+        await options.sendTextMessage(chatId, replyText);
+    }
+}
+
+function extractSentMessageId(result: SendTextMessageResult): string | undefined {
+    return result?.messageId?.trim() || undefined;
+}
+
+function extractAddedReactionId(result: AddMessageReactionResult): string | undefined {
+    return result?.reactionId?.trim() || undefined;
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildCursorPrompt, extractIncomingText, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
+import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {
@@ -43,6 +43,15 @@ describe('toFeishuTextContent', () => {
 });
 
 describe('toFeishuReactionPayload', () => {
+    it('defaults to Feishu Typing emoji', () => {
+        assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'Typing');
+        assert.deepEqual(toFeishuReactionPayload(), {
+            reaction_type: {
+                emoji_type: 'Typing'
+            }
+        });
+    });
+
     it('builds a Feishu message reaction payload', () => {
         assert.deepEqual(toFeishuReactionPayload('THUMBSUP'), {
             reaction_type: {
