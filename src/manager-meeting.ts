@@ -1,0 +1,272 @@
+import type { ManagerMeetingConfig } from './config.js';
+
+type FetchLike = typeof fetch;
+
+export type CreateManagerMeetingRequest = {
+    title: string;
+    startAfterMinutes?: number;
+    stimeMs?: number;
+    now?: Date;
+};
+
+export type ManagerMeetingResult = {
+    roadshowId: number;
+    eventId: number;
+    netLiveUrl: string;
+};
+
+export type ManagerMeetingClient = {
+    createMeeting: (request: CreateManagerMeetingRequest) => Promise<ManagerMeetingResult>;
+};
+
+const DEFAULT_START_AFTER_MINUTES = 20;
+
+export function createManagerMeetingClient(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): ManagerMeetingClient {
+    let cachedToken = config.token;
+
+    return {
+        async createMeeting(request) {
+            const token = cachedToken || (await getManagerToken(config, fetchImpl));
+            cachedToken = token;
+            return createManagerMeeting(config, request, token, fetchImpl);
+        }
+    };
+}
+
+export async function getManagerToken(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): Promise<string> {
+    if (config.token) {
+        return config.token;
+    }
+
+    if (!config.loginName || !config.password || !config.loginId || !config.code) {
+        throw new Error('缺少 MANAGER_TOKEN，且验证码登录变量 MANAGER_LOGIN_NAME、MANAGER_PASSWORD、MANAGER_LOGIN_ID、MANAGER_CODE 不完整。');
+    }
+
+    const url = new URL(joinManagerUrl(config.baseUrl, '/system/verifyCode'));
+    url.searchParams.set('loginName', config.loginName);
+    url.searchParams.set('password', config.password);
+    url.searchParams.set('id', config.loginId);
+    url.searchParams.set('code', config.code);
+
+    const body = await readManagerJson(await fetchImpl(url, { method: 'GET' }), '获取后台 token');
+    const token = getNestedString(body, ['data', 'token']);
+    if (!token) {
+        throw new Error(`获取后台 token 失败: ${JSON.stringify(body)}`);
+    }
+
+    return token;
+}
+
+export async function createManagerMeeting(config: ManagerMeetingConfig, request: CreateManagerMeetingRequest, token: string, fetchImpl: FetchLike = fetch): Promise<ManagerMeetingResult> {
+    const stimeMs = resolveStartTimeMs(request);
+    const payload = buildMeetingPayload(request.title, stimeMs, config.env);
+
+    const body = await readManagerJson(
+        await fetchImpl(joinManagerUrl(config.baseUrl, '/managecenter/roadshow/create'), {
+            method: 'POST',
+            headers: {
+                token,
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }),
+        '创建会议'
+    );
+
+    if (String(getObjectValue(body, 'code')) !== '0') {
+        throw new Error(`创建会议失败: ${JSON.stringify(body)}`);
+    }
+
+    const data = getObjectValue(body, 'data');
+    const roadshowId = getNumberValue(data, 'id');
+    const eventId = getNumberValue(data, 'eid');
+    const netLiveUrl = getStringValue(data, 'netLiveUrl');
+
+    if (roadshowId === undefined || eventId === undefined || !netLiveUrl) {
+        throw new Error(`创建会议响应缺少必要字段: ${JSON.stringify(body)}`);
+    }
+
+    return {
+        roadshowId,
+        eventId,
+        netLiveUrl
+    };
+}
+
+export function buildMeetingPayload(title: string, stimeMs: number, env: ManagerMeetingConfig['env']): Record<string, unknown> {
+    const isProd = env === 'prod';
+    const fullTitle = `${title}_${formatTitleTimestamp(new Date())}`;
+
+    return {
+        eventType: 2,
+        htmlInfo: { title: '内容：', content: '直播间测试' },
+        stime: stimeMs,
+        logo: 'https://example.com/logo.png',
+        logoWeb: 'https://example.com/logo-web.png',
+        logoWall: 'https://example.com/logo-wall.png',
+        logoWall169: 'https://example.com/logo-wall-169.png',
+        isDownload: 1,
+        description: '欢迎来到直播间',
+        length: 120,
+        title: fullTitle,
+        preparationMode: 0,
+        uid: isProd ? 2314049 : 15281329,
+        industryTagIds: isProd ? '' : '565,558',
+        submit: 1,
+        openStatus: 1,
+        eventWays: 1,
+        showAgreement: 0,
+        remoteCheck: 1,
+        isSyncRoom: 1,
+        rtcProvider: 1,
+        recordSupport: 1,
+        contentTypeTagIds: '521',
+        goodsPrice: 100,
+        onStatus: 1,
+        status: 0,
+        organizationId: isProd ? 20164 : 747,
+        interactiveMode: 0,
+        isSupportConf: 1,
+        isSyncAdvance: 1,
+        subTitle: '   ',
+        adminId: 22,
+        adminName: '管理员账号',
+        contentInfo: '测试使用123',
+        serviceType: 7,
+        serviceId: isProd ? '1002' : '1357',
+        eventMode: isProd ? 684 : 567,
+        marketTagIds: isProd ? '696,697' : '519,520',
+        researchDirectionTagIds: '1056',
+        speakerTagIds: 1091,
+        topicIds: isProd ? '' : '942',
+        stockIds: '',
+        isTest: isProd ? 1 : 0,
+        isHide: isProd ? 1 : 0,
+        isEx: 0,
+        needAssistant: isProd ? 0 : 1,
+        assistantIds: '',
+        liveNotice: '',
+        subscribeUser: '',
+        delQuartzTime: '',
+        limitRegionType: 1,
+        chargeType: 1,
+        verifyCode: '1234',
+        whiteIds: '',
+        filterType: 2,
+        meetingUserSetting: 1,
+        filterAreaCodeList: '',
+        tagName: '公开',
+        sendScheduleEventMsgAuto: 1,
+        watermark: 0,
+        watermarkRoadshow: 0,
+        watermarkWhiteNoise: 0,
+        watermarkType: 1,
+        voiceInterpretation: 0,
+        subtitleSwitch: 1,
+        subtitleTranslation: 1,
+        sourceLanguage: -1,
+        transDestLanguage: [0, 1, 2],
+        selectedTransChannels: ['cn', 'en', 'jp'],
+        analystIndustryIds: '',
+        questionCollectSelect: 1,
+        disclaimer: '我是免责声明',
+        isAdShow: 0,
+        isNet: 1,
+        isGenerateMeetSummary: 1,
+        enableComeinAiSum: 1,
+        enableQaAudit: 1,
+        autoCall: 1,
+        interactionType: 0,
+        passCodeType: 0,
+        autoBegin: 1,
+        autoEnd: 0,
+        audioState: 0,
+        audioTitle: fullTitle,
+        removePhoneIds: '2506',
+        attendee: [
+            {
+                name: '联席主讲人',
+                areaCode: '+86',
+                phoneNumber: '1871872',
+                company: '测试机构',
+                occupation: '副董事长',
+                identity: '2',
+                isShow: 1,
+                identityTypes: '4,7'
+            }
+        ],
+        enableInteractiveMode: 1,
+        enableHandUpQa: 1,
+        enableTextQa: 1,
+        audioPlayType: 0,
+        passGroupId: 1,
+        reviewType: 0,
+        hotWordMeetSummary: ''
+    };
+}
+
+function resolveStartTimeMs(request: CreateManagerMeetingRequest): number {
+    if (request.stimeMs !== undefined) {
+        return request.stimeMs;
+    }
+
+    const nowMs = request.now?.getTime() ?? Date.now();
+    return nowMs + (request.startAfterMinutes ?? DEFAULT_START_AFTER_MINUTES) * 60 * 1000;
+}
+
+async function readManagerJson(response: Response, action: string): Promise<unknown> {
+    const text = await response.text();
+    let body: unknown;
+
+    try {
+        body = text ? JSON.parse(text) : {};
+    } catch {
+        throw new Error(`${action}失败: 后台返回非 JSON 响应，HTTP ${response.status}`);
+    }
+
+    if (!response.ok) {
+        throw new Error(`${action}失败: HTTP ${response.status} ${JSON.stringify(body)}`);
+    }
+
+    return body;
+}
+
+function joinManagerUrl(baseUrl: string, path: string): string {
+    return `${baseUrl.replace(/\/+$/, '')}${path}`;
+}
+
+function formatTitleTimestamp(date: Date): string {
+    const month = pad2(date.getMonth() + 1);
+    const day = pad2(date.getDate());
+    const hours = pad2(date.getHours());
+    const minutes = pad2(date.getMinutes());
+    const seconds = pad2(date.getSeconds());
+    return `${month}-${day}_${hours}:${minutes}:${seconds}`;
+}
+
+function pad2(value: number): string {
+    return String(value).padStart(2, '0');
+}
+
+function getNestedString(value: unknown, path: string[]): string | undefined {
+    let current = value;
+    for (const key of path) {
+        current = getObjectValue(current, key);
+    }
+
+    return typeof current === 'string' && current.trim() ? current.trim() : undefined;
+}
+
+function getObjectValue(value: unknown, key: string): unknown {
+    return typeof value === 'object' && value !== null && key in value ? (value as Record<string, unknown>)[key] : undefined;
+}
+
+function getNumberValue(value: unknown, key: string): number | undefined {
+    const rawValue = getObjectValue(value, key);
+    return typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : undefined;
+}
+
+function getStringValue(value: unknown, key: string): string | undefined {
+    const rawValue = getObjectValue(value, key);
+    return typeof rawValue === 'string' && rawValue.trim() ? rawValue.trim() : undefined;
+}
