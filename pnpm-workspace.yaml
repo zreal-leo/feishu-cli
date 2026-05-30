@@ -1,4 +1,4 @@
 allowBuilds:
-  esbuild: true
-  protobufjs: true
-  sqlite3: true
+    esbuild: true
+    protobufjs: true
+    sqlite3: true
