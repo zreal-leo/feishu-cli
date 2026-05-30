@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
+import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, buildMeetingCreatedCard, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {
@@ -140,6 +140,21 @@ describe('formatMeetingCreatedReply', () => {
             }),
             ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live', '云播：创建失败（创建云播失败: {"code":"1","msg":"invalid stream"}）'].join('\n')
         );
+    });
+});
+
+describe('buildMeetingCreatedCard', () => {
+    it('includes cloud player status in the manager meeting card', () => {
+        const card = buildMeetingCreatedCard({
+            title: 'BOT: AI总结 15:33',
+            roadshowId: 123456,
+            eventId: 789012,
+            netLiveUrl: 'http://s.comein.cn/live',
+            cloudPlayerCreated: true
+        });
+
+        assert.match(String(card.body.elements[0].content), /\*\*云播：\*\* 已创建/);
+        assert.equal(card.card_link?.url, 'http://s.comein.cn/live');
     });
 });
 

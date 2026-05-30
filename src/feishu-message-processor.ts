@@ -1,13 +1,26 @@
 import { streamCursorReply as defaultStreamCursorReply } from './cursor-agent.js';
 import type { AskCursorOptions } from './cursor-agent.js';
-import type { FeishuIncomingMessageEvent } from './message.js';
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText, formatMeetingCreateFailedReply, formatMeetingCreatedReply, parseCreateMeetingCommand } from './message.js';
+import type { FeishuCard, FeishuIncomingMessageEvent } from './message.js';
+import {
+    CURSOR_REPLY_CARD_ELEMENT_ID,
+    DEFAULT_REACTION_EMOJI_TYPE,
+    buildCursorPrompt,
+    buildCursorReplyCard,
+    buildMeetingCreateFailedCard,
+    buildMeetingCreatedCard,
+    extractIncomingText,
+    formatMeetingCreateFailedReply,
+    formatMeetingCreatedReply,
+    parseCreateMeetingCommand,
+    summarizeCardText
+} from './message.js';
 import type { CloudPlayerCommandOptions, CreateMeetingCommand, MeetingCreatedReplyData } from './message.js';
 import { createSegmentTimer, formatDurationMs } from './timing.js';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
 type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
 type SendTextMessageResult = { messageId?: string } | void;
+type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
 type CreateMeeting = (request: { title: string; cloudPlayer?: CloudPlayerCommandOptions }) => Promise<MeetingCreatedReplyData>;
 
@@ -23,6 +36,9 @@ export type FeishuMessageProcessorOptions = {
     reactionEmojiType?: string;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     updateTextMessage?: (messageId: string, text: string) => Promise<void>;
+    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
+    updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
+    finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
@@ -86,6 +102,7 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                             createMeeting: options.createMeeting,
                             logger,
                             messageId,
+                            sendCardMessage: options.sendCardMessage,
                             sendTextMessage: options.sendTextMessage,
                             timer
                         });
@@ -99,9 +116,12 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                     });
 
                     await streamReplyToFeishuMessage(chatId, cursorReply, {
+                        finishCardStreaming: options.finishCardStreaming,
                         logger,
+                        sendCardMessage: options.sendCardMessage,
                         sendTextMessage: options.sendTextMessage,
                         streamingUpdateIntervalMs,
+                        updateCardElementContent: options.updateCardElementContent,
                         updateTextMessage: options.updateTextMessage
                     });
 
@@ -156,6 +176,7 @@ type HandleCreateMeetingCommandOptions = {
     createMeeting?: CreateMeeting;
     logger: Logger;
     messageId?: string;
+    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     timer: ReturnType<typeof createSegmentTimer>;
 };
@@ -167,7 +188,7 @@ async function handleCreateMeetingCommand(chatId: string, command: CreateMeeting
         }
 
         const meeting = await options.createMeeting({ title: command.title, cloudPlayer: command.cloudPlayer });
-        await options.sendTextMessage(chatId, formatMeetingCreatedReply(meeting));
+        await sendMeetingCreatedReply(chatId, meeting, options);
         const createTiming = options.timer.mark();
         options.logger.info(
             `[feishu-bot] manager meeting created chatId=${chatId} messageId=${options.messageId ?? 'unknown'} roadshowId=${meeting.roadshowId} eventId=${meeting.eventId} segment=${formatDurationMs(createTiming.segmentMs)} total=${formatDurationMs(createTiming.totalMs)}`
@@ -178,8 +199,26 @@ async function handleCreateMeetingCommand(chatId: string, command: CreateMeeting
             `[feishu-bot] manager meeting creation failed chatId=${chatId} messageId=${options.messageId ?? 'unknown'} segment=${formatDurationMs(failureTiming.segmentMs)} total=${formatDurationMs(failureTiming.totalMs)}`,
             error
         );
-        await options.sendTextMessage(chatId, formatMeetingCreateFailedReply(error));
+        await sendMeetingCreateFailedReply(chatId, error, options);
     }
+}
+
+async function sendMeetingCreatedReply(chatId: string, meeting: MeetingCreatedReplyData, options: Pick<HandleCreateMeetingCommandOptions, 'sendCardMessage' | 'sendTextMessage'>): Promise<void> {
+    if (options.sendCardMessage) {
+        await options.sendCardMessage(chatId, buildMeetingCreatedCard(meeting));
+        return;
+    }
+
+    await options.sendTextMessage(chatId, formatMeetingCreatedReply(meeting));
+}
+
+async function sendMeetingCreateFailedReply(chatId: string, error: unknown, options: Pick<HandleCreateMeetingCommandOptions, 'sendCardMessage' | 'sendTextMessage'>): Promise<void> {
+    if (options.sendCardMessage) {
+        await options.sendCardMessage(chatId, buildMeetingCreateFailedCard(error));
+        return;
+    }
+
+    await options.sendTextMessage(chatId, formatMeetingCreateFailedReply(error));
 }
 
 function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Promise<string>): CursorReplyStreamer {
@@ -189,13 +228,93 @@ function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Pro
 }
 
 type StreamReplyToFeishuMessageOptions = {
+    finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     logger: Logger;
+    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     streamingUpdateIntervalMs: number;
+    updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     updateTextMessage?: (messageId: string, text: string) => Promise<void>;
 };
 
 async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+    if (options.sendCardMessage) {
+        await streamReplyToFeishuCard(chatId, cursorReply, options);
+        return;
+    }
+
+    await streamReplyToTextMessage(chatId, cursorReply, options);
+}
+
+async function streamReplyToFeishuCard(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+    const sendCardMessage = options.sendCardMessage;
+
+    if (!sendCardMessage) {
+        await streamReplyToTextMessage(chatId, cursorReply, options);
+        return;
+    }
+
+    let replyText = '';
+    let sentInitialCard = false;
+    let sentCardId: string | undefined;
+    let fallbackToFinalCard = false;
+    let initialCardText = '';
+    let lastUpdateAt = 0;
+    let sequence = 0;
+
+    for await (const replyChunk of cursorReply) {
+        if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
+            continue;
+        }
+
+        replyText += replyChunk;
+
+        if (!options.updateCardElementContent || !options.finishCardStreaming) {
+            continue;
+        }
+
+        if (!sentInitialCard) {
+            sentInitialCard = true;
+            initialCardText = replyText;
+            sentCardId = extractSentCardId(await sendCardMessage(chatId, buildCursorReplyCard(replyText, { streaming: true })));
+
+            if (!sentCardId) {
+                fallbackToFinalCard = true;
+                options.logger.error(`[feishu-bot] streaming card update skipped because sent card_id is missing chatId=${chatId}`);
+            }
+
+            continue;
+        }
+
+        if (!sentCardId) {
+            continue;
+        }
+
+        if (lastUpdateAt > 0) {
+            const delayMs = options.streamingUpdateIntervalMs - (Date.now() - lastUpdateAt);
+            if (delayMs > 0) {
+                await sleep(delayMs);
+            }
+        }
+
+        await options.updateCardElementContent(sentCardId, CURSOR_REPLY_CARD_ELEMENT_ID, replyText, ++sequence);
+        lastUpdateAt = Date.now();
+    }
+
+    if (!sentInitialCard && replyText.trim().length > 0) {
+        await sendCardMessage(chatId, buildCursorReplyCard(replyText));
+    }
+
+    if (sentCardId && options.finishCardStreaming) {
+        await options.finishCardStreaming(sentCardId, ++sequence, summarizeCardText(replyText));
+    }
+
+    if (fallbackToFinalCard && replyText !== initialCardText && replyText.trim().length > 0) {
+        await sendCardMessage(chatId, buildCursorReplyCard(replyText));
+    }
+}
+
+async function streamReplyToTextMessage(chatId: string, cursorReply: AsyncIterable<string>, options: StreamReplyToFeishuMessageOptions): Promise<void> {
     let replyText = '';
     let sentInitialMessage = false;
     let sentMessageId: string | undefined;
@@ -253,6 +372,10 @@ async function streamReplyToFeishuMessage(chatId: string, cursorReply: AsyncIter
 
 function extractSentMessageId(result: SendTextMessageResult): string | undefined {
     return result?.messageId?.trim() || undefined;
+}
+
+function extractSentCardId(result: SendCardMessageResult): string | undefined {
+    return result?.cardId?.trim() || undefined;
 }
 
 function extractAddedReactionId(result: AddMessageReactionResult): string | undefined {
