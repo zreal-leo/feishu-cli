@@ -183,6 +183,16 @@ describe('parseFeishuDocCommand', () => {
         });
     });
 
+    it('extracts the instruction when punctuation follows the document URL', () => {
+        assert.deepEqual(parseFeishuDocCommand('https://example.feishu.cn/docx/DocToken01?from=copy，请列出所有标题'), {
+            type: 'feishu_doc',
+            url: 'https://example.feishu.cn/docx/DocToken01?from=copy',
+            resourceType: 'docx',
+            token: 'DocToken01',
+            instruction: '请列出所有标题'
+        });
+    });
+
     it('uses a default instruction when only a document link is provided', () => {
         assert.equal(parseFeishuDocCommand('https://example.feishu.cn/docx/DocOnly01。')?.instruction, '请总结这份文档的核心内容。');
     });

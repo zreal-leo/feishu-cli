@@ -439,7 +439,7 @@ type FeishuDocLinkMatch = {
 };
 
 function findFeishuDocLink(text: string): FeishuDocLinkMatch | null {
-    const urlPattern = /https?:\/\/\S+/gi;
+    const urlPattern = /https?:\/\/[^\s<>"'，。；、,;!！？)）]+/gi;
     let match: RegExpExecArray | null;
 
     while ((match = urlPattern.exec(text)) !== null) {
@@ -498,7 +498,10 @@ function isFeishuHost(hostname: string): boolean {
 }
 
 function normalizeInstruction(value: string): string {
-    return value.replace(/\s+/g, ' ').trim();
+    return value
+        .replace(/^[\s，。；、,;!?！？)）]+|[\s，。；、,;!?！？(（]+$/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function truncateDocContent(value: string): { content: string; truncated: boolean } {
