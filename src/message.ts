@@ -7,9 +7,6 @@ export type FeishuIncomingMessageEvent = {
     };
     sender?: {
         sender_type?: string;
-        sender_id?: {
-            open_id?: string;
-        };
     };
 };
 

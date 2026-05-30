@@ -9,85 +9,18 @@ const silentLogger = {
     error() {}
 };
 
-function createTextEvent(messageId: string, text = '你好', senderOpenId = 'ou_sender'): FeishuIncomingMessageEvent {
+function createTextEvent(messageId: string, text = '你好'): FeishuIncomingMessageEvent {
     return {
         message: {
             message_id: messageId,
             message_type: 'text',
             chat_id: 'chat_1',
             content: JSON.stringify({ text })
-        },
-        sender: {
-            sender_type: 'user',
-            sender_id: {
-                open_id: senderOpenId
-            }
         }
     };
 }
 
 describe('createFeishuMessageProcessor', () => {
-    it('creates a Feishu meeting from a create meeting command without asking Cursor', async () => {
-        const actions: string[] = [];
-
-        const processor = createFeishuMessageProcessor({
-            cursorApiKey: 'cursor_key',
-            cursorModel: 'composer-2.5',
-            logger: silentLogger,
-            askCursor: async () => {
-                actions.push('cursor:start');
-                return '不应调用 Cursor';
-            },
-            createMeeting: async ({ ownerOpenId, topic }) => {
-                actions.push(`create-meeting:${ownerOpenId}:${topic}`);
-                return {
-                    id: 'reserve_1',
-                    topic,
-                    meetingNo: '112000358',
-                    url: 'https://vc.feishu.cn/j/337736498',
-                    password: '971024',
-                    endTime: '1608883322'
-                };
-            },
-            sendTextMessage: async (chatId, text) => {
-                actions.push(`send:${chatId}:${text}`);
-            }
-        });
-
-        processor.handleEvent(createTextEvent('om_create_meeting', '创建会议 需求评审', 'ou_owner'));
-        await processor.drain();
-
-        assert.deepEqual(actions, ['create-meeting:ou_owner:需求评审', 'send:chat_1:会议已创建：需求评审\n会议号：112000358\n入会链接：https://vc.feishu.cn/j/337736498\n会议密码：971024\n预约到期：2020-12-25 08:02']);
-    });
-
-    it('replies with a failure hint when creating a Feishu meeting fails', async () => {
-        const actions: string[] = [];
-        const logger = {
-            info() {},
-            error(message: string) {
-                actions.push(`error:${message}`);
-            }
-        };
-
-        const processor = createFeishuMessageProcessor({
-            cursorApiKey: 'cursor_key',
-            cursorModel: 'composer-2.5',
-            logger,
-            createMeeting: async () => {
-                throw new Error('no permission');
-            },
-            sendTextMessage: async (chatId, text) => {
-                actions.push(`send:${chatId}:${text}`);
-            }
-        });
-
-        processor.handleEvent(createTextEvent('om_create_meeting_failed', '创建会议'));
-        await processor.drain();
-
-        assert.equal(actions[0], 'send:chat_1:创建会议失败，请检查飞书会议权限或稍后重试。');
-        assert.match(actions[1] ?? '', /^error:\[feishu-bot] message handling failed chatId=chat_1 messageId=om_create_meeting_failed/);
-    });
-
     it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
         const actions: string[] = [];
 
