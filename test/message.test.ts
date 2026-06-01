@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, buildMeetingCreatedCard, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
+import { buildMeetingCreatedCard, formatMeetingCreatedReply } from '../src/adapters/feishu/renderers.ts';
+import { buildCursorPrompt } from '../src/core/assistant-prompt.ts';
+import { parseCreateMeetingCommand } from '../src/core/commands/create-meeting-parser.ts';
+import { DEFAULT_REACTION_EMOJI_TYPE } from '../src/core/reactions.ts';
+import { extractIncomingText, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.ts';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {

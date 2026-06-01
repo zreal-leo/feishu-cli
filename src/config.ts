@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import { DEFAULT_CONFIG } from './default-config.js';
+import { DEFAULT_CONFIG } from './default-config.ts';
 
 type Config = {
     cursorApiKey: string;

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import { loadConfig } from '../src/config.js';
-import { DEFAULT_CONFIG } from '../src/default-config.js';
+import { loadConfig } from '../src/config.ts';
+import { DEFAULT_CONFIG } from '../src/default-config.ts';
 
 const managedEnvNames = ['CURSOR_API_KEY', 'CURSOR_MODEL', 'FEISHU_APP_ID', 'FEISHU_APP_SECRET', 'FEISHU_ENCRYPT_KEY', 'ENV', 'MANAGER_BASE_URL', 'MANAGER_LOGIN_NAME', 'MANAGER_PASSWORD'] as const;
 const originalEnv = new Map<string, string | undefined>(managedEnvNames.map(name => [name, process.env[name]]));

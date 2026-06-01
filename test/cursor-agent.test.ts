@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { basename, isAbsolute, sep } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { ensureCursorRipgrepPath, getCursorSdkPlatformPackageName, getRipgrepExecutableName } from '../src/cursor-agent.js';
+import { ensureCursorRipgrepPath, getCursorSdkPlatformPackageName, getRipgrepExecutableName } from '../src/adapters/cursor/cursor-agent.ts';
 
 describe('getCursorSdkPlatformPackageName', () => {
     it('maps supported platforms to the SDK binary package', () => {

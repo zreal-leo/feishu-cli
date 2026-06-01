@@ -1,12 +1,25 @@
-## 飞书 Cursor 机器人最小示例
+## lark-cli
 
-这个示例使用 `pnpm + TypeScript` 跑一个本地进程：
+这个项目使用 `pnpm + TypeScript` 跑一个本地进程：
 
 1. 飞书通过 WebSocket 长连接把 `im.message.receive_v1` 消息事件推给本地进程。
 2. 本地进程把文本消息交给 Cursor SDK。
 3. Cursor 返回结果后，机器人把文本回复发回同一个飞书会话。
 
 参考：飞书官方 CLI 文档介绍了安装、认证、消息、事件等能力，[README.zh.md](https://github.com/larksuite/cli/blob/main/README.zh.md)。
+
+### 架构概览
+
+项目仍是单进程机器人，不依赖数据库、消息队列或独立 HTTP 服务；内部按可扩展机器人框架拆分：
+
+- `src/app/`：应用编排层，包含 `BotApplication`、串行任务队列和消息去重。
+- `src/core/`：核心命令与模型，命令通过 `CommandHandler` 注册；普通消息由 Cursor fallback 命令处理，「创建会议」由独立命令处理器处理。
+- `src/ports/`：核心层依赖的接口，例如回复、reaction、会议和助手能力。
+- `src/adapters/feishu/`：飞书入站事件映射、出站文本/卡片/流式回复和卡片渲染。
+- `src/adapters/cursor/`：Cursor SDK 适配入口。
+- `src/adapters/manager/`：运营后台会议创建适配入口。
+
+新增机器人能力时，优先新增一个 `CommandHandler` 并注册到命令注册表；不要把命令分支继续堆到飞书消息处理器里。`src/feishu-message-processor.ts` 只保留对外兼容的组合入口。
 
 ### 准备飞书应用
 

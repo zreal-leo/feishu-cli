@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createFeishuMessageProcessor } from '../src/feishu-message-processor.js';
-import type { FeishuIncomingMessageEvent } from '../src/message.js';
-import type { FeishuMessageMention } from '../src/message.js';
-import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/message.js';
+import { createFeishuMessageProcessor } from '../src/feishu-message-processor.ts';
+import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/adapters/feishu/renderers.ts';
+import type { FeishuIncomingMessageEvent } from '../src/message.ts';
+import type { FeishuMessageMention } from '../src/message.ts';
 
 const silentLogger = {
     info() {},

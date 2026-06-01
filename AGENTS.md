@@ -4,7 +4,17 @@
 
 ### 项目概览
 
-单包 Node.js 应用（`feishu-cursor-bot-example`）：通过飞书 WebSocket 接收文本消息，经 `@cursor/sdk` 生成回复后发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
+单包 Node.js 应用（`lark-cli`）：通过飞书 WebSocket 接收文本消息，经命令注册表路由到内置命令或 `@cursor/sdk` fallback，再把回复发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
+
+当前内部架构是单进程可扩展机器人框架：
+
+- `src/app/`：应用编排、串行队列、消息去重。
+- `src/core/`：命令模型、`CommandRegistry`、创建会议命令、Cursor fallback 命令。
+- `src/ports/`：核心层依赖的接口。
+- `src/adapters/feishu/`：飞书事件映射、回复网关、卡片渲染。
+- `src/adapters/cursor/` 与 `src/adapters/manager/`：外部系统适配入口。
+
+新增命令时优先新增 `CommandHandler` 并在组合入口注册，避免把业务分支写回 `src/feishu-message-processor.ts`。
 
 ### 常用命令
 
@@ -43,7 +53,7 @@
 
 ### 开发运行注意
 
-- `pnpm dev` 与 `pnpm start` 都会先打印 `Feishu Cursor bot is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
+- `pnpm dev` 与 `pnpm start` 都会先打印 `lark-cli is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
 - 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。
 - 临时脚本请用 `pnpm exec tsx`（`tsx` 不在全局 PATH）；`-e` 内联脚本需包在 async IIFE 中，避免 top-level await 报错。
 - 格式化检查：`pnpm prettier --check .`（不写回文件）。

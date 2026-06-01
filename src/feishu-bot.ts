@@ -1,10 +1,10 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
-import type { ManagerMeetingConfig } from './config.js';
-import { createFeishuMessageProcessor } from './feishu-message-processor.js';
-import { createManagerMeetingClient } from './manager-meeting.js';
-import type { FeishuIncomingMessageEvent } from './message.js';
-import { toFeishuCardReferenceContent, toFeishuReactionPayload, toFeishuTextContent } from './message.js';
+import type { ManagerMeetingConfig } from './config.ts';
+import { createManagerMeetingClient } from './adapters/manager/index.ts';
+import { createFeishuMessageProcessor } from './feishu-message-processor.ts';
+import type { FeishuIncomingMessageEvent } from './message.ts';
+import { toFeishuCardReferenceContent, toFeishuReactionPayload, toFeishuTextContent } from './message.ts';
 
 export type StartBotOptions = {
     cursorApiKey: string;
