@@ -136,6 +136,98 @@ describe('createManagerMeeting', () => {
         assert.equal(payload.organizationId, 747);
     });
 
+    it('creates a cloud player after the meeting is created when requested', async () => {
+        const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+        const fetchImpl = (async (input, init) => {
+            const url = String(input);
+            requests.push({ url, init });
+
+            if (url.includes('/managecenter/roadshow/create')) {
+                return new Response(JSON.stringify({ code: '0', msg: 'success', data: { id: 123456, eid: 789012, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
+            }
+
+            return new Response(JSON.stringify({ code: '0', msg: 'success' }), { status: 200 });
+        }) as typeof fetch;
+
+        const result = await createManagerMeeting(
+            createTestConfig(),
+            {
+                title: '云播会议',
+                stimeMs: 1760000000000,
+                cloudPlayer: {
+                    mediaStreamType: 2,
+                    streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                    playType: 1,
+                    repeatMode: -1,
+                    repeatTime: 1,
+                    type: 1
+                }
+            },
+            'manager_token',
+            fetchImpl
+        );
+
+        assert.equal(result.roadshowId, 123456);
+        assert.equal(requests.length, 2);
+        assert.equal(requests[0].url, 'https://testserver.comein.cn/comein/manager/managecenter/roadshow/create');
+        assert.equal(requests[1].url, 'https://testserver.comein.cn/comein/manager/managecenter/cloud-player/create');
+        assert.deepEqual(requests[1].init?.headers, {
+            token: 'manager_token',
+            'content-type': 'application/json'
+        });
+        assert.deepEqual(JSON.parse(String(requests[1].init?.body)), {
+            roadshowId: 123456,
+            mediaStreamType: 2,
+            streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+            playType: 1,
+            repeatMode: -1,
+            repeatTime: 1,
+            playTs: 1760000000,
+            region: null,
+            type: 1
+        });
+    });
+
+    it('returns the meeting result with a cloud player error when optional cloud player creation fails', async () => {
+        const stimeMs = new Date(2026, 4, 30, 15, 33).getTime();
+        const fetchImpl = (async (input, init) => {
+            const url = String(input);
+
+            if (url.includes('/managecenter/roadshow/create')) {
+                return new Response(JSON.stringify({ code: '0', msg: 'success', data: { id: 123456, eid: 789012, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
+            }
+
+            assert.equal(getRequestToken(init), 'manager_token');
+            return new Response(JSON.stringify({ code: '1', msg: 'invalid stream' }), { status: 200 });
+        }) as typeof fetch;
+
+        const result = await createManagerMeeting(
+            createTestConfig(),
+            {
+                title: '云播失败会议',
+                stimeMs,
+                cloudPlayer: {
+                    mediaStreamType: 2,
+                    streamUrl: 'https://media.comein.cn/video/invalid.mp4',
+                    playType: 1,
+                    repeatMode: -1,
+                    repeatTime: 1,
+                    type: 1
+                }
+            },
+            'manager_token',
+            fetchImpl
+        );
+
+        assert.deepEqual(result, {
+            title: 'BOT: 云播失败会议 15:33',
+            roadshowId: 123456,
+            eventId: 789012,
+            netLiveUrl: 'http://s.comein.cn/live',
+            cloudPlayerError: '创建云播失败: {"code":"1","msg":"invalid stream"}'
+        });
+    });
+
     it('throws when the manager backend returns a failure code', async () => {
         const fetchImpl = (async () => {
             return new Response(JSON.stringify({ code: '1', msg: 'token invalid' }), { status: 200 });

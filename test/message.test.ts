@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
+import { DEFAULT_REACTION_EMOJI_TYPE, buildCursorPrompt, buildMeetingCreatedCard, extractIncomingText, formatMeetingCreatedReply, parseCreateMeetingCommand, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.js';
 
 describe('extractIncomingText', () => {
     it('extracts text from a Feishu text message event', () => {
@@ -86,6 +86,66 @@ describe('parseCreateMeetingCommand', () => {
         });
     });
 
+    it('parses a create meeting command with cloud player media', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议 跨项目接入测试会议 云播 https://media.comein.cn/video/344317-1740031837920.mp4'), {
+            type: 'create_meeting',
+            title: '跨项目接入测试会议',
+            cloudPlayer: {
+                mediaStreamType: 2,
+                streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
+    it('parses default video cloud player without requiring a title or URL', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议 云播'), {
+            type: 'create_meeting',
+            title: '会议',
+            cloudPlayer: {
+                mediaStreamType: 2,
+                streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
+    it('parses natural create meeting and cloud player wording', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议并创建云播'), {
+            type: 'create_meeting',
+            title: '会议',
+            cloudPlayer: {
+                mediaStreamType: 2,
+                streamUrl: 'https://media.comein.cn/video/344317-1740031837920.mp4',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
+    it('parses explicit audio cloud player media', () => {
+        assert.deepEqual(parseCreateMeetingCommand('创建会议 语音会议 音频云播 https://media.comein.cn/audio/demo.mp3'), {
+            type: 'create_meeting',
+            title: '语音会议',
+            cloudPlayer: {
+                mediaStreamType: 1,
+                streamUrl: 'https://media.comein.cn/audio/demo.mp3',
+                playType: 1,
+                repeatMode: -1,
+                repeatTime: 1,
+                type: 1
+            }
+        });
+    });
+
     it('ignores non-command text', () => {
         assert.equal(parseCreateMeetingCommand('请帮我总结这段内容'), null);
     });
@@ -97,6 +157,34 @@ describe('formatMeetingCreatedReply', () => {
             formatMeetingCreatedReply({ title: 'BOT: AI总结 15:33', roadshowId: 123456, eventId: 789012, netLiveUrl: 'http://s.comein.cn/live' }),
             ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')
         );
+    });
+
+    it('formats cloud player creation status separately from meeting success', () => {
+        assert.equal(
+            formatMeetingCreatedReply({
+                title: 'BOT: AI总结 15:33',
+                roadshowId: 123456,
+                eventId: 789012,
+                netLiveUrl: 'http://s.comein.cn/live',
+                cloudPlayerError: '创建云播失败: {"code":"1","msg":"invalid stream"}'
+            }),
+            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live', '云播：创建失败（创建云播失败: {"code":"1","msg":"invalid stream"}）'].join('\n')
+        );
+    });
+});
+
+describe('buildMeetingCreatedCard', () => {
+    it('includes cloud player status in the manager meeting card', () => {
+        const card = buildMeetingCreatedCard({
+            title: 'BOT: AI总结 15:33',
+            roadshowId: 123456,
+            eventId: 789012,
+            netLiveUrl: 'http://s.comein.cn/live',
+            cloudPlayerCreated: true
+        });
+
+        assert.match(String(card.body.elements[0].content), /\*\*云播：\*\* 已创建/);
+        assert.equal(card.card_link?.url, 'http://s.comein.cn/live');
     });
 });
 

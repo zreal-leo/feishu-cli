@@ -46,9 +46,13 @@ pnpm dev
 ```text
 创建会议
 创建会议 跨项目接入测试会议
+创建会议 云播
+创建会议并创建云播
+创建会议 跨项目接入测试会议 云播 https://media.comein.cn/video/344317-1740031837920.mp4
+创建会议 跨项目接入测试会议 音频云播 https://media.comein.cn/audio/demo.mp3
 ```
 
-成功后会在同一飞书会话返回会议标题、会议 ID、事件 ID 和观看链接。默认 3 分钟后开始，标题格式为 `BOT: 主题 HH:mm`。`src/default-config.ts` 保存默认 Cursor 模型和测试运营后台域名；当前仅支持创建测试环境会议。创建会议会先调用运营后台登录接口，再用登录返回的信息换取并缓存 token：
+成功后会在同一飞书会话返回会议标题、会议 ID、事件 ID 和观看链接。默认 3 分钟后开始，标题格式为 `BOT: 主题 HH:mm`。如果命令包含 `云播`，会议创建成功后会继续调用 `POST /managecenter/cloud-player/create`，用会议 ID 创建视频云播；未填写主题时使用默认主题 `会议`，未填写 URL 时使用默认视频 `https://media.comein.cn/video/344317-1740031837920.mp4`。使用 `音频云播 <公网音频 URL>` 可创建音频云播。云播默认按会议开始时间播放、循环播放；云播失败时会议仍会返回成功，并单独提示云播失败原因。`src/default-config.ts` 保存默认 Cursor 模型和测试运营后台域名；当前仅支持创建测试环境会议。创建会议会先调用运营后台登录接口，再用登录返回的信息换取并缓存 token：
 
 ```bash
 MANAGER_LOGIN_NAME=admin
