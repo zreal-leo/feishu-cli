@@ -73,6 +73,41 @@ describe('createFeishuMessageProcessor', () => {
         ]);
     });
 
+    it('finishes a streaming Feishu card when an update fails', async () => {
+        const actions: string[] = [];
+
+        const processor = createFeishuMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamingUpdateIntervalMs: 0,
+            streamCursorReply: async function* () {
+                yield '第一段';
+                yield '第二段';
+            },
+            sendCardMessage: async (chatId, card) => {
+                const markdownElement = card.body.elements[0];
+                actions.push(`send-card:${chatId}:${String(markdownElement.content)}`);
+                return { messageId: 'om_reply', cardId: 'card_reply' };
+            },
+            updateCardElementContent: async (cardId, elementId, content, sequence) => {
+                actions.push(`update-card:${cardId}:${elementId}:${content}:${sequence}`);
+                throw new Error('飞书卡片更新失败');
+            },
+            finishCardStreaming: async (cardId, sequence, summary) => {
+                actions.push(`finish-card:${cardId}:${sequence}:${summary}`);
+            },
+            sendTextMessage: async () => {
+                actions.push('send-text:fallback');
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_card_update_failed'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['send-card:chat_1:第一段', `update-card:card_reply:${CURSOR_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
+    });
+
     it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
         const actions: string[] = [];
 
@@ -351,7 +386,9 @@ describe('createFeishuMessageProcessor', () => {
             sendCardMessage: async (chatId, card) => {
                 const actionButton = card.body.elements.at(-1);
                 assert.ok(card.card_link);
-                actions.push(`send-card:${chatId}:${card.card_link.url}:${actionButton?.url}`);
+                actions.push(
+                    `send-card:${chatId}:${card.card_link.url}:${card.card_link.pc_url}:${card.card_link.ios_url}:${card.card_link.android_url}:${actionButton?.url}:${actionButton?.pc_url}:${actionButton?.ios_url}:${actionButton?.android_url}`
+                );
                 return { messageId: 'om_meeting_card', cardId: 'card_meeting' };
             },
             sendTextMessage: async () => {
@@ -362,7 +399,10 @@ describe('createFeishuMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_create_meeting_card', '创建会议 跨项目接入测试会议'));
         await processor.drain();
 
-        assert.deepEqual(actions, ['create-meeting:跨项目接入测试会议', 'send-card:chat_1:http://s.comein.cn/live:http://s.comein.cn/live']);
+        assert.deepEqual(actions, [
+            'create-meeting:跨项目接入测试会议',
+            'send-card:chat_1:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live'
+        ]);
     });
 
     it('creates a manager meeting when a group message mentions the bot before the command', async () => {
