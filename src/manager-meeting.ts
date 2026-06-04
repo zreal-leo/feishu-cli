@@ -1,4 +1,4 @@
-import type { ManagerMeetingConfig } from './config.js';
+import type { ManagerMeetingConfig } from './config.ts';
 
 type FetchLike = typeof fetch;
 

@@ -1,7 +1,7 @@
-import { loadConfig } from './config.js';
-import { startFeishuCursorBot } from './feishu-bot.js';
+import { loadConfig } from './config.ts';
+import { startLarkCursorBot } from './lark-bot.ts';
 
 const config = loadConfig();
 
-startFeishuCursorBot(config);
-console.log('Feishu Cursor bot is running. Send a text message to the bot in Feishu.');
+startLarkCursorBot(config);
+console.log('lark-cli is running. Send a text message to the bot in Lark.');

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createSegmentTimer, formatDurationMs } from '../src/timing.js';
+import { createSegmentTimer, formatDurationMs } from '../src/timing.ts';
 
 describe('formatDurationMs', () => {
     it('rounds elapsed milliseconds for logs', () => {

@@ -1,24 +1,24 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
-import type { ManagerMeetingConfig } from './config.js';
-import { createFeishuMessageProcessor } from './feishu-message-processor.js';
-import { createManagerMeetingClient } from './manager-meeting.js';
-import type { FeishuIncomingMessageEvent } from './message.js';
-import { toFeishuCardReferenceContent, toFeishuReactionPayload, toFeishuTextContent } from './message.js';
+import type { ManagerMeetingConfig } from './config.ts';
+import { createManagerMeetingClient } from './adapters/manager/index.ts';
+import { createLarkMessageProcessor } from './lark-message-processor.ts';
+import type { LarkIncomingMessageEvent } from './message.ts';
+import { toLarkCardReferenceContent, toLarkReactionPayload, toLarkTextContent } from './message.ts';
 
 export type StartBotOptions = {
     cursorApiKey: string;
     cursorModel: string;
-    feishuAppId: string;
-    feishuAppSecret: string;
-    feishuEncryptKey?: string;
+    larkAppId: string;
+    larkAppSecret: string;
+    larkEncryptKey?: string;
     managerMeeting: ManagerMeetingConfig;
 };
 
-export function startFeishuCursorBot(options: StartBotOptions): void {
+export function startLarkCursorBot(options: StartBotOptions): void {
     const baseConfig = {
-        appId: options.feishuAppId,
-        appSecret: options.feishuAppSecret
+        appId: options.larkAppId,
+        appSecret: options.larkAppSecret
     };
 
     const client = new Lark.Client(baseConfig);
@@ -27,7 +27,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
         ...baseConfig,
         loggerLevel: Lark.LoggerLevel.info
     });
-    const messageProcessor = createFeishuMessageProcessor({
+    const messageProcessor = createLarkMessageProcessor({
         cursorApiKey: options.cursorApiKey,
         cursorModel: options.cursorModel,
         addMessageReaction: async (messageId, emojiType) => {
@@ -35,7 +35,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                 path: {
                     message_id: messageId
                 },
-                data: toFeishuReactionPayload(emojiType)
+                data: toLarkReactionPayload(emojiType)
             });
 
             return { reactionId: response.data?.reaction_id };
@@ -56,7 +56,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                 data: {
                     receive_id: chatId,
                     msg_type: 'text',
-                    content: toFeishuTextContent(text)
+                    content: toLarkTextContent(text)
                 }
             });
 
@@ -69,7 +69,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                 },
                 data: {
                     msg_type: 'text',
-                    content: toFeishuTextContent(text)
+                    content: toLarkTextContent(text)
                 }
             });
         },
@@ -83,7 +83,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
             const cardId = cardResponse.data?.card_id;
 
             if (!cardId) {
-                throw new Error('飞书卡片创建失败：缺少 card_id');
+                throw new Error('Lark 卡片创建失败：缺少 card_id');
             }
 
             const messageResponse = await client.im.v1.message.create({
@@ -93,7 +93,7 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
                 data: {
                     receive_id: chatId,
                     msg_type: 'interactive',
-                    content: toFeishuCardReferenceContent(cardId)
+                    content: toLarkCardReferenceContent(cardId)
                 }
             });
 
@@ -140,9 +140,9 @@ export function startFeishuCursorBot(options: StartBotOptions): void {
     });
 
     const eventDispatcher = new Lark.EventDispatcher({
-        encryptKey: options.feishuEncryptKey
+        encryptKey: options.larkEncryptKey
     }).register({
-        'im.message.receive_v1': (event: FeishuIncomingMessageEvent) => {
+        'im.message.receive_v1': (event: LarkIncomingMessageEvent) => {
             messageProcessor.handleEvent(event);
         }
     });

@@ -1,13 +1,13 @@
 import 'dotenv/config';
 
-import { DEFAULT_CONFIG } from './default-config.js';
+import { DEFAULT_CONFIG } from './default-config.ts';
 
 type Config = {
     cursorApiKey: string;
     cursorModel: string;
-    feishuAppId: string;
-    feishuAppSecret: string;
-    feishuEncryptKey?: string;
+    larkAppId: string;
+    larkAppSecret: string;
+    larkEncryptKey?: string;
     managerMeeting: ManagerMeetingConfig;
 };
 
@@ -30,9 +30,9 @@ export function loadConfig(): Config {
     return {
         cursorApiKey: requireEnv('CURSOR_API_KEY'),
         cursorModel: DEFAULT_CONFIG.cursorModel,
-        feishuAppId: requireEnv('FEISHU_APP_ID'),
-        feishuAppSecret: requireEnv('FEISHU_APP_SECRET'),
-        feishuEncryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
+        larkAppId: requireEnv('LARK_APP_ID'),
+        larkAppSecret: requireEnv('LARK_APP_SECRET'),
+        larkEncryptKey: process.env.LARK_ENCRYPT_KEY?.trim() || undefined,
         managerMeeting: {
             env: DEFAULT_CONFIG.managerMeeting.env,
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
