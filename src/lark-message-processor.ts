@@ -4,8 +4,10 @@ import { createBotApplication } from './app/bot-application.ts';
 import { streamCursorReply as defaultStreamCursorReply } from './adapters/cursor/cursor-agent.ts';
 import type { AskCursorOptions } from './adapters/cursor/cursor-agent.ts';
 import { createAssistantCommandHandler } from './core/commands/assistant-command.ts';
+import { createCursorUsageCommandHandler } from './core/commands/cursor-usage-command.ts';
 import { createMeetingCommandHandler } from './core/commands/create-meeting-command.ts';
 import { createCommandRegistry } from './core/command-registry.ts';
+import type { CursorTokenUsageSummary, CursorUsageQuery } from './core/cursor-usage.ts';
 import type { CloudPlayerCommandOptions, MeetingCreatedReplyData } from './core/meeting.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
 import type { LarkCard } from './adapters/lark/renderers.ts';
@@ -17,6 +19,7 @@ type SendTextMessageResult = { messageId?: string } | void;
 type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
 type CreateMeeting = (request: { title: string; cloudPlayer?: CloudPlayerCommandOptions }) => Promise<MeetingCreatedReplyData>;
+type GetCursorUsageSummary = (query: CursorUsageQuery) => Promise<CursorTokenUsageSummary>;
 
 export type LarkMessageProcessorOptions = {
     cursorApiKey: string;
@@ -32,6 +35,7 @@ export type LarkMessageProcessorOptions = {
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
+    getCursorUsageSummary?: GetCursorUsageSummary;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
 };
@@ -54,6 +58,15 @@ export function createLarkMessageProcessor(options: LarkMessageProcessorOptions)
                         }
 
                         return options.createMeeting(request);
+                    }
+                }),
+                createCursorUsageCommandHandler({
+                    async getUsageSummary(query) {
+                        if (!options.getCursorUsageSummary) {
+                            throw new Error('Cursor 用量查询能力未配置。');
+                        }
+
+                        return options.getCursorUsageSummary(query);
                     }
                 })
             ],

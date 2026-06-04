@@ -436,6 +436,42 @@ describe('createLarkMessageProcessor', () => {
         assert.deepEqual(actions, ['create-meeting:AI总结', `send:chat_1:${['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`]);
     });
 
+    it('queries Cursor token usage without calling the assistant fallback', async () => {
+        const actions: string[] = [];
+
+        const processor = createLarkMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor';
+            },
+            getCursorUsageSummary: async query => {
+                actions.push(`cursor-usage:${query.startDate}:${query.endDate}`);
+                return {
+                    startDate: query.startDate,
+                    endDate: query.endDate,
+                    recordsCount: 2,
+                    inputTokens: 2898,
+                    outputTokens: 83,
+                    cacheReadTokens: 7364
+                };
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_cursor_usage', '查询token 2026-05-06 2026-06-04'));
+        await processor.drain();
+
+        assert.deepEqual(actions, [
+            'cursor-usage:2026-05-06:2026-06-04',
+            `send:chat_1:${['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：1万'].join('\n')}`
+        ]);
+    });
+
     it('sends an error message when manager meeting creation fails', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
 
