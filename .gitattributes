@@ -1,0 +1,28 @@
+* text=auto eol=lf
+
+# Keep common binary assets out of line-ending normalization.
+*.avif binary
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp3 binary
+*.mp4 binary
+*.mov binary
+*.sqlite binary
+*.db binary
+
+# Windows command scripts conventionally use CRLF when present.
+*.bat text eol=crlf
+*.cmd text eol=crlf
