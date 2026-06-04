@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { mapFeishuIncomingMessage } from '../src/adapters/feishu/inbound.ts';
-import { createFeishuReplyGateway } from '../src/adapters/feishu/reply-gateway.ts';
-import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/adapters/feishu/renderers.ts';
-import type { FeishuIncomingMessageEvent } from '../src/message.ts';
+import { mapLarkIncomingMessage } from '../src/adapters/lark/inbound.ts';
+import { createLarkReplyGateway } from '../src/adapters/lark/reply-gateway.ts';
+import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/adapters/lark/renderers.ts';
+import type { LarkIncomingMessageEvent } from '../src/message.ts';
 
-describe('mapFeishuIncomingMessage', () => {
-    it('maps a Feishu text event into the framework message input', () => {
-        const event: FeishuIncomingMessageEvent = {
+describe('mapLarkIncomingMessage', () => {
+    it('maps a Lark text event into the framework message input', () => {
+        const event: LarkIncomingMessageEvent = {
             message: {
                 message_id: 'om_1',
                 message_type: 'text',
@@ -18,7 +18,7 @@ describe('mapFeishuIncomingMessage', () => {
             }
         };
 
-        assert.deepEqual(mapFeishuIncomingMessage(event), {
+        assert.deepEqual(mapLarkIncomingMessage(event), {
             chatId: 'chat_1',
             messageId: 'om_1',
             text: '你好'
@@ -27,7 +27,7 @@ describe('mapFeishuIncomingMessage', () => {
 
     it('returns null for events without usable text or chat id', () => {
         assert.equal(
-            mapFeishuIncomingMessage({
+            mapLarkIncomingMessage({
                 message: {
                     message_type: 'image',
                     chat_id: 'chat_1',
@@ -39,10 +39,10 @@ describe('mapFeishuIncomingMessage', () => {
     });
 });
 
-describe('createFeishuReplyGateway', () => {
-    it('renders semantic meeting replies through Feishu cards when card sending is available', async () => {
+describe('createLarkReplyGateway', () => {
+    it('renders semantic meeting replies through Lark cards when card sending is available', async () => {
         const actions: string[] = [];
-        const gateway = createFeishuReplyGateway({
+        const gateway = createLarkReplyGateway({
             logger: silentLogger,
             sendTextMessage: async () => {
                 actions.push('send-text:fallback');
@@ -66,9 +66,9 @@ describe('createFeishuReplyGateway', () => {
         assert.deepEqual(actions, ['send-card:chat_1:会议创建成功:http://s.comein.cn/live']);
     });
 
-    it('streams assistant replies into a Feishu card', async () => {
+    it('streams assistant replies into a Lark card', async () => {
         const actions: string[] = [];
-        const gateway = createFeishuReplyGateway({
+        const gateway = createLarkReplyGateway({
             logger: silentLogger,
             streamingUpdateIntervalMs: 0,
             sendTextMessage: async () => {

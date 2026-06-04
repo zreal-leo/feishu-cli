@@ -1,24 +1,24 @@
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
 
-export type FeishuMessageMention = {
+export type LarkMessageMention = {
     key?: string;
     name?: string;
 };
 
-export type FeishuIncomingMessageEvent = {
+export type LarkIncomingMessageEvent = {
     message?: {
         message_id?: string;
         message_type?: string;
         content?: string;
         chat_id?: string;
-        mentions?: FeishuMessageMention[];
+        mentions?: LarkMessageMention[];
     };
     sender?: {
         sender_type?: string;
     };
 };
 
-export function extractIncomingText(event: FeishuIncomingMessageEvent): string | null {
+export function extractIncomingText(event: LarkIncomingMessageEvent): string | null {
     if (event.sender?.sender_type === 'bot') {
         return null;
     }
@@ -36,7 +36,7 @@ export function extractIncomingText(event: FeishuIncomingMessageEvent): string |
     }
 }
 
-function stripLeadingMentions(text: string, mentions: FeishuMessageMention[] = []): string {
+function stripLeadingMentions(text: string, mentions: LarkMessageMention[] = []): string {
     let result = text.trimStart();
     let previous = '';
 
@@ -61,15 +61,15 @@ function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function toFeishuTextContent(text: string): string {
+export function toLarkTextContent(text: string): string {
     return JSON.stringify({ text });
 }
 
-export function toFeishuCardContent(card: unknown): string {
+export function toLarkCardContent(card: unknown): string {
     return JSON.stringify(card);
 }
 
-export function toFeishuCardReferenceContent(cardId: string): string {
+export function toLarkCardReferenceContent(cardId: string): string {
     return JSON.stringify({
         type: 'card',
         data: {
@@ -78,7 +78,7 @@ export function toFeishuCardReferenceContent(cardId: string): string {
     });
 }
 
-export function toFeishuReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE): { reaction_type: { emoji_type: string } } {
+export function toLarkReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE): { reaction_type: { emoji_type: string } } {
     return {
         reaction_type: {
             emoji_type: emojiType

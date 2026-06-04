@@ -77,7 +77,7 @@ describe('createAssistantCommandHandler', () => {
         const handler = createAssistantCommandHandler({
             streamReply(prompt) {
                 assert.match(prompt, /请用中文简洁回复/);
-                assert.match(prompt, /用户在飞书发送的消息：\n你好/);
+                assert.match(prompt, /用户在 Lark 发送的消息：\n你好/);
                 return (async function* () {
                     yield '第一段';
                     yield '第二段';

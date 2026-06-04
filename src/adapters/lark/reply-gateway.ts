@@ -1,7 +1,7 @@
 import type { BotReply, ReplyStream } from '../../core/types.ts';
 import { isReplyStream } from '../../core/types.ts';
 import { CURSOR_REPLY_CARD_ELEMENT_ID, buildCursorReplyCard, buildMeetingCreateFailedCard, buildMeetingCreatedCard, formatMeetingCreateFailedReply, formatMeetingCreatedReply, summarizeCardText } from './renderers.ts';
-import type { FeishuCard } from './renderers.ts';
+import type { LarkCard } from './renderers.ts';
 import type { ReplyGateway } from '../../ports/reply.ts';
 import type { Logger } from '../../ports/runtime.ts';
 
@@ -10,24 +10,24 @@ type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 
 const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 250;
 
-export type FeishuReplyGatewayOptions = {
+export type LarkReplyGatewayOptions = {
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     logger?: Logger;
-    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
+    sendCardMessage?: (chatId: string, card: LarkCard) => Promise<SendCardMessageResult>;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     streamingUpdateIntervalMs?: number;
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     updateTextMessage?: (messageId: string, text: string) => Promise<void>;
 };
 
-export function createFeishuReplyGateway(options: FeishuReplyGatewayOptions): ReplyGateway {
+export function createLarkReplyGateway(options: LarkReplyGatewayOptions): ReplyGateway {
     const logger = options.logger ?? console;
     const streamingUpdateIntervalMs = Math.max(0, options.streamingUpdateIntervalMs ?? DEFAULT_STREAMING_UPDATE_INTERVAL_MS);
 
     return {
         async send(chatId, reply) {
             if (isReplyStream(reply)) {
-                await streamReplyToFeishuMessage(chatId, reply, {
+                await streamReplyToLarkMessage(chatId, reply, {
                     ...options,
                     logger,
                     streamingUpdateIntervalMs
@@ -40,7 +40,7 @@ export function createFeishuReplyGateway(options: FeishuReplyGatewayOptions): Re
     };
 }
 
-async function sendBotReply(chatId: string, reply: BotReply, options: FeishuReplyGatewayOptions): Promise<void> {
+async function sendBotReply(chatId: string, reply: BotReply, options: LarkReplyGatewayOptions): Promise<void> {
     switch (reply.type) {
         case 'text':
             await options.sendTextMessage(chatId, reply.text);
@@ -62,19 +62,19 @@ async function sendBotReply(chatId: string, reply: BotReply, options: FeishuRepl
     }
 }
 
-type StreamReplyToFeishuMessageOptions = Required<Pick<FeishuReplyGatewayOptions, 'logger' | 'streamingUpdateIntervalMs'>> &
-    Pick<FeishuReplyGatewayOptions, 'finishCardStreaming' | 'sendCardMessage' | 'sendTextMessage' | 'updateCardElementContent' | 'updateTextMessage'>;
+type StreamReplyToLarkMessageOptions = Required<Pick<LarkReplyGatewayOptions, 'logger' | 'streamingUpdateIntervalMs'>> &
+    Pick<LarkReplyGatewayOptions, 'finishCardStreaming' | 'sendCardMessage' | 'sendTextMessage' | 'updateCardElementContent' | 'updateTextMessage'>;
 
-async function streamReplyToFeishuMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+async function streamReplyToLarkMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     if (options.sendCardMessage) {
-        await streamReplyToFeishuCard(chatId, cursorReply, options);
+        await streamReplyToLarkCard(chatId, cursorReply, options);
         return;
     }
 
     await streamReplyToTextMessage(chatId, cursorReply, options);
 }
 
-async function streamReplyToFeishuCard(chatId: string, cursorReply: ReplyStream, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     const sendCardMessage = options.sendCardMessage;
 
     if (!sendCardMessage) {
@@ -109,7 +109,7 @@ async function streamReplyToFeishuCard(chatId: string, cursorReply: ReplyStream,
 
                 if (!sentCardId) {
                     fallbackToFinalCard = true;
-                    options.logger.error(`[feishu-bot] streaming card update skipped because sent card_id is missing chatId=${chatId}`);
+                    options.logger.error(`[lark-bot] streaming card update skipped because sent card_id is missing chatId=${chatId}`);
                 }
 
                 continue;
@@ -144,15 +144,15 @@ async function streamReplyToFeishuCard(chatId: string, cursorReply: ReplyStream,
     }
 }
 
-async function finishStreamingCardBestEffort(cardId: string, sequence: number, summary: string, options: Pick<StreamReplyToFeishuMessageOptions, 'finishCardStreaming' | 'logger'>): Promise<void> {
+async function finishStreamingCardBestEffort(cardId: string, sequence: number, summary: string, options: Pick<StreamReplyToLarkMessageOptions, 'finishCardStreaming' | 'logger'>): Promise<void> {
     try {
         await options.finishCardStreaming?.(cardId, sequence, summary);
     } catch (error) {
-        options.logger.error(`[feishu-bot] streaming card finish failed cardId=${cardId}`, error);
+        options.logger.error(`[lark-bot] streaming card finish failed cardId=${cardId}`, error);
     }
 }
 
-async function streamReplyToTextMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToFeishuMessageOptions): Promise<void> {
+async function streamReplyToTextMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     let replyText = '';
     let sentInitialMessage = false;
     let sentMessageId: string | undefined;
@@ -178,7 +178,7 @@ async function streamReplyToTextMessage(chatId: string, cursorReply: ReplyStream
 
             if (!sentMessageId) {
                 fallbackToFinalMessage = true;
-                options.logger.error(`[feishu-bot] streaming update skipped because sent message_id is missing chatId=${chatId}`);
+                options.logger.error(`[lark-bot] streaming update skipped because sent message_id is missing chatId=${chatId}`);
             }
 
             continue;

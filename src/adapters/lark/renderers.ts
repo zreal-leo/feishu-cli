@@ -6,12 +6,12 @@ const CURSOR_REPLY_INITIAL_SUMMARY = '生成中...';
 const CURSOR_REPLY_EMPTY_TEXT = '（无内容）';
 const CARD_SUMMARY_MAX_LENGTH = 50;
 
-export type FeishuCardText = {
+export type LarkCardText = {
     tag: 'plain_text' | 'lark_md';
     content: string;
 };
 
-export type FeishuCard = {
+export type LarkCard = {
     schema: '2.0';
     config: {
         streaming_mode?: boolean;
@@ -36,25 +36,25 @@ export type FeishuCard = {
         android_url: string;
     };
     header?: {
-        title: FeishuCardText;
+        title: LarkCardText;
         template?: string;
     };
     body: {
-        elements: FeishuCardElement[];
+        elements: LarkCardElement[];
     };
 };
 
-export type FeishuCardElement = {
+export type LarkCardElement = {
     tag: string;
     element_id?: string;
     content?: string;
-    text?: FeishuCardText;
+    text?: LarkCardText;
     type?: string;
     url?: string;
     pc_url?: string;
     ios_url?: string;
     android_url?: string;
-    elements?: FeishuCardElement[];
+    elements?: LarkCardElement[];
 };
 
 export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
@@ -73,7 +73,7 @@ export function formatMeetingCreateFailedReply(error: unknown): string {
     return `创建会议失败：${message}`;
 }
 
-export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: { streaming?: boolean } = {}): FeishuCard {
+export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: { streaming?: boolean } = {}): LarkCard {
     const streaming = options.streaming ?? false;
     return {
         schema: '2.0',
@@ -109,7 +109,7 @@ export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: 
     };
 }
 
-export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): FeishuCard {
+export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard {
     const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**事件 ID：** ${data.eventId}`, `**观看链接：** ${data.netLiveUrl}`];
     if (data.cloudPlayerCreated) {
         detailLines.push('**云播：** 已创建');
@@ -156,7 +156,7 @@ export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): FeishuCa
     };
 }
 
-export function buildMeetingCreateFailedCard(error: unknown): FeishuCard {
+export function buildMeetingCreateFailedCard(error: unknown): LarkCard {
     const message = error instanceof Error ? error.message : String(error);
     return {
         schema: '2.0',
@@ -192,7 +192,7 @@ export function summarizeCardText(text: string, maxLength = CARD_SUMMARY_MAX_LEN
     return `${cleaned.slice(0, maxLength - 1)}…`;
 }
 
-function buildCardLink(url: string): FeishuCard['card_link'] {
+function buildCardLink(url: string): LarkCard['card_link'] {
     return {
         url,
         pc_url: url,

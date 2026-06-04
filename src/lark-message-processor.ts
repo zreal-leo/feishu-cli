@@ -1,5 +1,5 @@
-import { mapFeishuIncomingMessage } from './adapters/feishu/inbound.ts';
-import { createFeishuReplyGateway } from './adapters/feishu/reply-gateway.ts';
+import { mapLarkIncomingMessage } from './adapters/lark/inbound.ts';
+import { createLarkReplyGateway } from './adapters/lark/reply-gateway.ts';
 import { createBotApplication } from './app/bot-application.ts';
 import { streamCursorReply as defaultStreamCursorReply } from './adapters/cursor/cursor-agent.ts';
 import type { AskCursorOptions } from './adapters/cursor/cursor-agent.ts';
@@ -8,8 +8,8 @@ import { createMeetingCommandHandler } from './core/commands/create-meeting-comm
 import { createCommandRegistry } from './core/command-registry.ts';
 import type { CloudPlayerCommandOptions, MeetingCreatedReplyData } from './core/meeting.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
-import type { FeishuCard } from './adapters/feishu/renderers.ts';
-import type { FeishuIncomingMessageEvent } from './message.ts';
+import type { LarkCard } from './adapters/lark/renderers.ts';
+import type { LarkIncomingMessageEvent } from './message.ts';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
 type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
@@ -18,7 +18,7 @@ type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
 type CreateMeeting = (request: { title: string; cloudPlayer?: CloudPlayerCommandOptions }) => Promise<MeetingCreatedReplyData>;
 
-export type FeishuMessageProcessorOptions = {
+export type LarkMessageProcessorOptions = {
     cursorApiKey: string;
     cursorModel: string;
     askCursor?: (options: AskCursorOptions) => Promise<string>;
@@ -28,7 +28,7 @@ export type FeishuMessageProcessorOptions = {
     reactionEmojiType?: string;
     sendTextMessage: (chatId: string, text: string) => Promise<SendTextMessageResult>;
     updateTextMessage?: (messageId: string, text: string) => Promise<void>;
-    sendCardMessage?: (chatId: string, card: FeishuCard) => Promise<SendCardMessageResult>;
+    sendCardMessage?: (chatId: string, card: LarkCard) => Promise<SendCardMessageResult>;
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
@@ -36,12 +36,12 @@ export type FeishuMessageProcessorOptions = {
     logger?: Logger;
 };
 
-export type FeishuMessageProcessor = {
-    handleEvent: (event: FeishuIncomingMessageEvent) => void;
+export type LarkMessageProcessor = {
+    handleEvent: (event: LarkIncomingMessageEvent) => void;
     drain: () => Promise<void>;
 };
 
-export function createFeishuMessageProcessor(options: FeishuMessageProcessorOptions): FeishuMessageProcessor {
+export function createLarkMessageProcessor(options: LarkMessageProcessorOptions): LarkMessageProcessor {
     const streamCursorReply = options.streamCursorReply ?? (options.askCursor ? createCursorReplyStreamer(options.askCursor) : defaultStreamCursorReply);
     const logger = options.logger ?? console;
     const application = createBotApplication({
@@ -75,7 +75,7 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
                   remove: options.removeMessageReaction ?? (async () => {})
               }
             : undefined,
-        replies: createFeishuReplyGateway({
+        replies: createLarkReplyGateway({
             finishCardStreaming: options.finishCardStreaming,
             logger,
             sendCardMessage: options.sendCardMessage,
@@ -88,12 +88,12 @@ export function createFeishuMessageProcessor(options: FeishuMessageProcessorOpti
 
     return {
         handleEvent(event) {
-            const message = mapFeishuIncomingMessage(event);
+            const message = mapLarkIncomingMessage(event);
             if (!message) {
                 return;
             }
 
-            logger.info(`[feishu-bot] received message chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} textLength=${message.text.length}`);
+            logger.info(`[lark-bot] received message chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} textLength=${message.text.length}`);
             application.handleMessage(message);
         },
 

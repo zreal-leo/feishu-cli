@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createFeishuMessageProcessor } from '../src/feishu-message-processor.ts';
-import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/adapters/feishu/renderers.ts';
-import type { FeishuIncomingMessageEvent } from '../src/message.ts';
-import type { FeishuMessageMention } from '../src/message.ts';
+import { createLarkMessageProcessor } from '../src/lark-message-processor.ts';
+import { CURSOR_REPLY_CARD_ELEMENT_ID } from '../src/adapters/lark/renderers.ts';
+import type { LarkIncomingMessageEvent } from '../src/message.ts';
+import type { LarkMessageMention } from '../src/message.ts';
 
 const silentLogger = {
     info() {},
     error() {}
 };
 
-function createTextEvent(messageId: string, text = '你好', mentions?: FeishuMessageMention[]): FeishuIncomingMessageEvent {
+function createTextEvent(messageId: string, text = '你好', mentions?: LarkMessageMention[]): LarkIncomingMessageEvent {
     return {
         message: {
             message_id: messageId,
@@ -23,11 +23,11 @@ function createTextEvent(messageId: string, text = '你好', mentions?: FeishuMe
     };
 }
 
-describe('createFeishuMessageProcessor', () => {
-    it('streams the Cursor reply into a Feishu card', async () => {
+describe('createLarkMessageProcessor', () => {
+    it('streams the Cursor reply into a Lark card', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -73,10 +73,10 @@ describe('createFeishuMessageProcessor', () => {
         ]);
     });
 
-    it('finishes a streaming Feishu card when an update fails', async () => {
+    it('finishes a streaming Lark card when an update fails', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -92,7 +92,7 @@ describe('createFeishuMessageProcessor', () => {
             },
             updateCardElementContent: async (cardId, elementId, content, sequence) => {
                 actions.push(`update-card:${cardId}:${elementId}:${content}:${sequence}`);
-                throw new Error('飞书卡片更新失败');
+                throw new Error('Lark 卡片更新失败');
             },
             finishCardStreaming: async (cardId, sequence, summary) => {
                 actions.push(`finish-card:${cardId}:${sequence}:${summary}`);
@@ -108,10 +108,10 @@ describe('createFeishuMessageProcessor', () => {
         assert.deepEqual(actions, ['send-card:chat_1:第一段', `update-card:card_reply:${CURSOR_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
     });
 
-    it('adds a reaction before streaming the Cursor reply into one Feishu message', async () => {
+    it('adds a reaction before streaming the Cursor reply into one Lark message', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -147,7 +147,7 @@ describe('createFeishuMessageProcessor', () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
         let resolveCursor!: (reply: string) => void;
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -175,7 +175,7 @@ describe('createFeishuMessageProcessor', () => {
     it('sends one complete message when message updates are unavailable', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -203,7 +203,7 @@ describe('createFeishuMessageProcessor', () => {
             }
         };
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger,
@@ -222,14 +222,14 @@ describe('createFeishuMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_missing_reply_id'));
         await processor.drain();
 
-        assert.deepEqual(actions, ['send:chat_1:第一段', 'error:[feishu-bot] streaming update skipped because sent message_id is missing chatId=chat_1', 'send:chat_1:第一段第二段']);
+        assert.deepEqual(actions, ['send:chat_1:第一段', 'error:[lark-bot] streaming update skipped because sent message_id is missing chatId=chat_1', 'send:chat_1:第一段第二段']);
     });
 
     it('ignores duplicate events for the same message id', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
         let cursorCalls = 0;
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -254,7 +254,7 @@ describe('createFeishuMessageProcessor', () => {
     it('creates a manager meeting for a create meeting command without calling Cursor', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -297,7 +297,7 @@ describe('createFeishuMessageProcessor', () => {
     it('passes cloud player options from a create meeting command', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -331,7 +331,7 @@ describe('createFeishuMessageProcessor', () => {
     it('uses the default title and video URL for a default cloud player command', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -363,10 +363,10 @@ describe('createFeishuMessageProcessor', () => {
         ]);
     });
 
-    it('creates a clickable Feishu card for a manager meeting command', async () => {
+    it('creates a clickable Lark card for a manager meeting command', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -408,7 +408,7 @@ describe('createFeishuMessageProcessor', () => {
     it('creates a manager meeting when a group message mentions the bot before the command', async () => {
         const actions: string[] = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,
@@ -439,7 +439,7 @@ describe('createFeishuMessageProcessor', () => {
     it('sends an error message when manager meeting creation fails', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
 
-        const processor = createFeishuMessageProcessor({
+        const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
             cursorModel: 'composer-2.5',
             logger: silentLogger,

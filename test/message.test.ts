@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildMeetingCreatedCard, formatMeetingCreatedReply } from '../src/adapters/feishu/renderers.ts';
+import { buildMeetingCreatedCard, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
 import { buildCursorPrompt } from '../src/core/assistant-prompt.ts';
 import { parseCreateMeetingCommand } from '../src/core/commands/create-meeting-parser.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../src/core/reactions.ts';
-import { extractIncomingText, toFeishuReactionPayload, toFeishuTextContent } from '../src/message.ts';
+import { extractIncomingText, toLarkReactionPayload, toLarkTextContent } from '../src/message.ts';
 
 describe('extractIncomingText', () => {
-    it('extracts text from a Feishu text message event', () => {
+    it('extracts text from a Lark text message event', () => {
         const text = extractIncomingText({
             message: {
                 message_type: 'text',
@@ -19,7 +19,7 @@ describe('extractIncomingText', () => {
         assert.equal(text, '帮我看一下这个项目');
     });
 
-    it('removes leading Feishu mention keys from text messages', () => {
+    it('removes leading Lark mention keys from text messages', () => {
         const text = extractIncomingText({
             message: {
                 message_type: 'text',
@@ -43,7 +43,7 @@ describe('extractIncomingText', () => {
         assert.equal(text, '创建会议 AI总结');
     });
 
-    it('removes leading Feishu at tags from text messages', () => {
+    it('removes leading Lark at tags from text messages', () => {
         const text = extractIncomingText({
             message: {
                 message_type: 'text',
@@ -67,7 +67,7 @@ describe('extractIncomingText', () => {
 });
 
 describe('buildCursorPrompt', () => {
-    it('wraps the incoming Feishu message with reply instructions', () => {
+    it('wraps the incoming Lark message with reply instructions', () => {
         const prompt = buildCursorPrompt('解释一下 pnpm dev 做了什么');
 
         assert.match(prompt, /解释一下 pnpm dev 做了什么/);
@@ -156,7 +156,7 @@ describe('parseCreateMeetingCommand', () => {
 });
 
 describe('formatMeetingCreatedReply', () => {
-    it('formats the manager meeting result for Feishu', () => {
+    it('formats the manager meeting result for Lark', () => {
         assert.equal(
             formatMeetingCreatedReply({ title: 'BOT: AI总结 15:33', roadshowId: 123456, eventId: 789012, netLiveUrl: 'http://s.comein.cn/live' }),
             ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')
@@ -192,24 +192,24 @@ describe('buildMeetingCreatedCard', () => {
     });
 });
 
-describe('toFeishuTextContent', () => {
-    it('serializes Cursor text as Feishu text content', () => {
-        assert.equal(toFeishuTextContent('收到，我来处理。'), JSON.stringify({ text: '收到，我来处理。' }));
+describe('toLarkTextContent', () => {
+    it('serializes Cursor text as Lark text content', () => {
+        assert.equal(toLarkTextContent('收到，我来处理。'), JSON.stringify({ text: '收到，我来处理。' }));
     });
 });
 
-describe('toFeishuReactionPayload', () => {
-    it('defaults to Feishu Typing emoji', () => {
+describe('toLarkReactionPayload', () => {
+    it('defaults to Lark Typing emoji', () => {
         assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'Typing');
-        assert.deepEqual(toFeishuReactionPayload(), {
+        assert.deepEqual(toLarkReactionPayload(), {
             reaction_type: {
                 emoji_type: 'Typing'
             }
         });
     });
 
-    it('builds a Feishu message reaction payload', () => {
-        assert.deepEqual(toFeishuReactionPayload('THUMBSUP'), {
+    it('builds a Lark message reaction payload', () => {
+        assert.deepEqual(toLarkReactionPayload('THUMBSUP'), {
             reaction_type: {
                 emoji_type: 'THUMBSUP'
             }

@@ -4,17 +4,17 @@
 
 ### 项目概览
 
-单包 Node.js 应用（`lark-cli`）：通过飞书 WebSocket 接收文本消息，经命令注册表路由到内置命令或 `@cursor/sdk` fallback，再把回复发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
+单包 Node.js 应用（`lark-cli`）：通过 Lark WebSocket 接收文本消息，经命令注册表路由到内置命令或 `@cursor/sdk` fallback，再把回复发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
 
 当前内部架构是单进程可扩展机器人框架：
 
 - `src/app/`：应用编排、串行队列、消息去重。
 - `src/core/`：命令模型、`CommandRegistry`、创建会议命令、Cursor fallback 命令。
 - `src/ports/`：核心层依赖的接口。
-- `src/adapters/feishu/`：飞书事件映射、回复网关、卡片渲染。
+- `src/adapters/lark/`：Lark 事件映射、回复网关、卡片渲染。
 - `src/adapters/cursor/` 与 `src/adapters/manager/`：外部系统适配入口。
 
-新增命令时优先新增 `CommandHandler` 并在组合入口注册，避免把业务分支写回 `src/feishu-message-processor.ts`。
+新增命令时优先新增 `CommandHandler` 并在组合入口注册，避免把业务分支写回 `src/lark-message-processor.ts`。
 
 ### 常用命令
 
@@ -34,8 +34,8 @@
 
 复制 `.env.example` 为 `.env`，或导出以下变量（`src/config.ts` 在启动时校验）：
 
-- **必填**：`CURSOR_API_KEY`、`FEISHU_APP_ID`、`FEISHU_APP_SECRET`
-- **可选**：`FEISHU_ENCRYPT_KEY`（仅当飞书事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）
+- **必填**：`CURSOR_API_KEY`、`LARK_APP_ID`、`LARK_APP_SECRET`
+- **可选**：`LARK_ENCRYPT_KEY`（仅当 Lark 事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）
 
 非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
 
@@ -45,11 +45,11 @@
 
 ### 端到端手动验证
 
-1. 在飞书开放平台配置自建应用（WebSocket、`im.message.receive_v1`、消息权限，机器人入群或私聊）。
+1. 在 Lark 开放平台配置自建应用（WebSocket、`im.message.receive_v1`、消息权限，机器人入群或私聊）。
 2. 配置上述环境变量后执行 `pnpm dev`，或在 Cursor Agent/生产环境执行 `pnpm start` 运行构建产物。
-3. 在飞书向机器人发送文本，确认收到 Cursor 中文回复。
+3. 在 Lark 向机器人发送文本，确认收到 Cursor 中文回复。
 
-仅跑单元测试时**不需要**真实飞书或 Cursor 凭证（测试内 mock）。
+仅跑单元测试时**不需要**真实 Lark 或 Cursor 凭证（测试内 mock）。
 
 ### 开发运行注意
 

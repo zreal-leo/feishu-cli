@@ -1,8 +1,8 @@
 import type { MessageInput } from '../../core/types.ts';
 import { extractIncomingText } from '../../message.ts';
-import type { FeishuIncomingMessageEvent } from '../../message.ts';
+import type { LarkIncomingMessageEvent } from '../../message.ts';
 
-export function mapFeishuIncomingMessage(event: FeishuIncomingMessageEvent): MessageInput | null {
+export function mapLarkIncomingMessage(event: LarkIncomingMessageEvent): MessageInput | null {
     const text = extractIncomingText(event);
     const chatId = event.message?.chat_id;
 
