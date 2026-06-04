@@ -41,6 +41,8 @@
 
 ### 原生依赖
 
+项目最低支持 Node.js 24，开发与 CI 应使用 Node.js 24 或更高版本。
+
 `pnpm-workspace.yaml` 已允许 `esbuild`、`protobufjs`、`sqlite3` 的 postinstall（一般测试/开发无需交互式 `pnpm approve-builds`）。
 
 ### 端到端手动验证
