@@ -1,6 +1,7 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
-import type { ManagerMeetingConfig } from './config.ts';
+import type { CursorUsageConfig, ManagerMeetingConfig } from './config.ts';
+import { createCursorUsageClient } from './adapters/cursor/cursor-usage.ts';
 import { createManagerMeetingClient } from './adapters/manager/index.ts';
 import { createLarkMessageProcessor } from './lark-message-processor.ts';
 import type { LarkIncomingMessageEvent } from './message.ts';
@@ -12,6 +13,7 @@ export type StartBotOptions = {
     larkAppId: string;
     larkAppSecret: string;
     larkEncryptKey?: string;
+    cursorUsage: CursorUsageConfig;
     managerMeeting: ManagerMeetingConfig;
 };
 
@@ -22,6 +24,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
     };
 
     const client = new Lark.Client(baseConfig);
+    const cursorUsageClient = createCursorUsageClient(options.cursorUsage);
     const managerMeetingClient = createManagerMeetingClient(options.managerMeeting);
     const wsClient = new Lark.WSClient({
         ...baseConfig,
@@ -136,6 +139,9 @@ export function startLarkCursorBot(options: StartBotOptions): void {
         },
         createMeeting: async request => {
             return managerMeetingClient.createMeeting(request);
+        },
+        getCursorUsageSummary: async query => {
+            return cursorUsageClient.getUsageSummary(query);
         }
     });
 
