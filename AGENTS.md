@@ -26,9 +26,9 @@
 | 构建启动 | `pnpm start`（先构建，再执行 `node dist/index.js`）      |
 | 测试     | `pnpm test`                                              |
 | 类型检查 | `pnpm typecheck`                                         |
-| 格式化   | `pnpm prettier`                                          |
+| 格式化   | `pnpm format`（提交前运行一次）                          |
 
-无 ESLint。
+无 ESLint。格式化工具为 `oxfmt`，只要求在提交前运行一次 `pnpm format`。
 
 ### 环境变量
 
@@ -40,6 +40,8 @@
 非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
 
 ### 原生依赖
+
+项目最低支持 Node.js 24，开发与 CI 应使用 Node.js 24 或更高版本。
 
 `pnpm-workspace.yaml` 已允许 `esbuild`、`protobufjs`、`sqlite3` 的 postinstall（一般测试/开发无需交互式 `pnpm approve-builds`）。
 
@@ -56,4 +58,4 @@
 - `pnpm dev` 与 `pnpm start` 都会先打印 `lark-cli is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
 - 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。
 - 临时脚本请用 `pnpm exec tsx`（`tsx` 不在全局 PATH）；`-e` 内联脚本需包在 async IIFE 中，避免 top-level await 报错。
-- 格式化检查：`pnpm prettier --check .`（不写回文件）。
+- 格式化检查：`pnpm format:check`（不写回文件）。

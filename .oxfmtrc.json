@@ -1,4 +1,5 @@
 {
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
     "tabWidth": 4,
     "useTabs": false,
     "semi": true,
@@ -12,5 +13,7 @@
     "endOfLine": "lf",
     "singleAttributePerLine": false,
     "printWidth": 240,
-    "bracketSameLine": false
+    "bracketSameLine": false,
+    "sortPackageJson": false,
+    "ignorePatterns": ["pnpm-lock.yaml"]
 }
