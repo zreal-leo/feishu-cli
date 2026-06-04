@@ -113,7 +113,7 @@ export type CommandHandler = {
 - `pnpm test`
 - `pnpm typecheck`
 - `pnpm build`
-- `pnpm prettier --check .`
+- `pnpm format:check`
 
 ## 非目标
 
