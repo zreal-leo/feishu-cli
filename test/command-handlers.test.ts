@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { createAssistantCommandHandler } from '../src/core/commands/assistant-command.ts';
+import { createCursorUsageCommandHandler } from '../src/core/commands/cursor-usage-command.ts';
 import { createMeetingCommandHandler } from '../src/core/commands/create-meeting-command.ts';
 import type { MessageInput } from '../src/core/types.ts';
 
@@ -95,5 +96,105 @@ describe('createAssistantCommandHandler', () => {
             chunks.push(chunk);
         }
         assert.deepEqual(chunks, ['第一段', '第二段']);
+    });
+});
+
+describe('createCursorUsageCommandHandler', () => {
+    it('queries token usage from the 26th of last month by default', async () => {
+        const handler = createCursorUsageCommandHandler(
+            {
+                async getUsageSummary(query) {
+                    assert.deepEqual(query, {
+                        startDate: '2026-05-26',
+                        endDate: '2026-06-04'
+                    });
+                    return {
+                        startDate: query.startDate,
+                        endDate: query.endDate,
+                        recordsCount: 2,
+                        inputTokens: 1000,
+                        outputTokens: 200,
+                        cacheReadTokens: 3000
+                    };
+                }
+            },
+            {
+                now: () => new Date(2026, 5, 4, 12)
+            }
+        );
+
+        const message = { ...input, text: '查询token' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'cursor-usage');
+        assert.deepEqual(reply, {
+            type: 'text',
+            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：0'].join('\n')
+        });
+    });
+
+    it('queries an explicit token usage range', async () => {
+        const handler = createCursorUsageCommandHandler({
+            async getUsageSummary(query) {
+                assert.deepEqual(query, {
+                    startDate: '2026-05-06',
+                    endDate: '2026-06-04'
+                });
+                return {
+                    startDate: query.startDate,
+                    endDate: query.endDate,
+                    recordsCount: 0,
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cacheReadTokens: 0
+                };
+            }
+        });
+
+        const message = { ...input, text: '查询 token 2026-05-06 2026-06-04' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'cursor-usage');
+        assert.deepEqual(reply, {
+            type: 'text',
+            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：0'].join('\n')
+        });
+    });
+
+    it('returns a usage hint for invalid date ranges without calling the gateway', async () => {
+        const handler = createCursorUsageCommandHandler({
+            async getUsageSummary() {
+                throw new Error('should not be called');
+            }
+        });
+
+        const message = { ...input, text: '查询token 2026-06-04 2026-05-06' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'cursor-usage');
+        assert.deepEqual(reply, {
+            type: 'text',
+            text: '查询 token 失败：开始日期不能晚于结束日期。\n用法：查询token 或 查询token YYYY-MM-DD YYYY-MM-DD'
+        });
+    });
+
+    it('returns a readable failure reply when the usage gateway fails', async () => {
+        const handler = createCursorUsageCommandHandler({
+            async getUsageSummary() {
+                throw new Error('Cursor 登录已失效');
+            }
+        });
+
+        const message = { ...input, text: '查询token 2026-05-06 2026-06-04' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.deepEqual(reply, {
+            type: 'text',
+            text: '查询 Cursor Token 用量失败：Cursor 登录已失效'
+        });
     });
 });
