@@ -43,6 +43,8 @@
 
 项目最低支持 Node.js 24，开发与 CI 应使用 Node.js 24 或更高版本。
 
+在 Cursor Cloud VM 上，默认 `PATH` 里的 `/exec-daemon/node` 常为 v22，不满足 `package.json` 的 `engines`。执行任何 `pnpm` 脚本前应先 `nvm use 24`（首次需 `nvm install 24`），并把 `$NVM_BIN` 放在 `PATH` 最前；VM 启动更新脚本已包含这一步。
+
 `pnpm-workspace.yaml` 已允许 `esbuild`、`protobufjs`、`sqlite3` 的 postinstall（一般测试/开发无需交互式 `pnpm approve-builds`）。
 
 ### 端到端手动验证
