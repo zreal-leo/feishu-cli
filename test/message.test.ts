@@ -54,6 +54,29 @@ describe('extractIncomingText', () => {
         assert.equal(text, '创建会议 AI总结');
     });
 
+    it('ignores messages that mention everyone (@所有人)', () => {
+        const text = extractIncomingText({
+            message: {
+                message_type: 'text',
+                content: JSON.stringify({ text: '@_all 大家好' })
+            }
+        });
+
+        assert.equal(text, null);
+    });
+
+    it('still handles bot mentions that are unrelated to @所有人', () => {
+        const text = extractIncomingText({
+            message: {
+                message_type: 'text',
+                content: JSON.stringify({ text: '@_user_1 创建会议' }),
+                mentions: [{ key: '@_user_1', name: '会议机器人' }]
+            }
+        });
+
+        assert.equal(text, '创建会议');
+    });
+
     it('ignores non-text message events', () => {
         const text = extractIncomingText({
             message: {

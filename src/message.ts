@@ -29,11 +29,23 @@ export function extractIncomingText(event: LarkIncomingMessageEvent): string | n
 
     try {
         const content = JSON.parse(event.message.content) as { text?: unknown };
-        const text = typeof content.text === 'string' ? stripLeadingMentions(content.text, event.message.mentions).trim() : '';
+        if (typeof content.text !== 'string') {
+            return null;
+        }
+
+        if (mentionsEveryone(content.text)) {
+            return null;
+        }
+
+        const text = stripLeadingMentions(content.text, event.message.mentions).trim();
         return text.length > 0 ? text : null;
     } catch {
         return null;
     }
+}
+
+function mentionsEveryone(text: string): boolean {
+    return /(?:^|\s)@_all(?=\s|$)/.test(text);
 }
 
 function stripLeadingMentions(text: string, mentions: LarkMessageMention[] = []): string {
