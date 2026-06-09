@@ -56,6 +56,9 @@ describe('loadConfig', () => {
             teamId: 11326557,
             userId: 208513979
         });
+        assert.deepEqual(config.systemTrace, {
+            logPath: DEFAULT_CONFIG.systemTrace.logPath
+        });
         assert.equal(config.larkAppId, 'lark_app_id');
         assert.equal(config.larkAppSecret, 'lark_app_secret');
         assert.equal(config.larkEncryptKey, 'encrypt_key');
@@ -83,6 +86,19 @@ describe('loadConfig', () => {
             pageSize: DEFAULT_CONFIG.cursorUsage.pageSize,
             teamId: undefined,
             userId: undefined
+        });
+    });
+
+    it('keeps the default system trace log path even if an old env var is present', () => {
+        process.env.CURSOR_API_KEY = 'cursor_key';
+        process.env.LARK_APP_ID = 'lark_app_id';
+        process.env.LARK_APP_SECRET = 'lark_app_secret';
+        process.env.SYSTEM_TRACE_LOG_PATH = 'tmp/system-trace.ndjson';
+
+        const config = loadConfig();
+
+        assert.deepEqual(config.systemTrace, {
+            logPath: DEFAULT_CONFIG.systemTrace.logPath
         });
     });
 });
