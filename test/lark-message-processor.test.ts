@@ -363,7 +363,7 @@ describe('createLarkMessageProcessor', () => {
         ]);
     });
 
-    it('creates a clickable Lark card for a manager meeting command', async () => {
+    it('creates a Lark meeting card whose open button is clickable', async () => {
         const actions: string[] = [];
 
         const processor = createLarkMessageProcessor({
@@ -385,10 +385,8 @@ describe('createLarkMessageProcessor', () => {
             },
             sendCardMessage: async (chatId, card) => {
                 const actionButton = card.body.elements.at(-1);
-                assert.ok(card.card_link);
-                actions.push(
-                    `send-card:${chatId}:${card.card_link.url}:${card.card_link.pc_url}:${card.card_link.ios_url}:${card.card_link.android_url}:${actionButton?.url}:${actionButton?.pc_url}:${actionButton?.ios_url}:${actionButton?.android_url}`
-                );
+                assert.equal(card.card_link, undefined);
+                actions.push(`send-card:${chatId}:${actionButton?.url}:${actionButton?.pc_url}:${actionButton?.ios_url}:${actionButton?.android_url}`);
                 return { messageId: 'om_meeting_card', cardId: 'card_meeting' };
             },
             sendTextMessage: async () => {
@@ -399,10 +397,7 @@ describe('createLarkMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_create_meeting_card', '创建会议 跨项目接入测试会议'));
         await processor.drain();
 
-        assert.deepEqual(actions, [
-            'create-meeting:跨项目接入测试会议',
-            'send-card:chat_1:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live'
-        ]);
+        assert.deepEqual(actions, ['create-meeting:跨项目接入测试会议', 'send-card:chat_1:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live:http://s.comein.cn/live']);
     });
 
     it('creates a manager meeting when a group message mentions the bot before the command', async () => {

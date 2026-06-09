@@ -48,7 +48,9 @@ describe('createLarkReplyGateway', () => {
                 actions.push('send-text:fallback');
             },
             sendCardMessage: async (chatId, card) => {
-                actions.push(`send-card:${chatId}:${card.header?.title.content}:${card.card_link?.url}`);
+                const actionButton = card.body.elements.at(-1);
+                assert.equal(card.card_link, undefined);
+                actions.push(`send-card:${chatId}:${card.header?.title.content}:${actionButton?.url}`);
                 return { messageId: 'om_reply', cardId: 'card_reply' };
             }
         });

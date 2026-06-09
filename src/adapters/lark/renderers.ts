@@ -125,7 +125,6 @@ export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard
                 content: `会议创建成功：${data.title}`
             }
         },
-        card_link: buildCardLink(data.netLiveUrl),
         header: {
             template: 'green',
             title: {
@@ -190,13 +189,4 @@ export function summarizeCardText(text: string, maxLength = CARD_SUMMARY_MAX_LEN
         return cleaned;
     }
     return `${cleaned.slice(0, maxLength - 1)}…`;
-}
-
-function buildCardLink(url: string): LarkCard['card_link'] {
-    return {
-        url,
-        pc_url: url,
-        ios_url: url,
-        android_url: url
-    };
 }

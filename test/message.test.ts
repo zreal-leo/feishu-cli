@@ -201,7 +201,7 @@ describe('formatMeetingCreatedReply', () => {
 });
 
 describe('buildMeetingCreatedCard', () => {
-    it('includes cloud player status in the manager meeting card', () => {
+    it('keeps meeting navigation on the open meeting button only', () => {
         const card = buildMeetingCreatedCard({
             title: 'BOT: AI总结 15:33',
             roadshowId: 123456,
@@ -211,7 +211,12 @@ describe('buildMeetingCreatedCard', () => {
         });
 
         assert.match(String(card.body.elements[0].content), /\*\*云播：\*\* 已创建/);
-        assert.equal(card.card_link?.url, 'http://s.comein.cn/live');
+        assert.equal(card.card_link, undefined);
+        const actionButton = card.body.elements.at(-1);
+        assert.equal(actionButton?.url, 'http://s.comein.cn/live');
+        assert.equal(actionButton?.pc_url, 'http://s.comein.cn/live');
+        assert.equal(actionButton?.ios_url, 'http://s.comein.cn/live');
+        assert.equal(actionButton?.android_url, 'http://s.comein.cn/live');
     });
 });
 
