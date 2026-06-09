@@ -2,7 +2,9 @@ import type { CommandRegistry } from '../core/command-registry.ts';
 import type { MessageInput } from '../core/types.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import type { ReplyGateway } from '../ports/reply.ts';
-import type { DedupStore, JobQueue, Logger, ReactionGateway } from '../ports/runtime.ts';
+import type { DedupStore, JobQueue, Logger, ReactionGateway, SystemTraceCollector } from '../ports/runtime.ts';
+import { captureReplyOutput, createSystemTraceContext } from '../system-trace.ts';
+import type { SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../system-trace.ts';
 import { createInMemoryDedupStore } from './in-memory-dedup-store.ts';
 import { createSerialJobQueue } from './serial-job-queue.ts';
 
@@ -16,9 +18,11 @@ export type BotApplicationOptions = {
     dedupStore?: DedupStore;
     jobQueue?: JobQueue;
     logger?: Logger;
+    now?: () => number;
     reactionEmojiType?: string;
     reactions?: ReactionGateway;
     replies: ReplyGateway;
+    systemTraceCollector?: SystemTraceCollector;
 };
 
 export function createBotApplication(options: BotApplicationOptions): BotApplication {
@@ -29,12 +33,20 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
 
     return {
         handleMessage(message) {
+            const trace = options.systemTraceCollector ? createSystemTraceContext(message, { now: options.now }) : undefined;
+
             if (message.messageId && !dedupStore.remember(message.messageId)) {
+                trace?.markStep('dedup');
                 logger.info(`[bot-app] duplicate message ignored chatId=${message.chatId} messageId=${message.messageId} textLength=${message.text.length}`);
+                void recordTraceBestEffort(options.systemTraceCollector, trace?.finish('duplicate_ignored'), logger);
                 return;
             }
 
-            jobQueue.add(() => processMessage(message, options, logger, reactionEmojiType));
+            if (message.messageId) {
+                trace?.markStep('dedup');
+            }
+
+            jobQueue.add(() => processMessage(message, options, logger, reactionEmojiType, trace));
         },
 
         drain() {
@@ -43,29 +55,46 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
     };
 }
 
-async function processMessage(message: MessageInput, options: BotApplicationOptions, logger: Logger, reactionEmojiType: string): Promise<void> {
+async function processMessage(message: MessageInput, options: BotApplicationOptions, logger: Logger, reactionEmojiType: string, trace?: SystemTraceContext): Promise<void> {
     let addedReactionId: string | undefined;
+    let status: SystemTraceStatus = 'success';
+    let handlingError: unknown;
+    let getOutput: (() => SystemTraceOutput) | undefined;
 
     try {
+        trace?.markStep('queue.wait');
+
         if (message.messageId && options.reactions) {
-            addedReactionId = extractReactionId(await options.reactions.add(message.messageId, reactionEmojiType));
+            addedReactionId = extractReactionId(await runAsyncStep(trace, 'reaction.add', () => options.reactions?.add(message.messageId as string, reactionEmojiType) ?? Promise.resolve()));
         }
 
-        const resolved = options.commandRegistry.resolve(message);
+        const resolved = runSyncStep(trace, 'command.resolve', () => options.commandRegistry.resolve(message));
         if (!resolved) {
+            status = 'no_command';
             logger.error(`[bot-app] no command resolved chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'}`);
             return;
         }
+        trace?.setCommandName(resolved.match.commandName);
 
-        const executionResult = resolved.handler.execute({ message }, resolved.match);
+        const executionResult = executeCommandStep(trace, () => resolved.handler.execute({ message }, resolved.match));
         const reply = isPromiseLike(executionResult) ? await executionResult : executionResult;
-        await options.replies.send(message.chatId, reply);
+        const captured = captureReplyOutput(reply);
+        getOutput = captured.getOutput;
+        await runAsyncStep(trace, 'reply.send', () => options.replies.send(message.chatId, captured.reply));
+        trace?.setOutput(getOutput());
     } catch (error) {
+        status = 'error';
+        handlingError = error;
+        if (getOutput) {
+            trace?.setOutput(getOutput());
+        }
         logger.error(`[bot-app] message handling failed chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'}`, error);
     } finally {
         if (message.messageId && addedReactionId && options.reactions) {
-            await removeReactionBestEffort(message.messageId, addedReactionId, options.reactions, logger, message.chatId);
+            await removeReactionBestEffort(message.messageId, addedReactionId, options.reactions, logger, message.chatId, trace);
         }
+
+        await recordTraceBestEffort(options.systemTraceCollector, trace?.finish(status, handlingError), logger);
     }
 }
 
@@ -73,14 +102,77 @@ function extractReactionId(result: { reactionId?: string } | void): string | und
     return result?.reactionId?.trim() || undefined;
 }
 
-async function removeReactionBestEffort(messageId: string, reactionId: string, reactions: ReactionGateway, logger: Logger, chatId: string): Promise<void> {
+async function removeReactionBestEffort(messageId: string, reactionId: string, reactions: ReactionGateway, logger: Logger, chatId: string, trace?: SystemTraceContext): Promise<void> {
     try {
         await reactions.remove(messageId, reactionId);
+        trace?.markStep('reaction.remove');
     } catch (error) {
+        trace?.markStep('reaction.remove', error);
         logger.error(`[bot-app] reaction removal failed chatId=${chatId} messageId=${messageId} reactionId=${reactionId}`, error);
     }
 }
 
 function isPromiseLike<T>(value: T | Promise<T>): value is Promise<T> {
     return typeof value === 'object' && value !== null && 'then' in value && typeof (value as { then?: unknown }).then === 'function';
+}
+
+async function runAsyncStep<T>(trace: SystemTraceContext | undefined, name: string, operation: () => Promise<T>): Promise<T> {
+    try {
+        const result = await operation();
+        trace?.markStep(name);
+        return result;
+    } catch (error) {
+        trace?.markStep(name, error);
+        throw error;
+    }
+}
+
+function executeCommandStep<T>(trace: SystemTraceContext | undefined, operation: () => T | Promise<T>): T | Promise<T> {
+    let result: T | Promise<T>;
+
+    try {
+        result = operation();
+    } catch (error) {
+        trace?.markStep('command.execute', error);
+        throw error;
+    }
+
+    if (!isPromiseLike(result)) {
+        trace?.markStep('command.execute');
+        return result;
+    }
+
+    return result.then(
+        awaitedResult => {
+            trace?.markStep('command.execute');
+            return awaitedResult;
+        },
+        error => {
+            trace?.markStep('command.execute', error);
+            throw error;
+        }
+    );
+}
+
+function runSyncStep<T>(trace: SystemTraceContext | undefined, name: string, operation: () => T): T {
+    try {
+        const result = operation();
+        trace?.markStep(name);
+        return result;
+    } catch (error) {
+        trace?.markStep(name, error);
+        throw error;
+    }
+}
+
+async function recordTraceBestEffort(collector: SystemTraceCollector | undefined, trace: ReturnType<SystemTraceContext['finish']> | undefined, logger: Logger): Promise<void> {
+    if (!collector || !trace) {
+        return;
+    }
+
+    try {
+        await collector.record(trace);
+    } catch (error) {
+        logger.error(`[bot-app] system trace write failed chatId=${trace.chatId} messageId=${trace.messageId ?? 'unknown'}`, error);
+    }
 }

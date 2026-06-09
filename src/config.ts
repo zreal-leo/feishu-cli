@@ -10,6 +10,7 @@ type Config = {
     larkAppSecret: string;
     larkEncryptKey?: string;
     managerMeeting: ManagerMeetingConfig;
+    systemTrace: SystemTraceConfig;
 };
 
 export type CursorUsageConfig = {
@@ -25,6 +26,10 @@ export type ManagerMeetingConfig = {
     baseUrl: string;
     loginName?: string;
     password?: string;
+};
+
+export type SystemTraceConfig = {
+    logPath: string;
 };
 
 function requireEnv(name: string): string {
@@ -62,6 +67,9 @@ export function loadConfig(): Config {
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
             loginName: process.env.MANAGER_LOGIN_NAME?.trim() || undefined,
             password: process.env.MANAGER_PASSWORD?.trim() || undefined
+        },
+        systemTrace: {
+            logPath: DEFAULT_CONFIG.systemTrace.logPath
         }
     };
 }

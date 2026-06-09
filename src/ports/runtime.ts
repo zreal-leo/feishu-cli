@@ -1,4 +1,10 @@
+import type { SystemTraceRecord } from '../system-trace.ts';
+
 export type Logger = Pick<typeof console, 'error' | 'info'>;
+
+export type SystemTraceCollector = {
+    record: (trace: SystemTraceRecord) => Promise<void> | void;
+};
 
 export type ReactionGateway = {
     add: (messageId: string, emojiType: string) => Promise<{ reactionId?: string } | void>;

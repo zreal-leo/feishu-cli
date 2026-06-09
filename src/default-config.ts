@@ -7,5 +7,8 @@ export const DEFAULT_CONFIG = {
     managerMeeting: {
         env: 'test',
         baseUrl: 'https://testserver.comein.cn/comein/manager'
+    },
+    systemTrace: {
+        logPath: 'logs/system-trace.ndjson'
     }
 } as const;

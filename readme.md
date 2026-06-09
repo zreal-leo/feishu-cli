@@ -52,6 +52,8 @@ pnpm dev
 
 启动后，在 Lark 里给机器人发送文本消息，机器人会把消息交给 Cursor，并把 Cursor 的中文回复发回 Lark。
 
+每条已接收文本消息的系统 Trace 会按 NDJSON 写入 `logs/system-trace.ndjson`，包含完整输入、完整输出、处理状态和各步骤耗时。日志内容可能包含敏感对话原文，不要提交到仓库。
+
 ### 创建管理后台会议
 
 机器人收到以下文本时会跳过 Cursor，改为调用运营后台 `POST /managecenter/roadshow/create` 创建路演/直播会议：

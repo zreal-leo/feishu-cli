@@ -12,6 +12,7 @@ import type { CloudPlayerCommandOptions, MeetingCreatedReplyData } from './core/
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
 import type { LarkCard } from './adapters/lark/renderers.ts';
 import type { LarkIncomingMessageEvent } from './message.ts';
+import type { SystemTraceCollector } from './ports/runtime.ts';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
 type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
@@ -38,6 +39,7 @@ export type LarkMessageProcessorOptions = {
     getCursorUsageSummary?: GetCursorUsageSummary;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
+    systemTraceCollector?: SystemTraceCollector;
 };
 
 export type LarkMessageProcessor = {
@@ -88,6 +90,7 @@ export function createLarkMessageProcessor(options: LarkMessageProcessorOptions)
                   remove: options.removeMessageReaction ?? (async () => {})
               }
             : undefined,
+        systemTraceCollector: options.systemTraceCollector,
         replies: createLarkReplyGateway({
             finishCardStreaming: options.finishCardStreaming,
             logger,
