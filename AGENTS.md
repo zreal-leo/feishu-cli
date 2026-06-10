@@ -59,3 +59,9 @@
 - 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。
 - 临时脚本请用 `pnpm exec tsx`（`tsx` 不在全局 PATH）；`-e` 内联脚本需包在 async IIFE 中，避免 top-level await 报错。
 - 格式化检查：`pnpm format:check`（不写回文件）。
+
+### 用户文档同步流程
+
+- 当新增、删除或调整飞书机器人的用户可见能力、命令格式、回复内容时，同步更新 `usage.md`。
+- `usage.md` 面向人类用户分享，只写机器人使用方式、示例和常见提示，不写项目配置、环境变量、部署或开发信息。
+- 更新 `usage.md` 后，将同一份内容同步到飞书文档：https://t2e5k2oi5r.feishu.cn/docx/I12JdS3RdomvZ1xsatccYUganYe

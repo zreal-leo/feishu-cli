@@ -70,6 +70,63 @@ describe('createMeetingCommandHandler', () => {
 
         assert.equal(handler.match({ ...input, text: '你好' }), null);
     });
+
+    it('passes Cursor-parsed meeting parameters to the meeting gateway', async () => {
+        const handler = createMeetingCommandHandler(
+            {
+                async createMeeting(request) {
+                    assert.deepEqual(request, {
+                        title: 'AI策略会',
+                        stimeMs: new Date('2026-06-10T10:00:00+08:00').getTime(),
+                        eventWays: 1,
+                        length: 60,
+                        eventMode: 567,
+                        serviceType: 7,
+                        openStatus: 2,
+                        tagName: '专场活动'
+                    });
+                    return {
+                        title: 'BOT: AI策略会 10:00',
+                        roadshowId: 123,
+                        eventId: 456,
+                        netLiveUrl: 'http://s.comein.cn/live'
+                    };
+                }
+            },
+            {
+                parameterParser: {
+                    async parse(input) {
+                        assert.equal(input.text, '创建会议 明天10点开视频路演，主题是AI策略会，权限专场活动，时长60分钟，直播类型上麦直播');
+                        return {
+                            title: 'AI策略会',
+                            stimeMs: new Date('2026-06-10T10:00:00+08:00').getTime(),
+                            eventWays: 1,
+                            length: 60,
+                            eventMode: 567,
+                            serviceType: 7,
+                            openStatus: 2,
+                            tagName: '专场活动'
+                        };
+                    }
+                }
+            }
+        );
+
+        const message = { ...input, text: '创建会议 明天10点开视频路演，主题是AI策略会，权限专场活动，时长60分钟，直播类型上麦直播' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'create-meeting');
+        assert.deepEqual(reply, {
+            type: 'meeting_created',
+            data: {
+                title: 'BOT: AI策略会 10:00',
+                roadshowId: 123,
+                eventId: 456,
+                netLiveUrl: 'http://s.comein.cn/live'
+            }
+        });
+    });
 });
 
 describe('createAssistantCommandHandler', () => {

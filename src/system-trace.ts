@@ -169,7 +169,23 @@ export function serializeError(error: unknown): SerializedError {
 }
 
 export function serializeSystemTraceRecord(record: SystemTraceRecord): string {
-    return `${JSON.stringify(record, jsonSafeReplacer)}\n`;
+    return `${JSON.stringify(
+        {
+            ...record,
+            timestamp: formatSystemTraceTime(record.timestamp)
+        },
+        jsonSafeReplacer
+    )}\n`;
+}
+
+export function formatSystemTraceDate(timestamp: string): string {
+    const date = parseSystemTraceDate(timestamp);
+    return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function formatSystemTraceTime(timestamp: string): string {
+    const date = parseSystemTraceDate(timestamp);
+    return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}`;
 }
 
 function describeBotReplyOutput(reply: BotReply): SystemTraceOutput {
@@ -197,6 +213,19 @@ function jsonSafeReplacer(_key: string, value: unknown): unknown {
 
 function roundDurationMs(durationMs: number): number {
     return Math.round(Math.max(0, durationMs));
+}
+
+function parseSystemTraceDate(timestamp: string): Date {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+        return new Date();
+    }
+
+    return date;
+}
+
+function padDatePart(value: number): string {
+    return String(value).padStart(2, '0');
 }
 
 function stringifyUnknown(value: unknown): string {
