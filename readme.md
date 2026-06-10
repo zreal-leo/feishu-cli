@@ -36,7 +36,7 @@ MANAGER_PASSWORD=password
 查询 token 2026-05-06 2026-06-04
 ```
 
-`查询token` 默认查询最近 30 天；带两个日期时按 `YYYY-MM-DD` 闭区间查询。回复会汇总 `inputTokens`、`outputTokens`、`cacheReadTokens`，并给出总 token 数；`totalCents` 不参与汇总。
+`查询token` 默认查询上月 26 日至当天；带两个日期时按 `YYYY-MM-DD` 闭区间查询。回复会汇总 `inputTokens`、`outputTokens`、`cacheReadTokens`，并给出总 token 数；`totalCents` 不参与汇总。
 
 这个功能需要 Cursor 网页端 Dashboard 的登录 Cookie 和账号参数，但这些变量只在执行 `查询token` 时才需要；不配置也可以正常 `pnpm dev` 启动机器人。需要使用时，在 `.env` 中填写：
 
