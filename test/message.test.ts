@@ -182,7 +182,7 @@ describe('formatMeetingCreatedReply', () => {
     it('formats the manager meeting result for Lark', () => {
         assert.equal(
             formatMeetingCreatedReply({ title: 'BOT: AI总结 15:33', roadshowId: 123456, eventId: 789012, netLiveUrl: 'http://s.comein.cn/live' }),
-            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')
+            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')
         );
     });
 
@@ -195,7 +195,7 @@ describe('formatMeetingCreatedReply', () => {
                 netLiveUrl: 'http://s.comein.cn/live',
                 cloudPlayerError: '创建云播失败: {"code":"1","msg":"invalid stream"}'
             }),
-            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live', '云播：创建失败（创建云播失败: {"code":"1","msg":"invalid stream"}）'].join('\n')
+            ['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live', '云播：创建失败（创建云播失败: {"code":"1","msg":"invalid stream"}）'].join('\n')
         );
     });
 });
@@ -211,6 +211,7 @@ describe('buildMeetingCreatedCard', () => {
         });
 
         assert.match(String(card.body.elements[0].content), /\*\*云播：\*\* 已创建/);
+        assert.doesNotMatch(String(card.body.elements[0].content), /事件 ID/);
         assert.equal(card.card_link, undefined);
         const actionButton = card.body.elements.at(-1);
         assert.equal(actionButton?.url, 'http://s.comein.cn/live');

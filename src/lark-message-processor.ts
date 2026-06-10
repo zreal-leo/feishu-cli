@@ -8,10 +8,11 @@ import { createCursorUsageCommandHandler } from './core/commands/cursor-usage-co
 import { createMeetingCommandHandler } from './core/commands/create-meeting-command.ts';
 import { createCommandRegistry } from './core/command-registry.ts';
 import type { CursorTokenUsageSummary, CursorUsageQuery } from './core/cursor-usage.ts';
-import type { CloudPlayerCommandOptions, MeetingCreatedReplyData } from './core/meeting.ts';
+import type { MeetingCreatedReplyData } from './core/meeting.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
 import type { LarkCard } from './adapters/lark/renderers.ts';
 import type { LarkIncomingMessageEvent } from './message.ts';
+import type { CreateMeetingRequest, MeetingParameterParser } from './ports/meeting.ts';
 import type { SystemTraceCollector } from './ports/runtime.ts';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
@@ -19,7 +20,7 @@ type CursorReplyStreamer = (options: AskCursorOptions) => AsyncIterable<string>;
 type SendTextMessageResult = { messageId?: string } | void;
 type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 type AddMessageReactionResult = { reactionId?: string } | void;
-type CreateMeeting = (request: { title: string; cloudPlayer?: CloudPlayerCommandOptions }) => Promise<MeetingCreatedReplyData>;
+type CreateMeeting = (request: CreateMeetingRequest) => Promise<MeetingCreatedReplyData>;
 type GetCursorUsageSummary = (query: CursorUsageQuery) => Promise<CursorTokenUsageSummary>;
 
 export type LarkMessageProcessorOptions = {
@@ -36,6 +37,7 @@ export type LarkMessageProcessorOptions = {
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
+    meetingParameterParser?: MeetingParameterParser;
     getCursorUsageSummary?: GetCursorUsageSummary;
     streamingUpdateIntervalMs?: number;
     logger?: Logger;
@@ -53,15 +55,20 @@ export function createLarkMessageProcessor(options: LarkMessageProcessorOptions)
     const application = createBotApplication({
         commandRegistry: createCommandRegistry(
             [
-                createMeetingCommandHandler({
-                    async createMeeting(request) {
-                        if (!options.createMeeting) {
-                            throw new Error('创建会议能力未配置。');
-                        }
+                createMeetingCommandHandler(
+                    {
+                        async createMeeting(request) {
+                            if (!options.createMeeting) {
+                                throw new Error('创建会议能力未配置。');
+                            }
 
-                        return options.createMeeting(request);
+                            return options.createMeeting(request);
+                        }
+                    },
+                    {
+                        parameterParser: options.meetingParameterParser
                     }
-                }),
+                ),
                 createCursorUsageCommandHandler({
                     async getUsageSummary(query) {
                         if (!options.getCursorUsageSummary) {

@@ -58,7 +58,7 @@ export type LarkCardElement = {
 };
 
 export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string {
-    const lines = [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `事件 ID：${data.eventId}`, `观看链接：${data.netLiveUrl}`];
+    const lines = [`会议创建成功`, `会议标题：${data.title}`, `会议 ID：${data.roadshowId}`, `观看链接：${data.netLiveUrl}`];
     if (data.cloudPlayerCreated) {
         lines.push('云播：已创建');
     } else if (data.cloudPlayerError) {
@@ -110,7 +110,7 @@ export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: 
 }
 
 export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard {
-    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**事件 ID：** ${data.eventId}`, `**观看链接：** ${data.netLiveUrl}`];
+    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**观看链接：** ${data.netLiveUrl}`];
     if (data.cloudPlayerCreated) {
         detailLines.push('**云播：** 已创建');
     } else if (data.cloudPlayerError) {

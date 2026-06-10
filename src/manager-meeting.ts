@@ -1,11 +1,11 @@
 import type { ManagerMeetingConfig } from './config.ts';
+import type { MeetingParameterOptions } from './core/meeting.ts';
 
 type FetchLike = typeof fetch;
 
-export type CreateManagerMeetingRequest = {
+export type CreateManagerMeetingRequest = MeetingParameterOptions & {
     title: string;
     startAfterMinutes?: number;
-    stimeMs?: number;
     now?: Date;
     cloudPlayer?: ManagerCloudPlayerOptions;
 };
@@ -154,7 +154,7 @@ function buildLoginVerificationPayload(loginBody: unknown): ManagerLoginVerifica
 
 export async function createManagerMeeting(config: ManagerMeetingConfig, request: CreateManagerMeetingRequest, token: string, fetchImpl: FetchLike = fetch): Promise<ManagerMeetingResult> {
     const stimeMs = resolveStartTimeMs(request);
-    const payload = buildMeetingPayload(request.title, stimeMs);
+    const payload = buildMeetingPayload(request.title, stimeMs, request);
     const title = getStringValue(payload, 'title');
     if (!title) {
         throw new Error('创建会议 payload 缺少 title。');
@@ -208,7 +208,7 @@ export async function createManagerMeeting(config: ManagerMeetingConfig, request
     return result;
 }
 
-export function buildMeetingPayload(title: string, stimeMs: number): Record<string, unknown> {
+export function buildMeetingPayload(title: string, stimeMs: number, options: MeetingParameterOptions = {}): Record<string, unknown> {
     const fullTitle = formatMeetingTitle(title, new Date(stimeMs));
 
     return {
@@ -221,14 +221,14 @@ export function buildMeetingPayload(title: string, stimeMs: number): Record<stri
         logoWall169: DEFAULT_MEETING_LOGO,
         isDownload: 1,
         description: '欢迎来到直播间',
-        length: 120,
+        length: options.length ?? 120,
         title: fullTitle,
         preparationMode: 0,
         uid: 15281329,
         industryTagIds: '565,558',
         submit: 1,
-        openStatus: 1,
-        eventWays: 1,
+        openStatus: options.openStatus ?? 1,
+        eventWays: options.eventWays ?? 1,
         showAgreement: 0,
         remoteCheck: 1,
         isSyncRoom: 1,
@@ -246,9 +246,9 @@ export function buildMeetingPayload(title: string, stimeMs: number): Record<stri
         adminId: 22,
         adminName: '管理员账号',
         contentInfo: '测试使用123',
-        serviceType: 0,
+        serviceType: options.serviceType ?? 0,
         serviceId: '1357',
-        eventMode: 567,
+        eventMode: options.eventMode ?? 567,
         marketTagIds: '519,520',
         researchDirectionTagIds: '1056',
         speakerTagIds: 1091,
@@ -269,7 +269,7 @@ export function buildMeetingPayload(title: string, stimeMs: number): Record<stri
         filterType: 2,
         meetingUserSetting: 1,
         filterAreaCodeList: '',
-        tagName: '公开',
+        tagName: options.tagName ?? '公开',
         sendScheduleEventMsgAuto: 1,
         watermark: 0,
         watermarkRoadshow: 0,

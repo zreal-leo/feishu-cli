@@ -15,5 +15,5 @@
     "printWidth": 240,
     "bracketSameLine": false,
     "sortPackageJson": false,
-    "ignorePatterns": ["pnpm-lock.yaml"]
+    "ignorePatterns": ["pnpm-lock.yaml", ".cursor"]
 }

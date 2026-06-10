@@ -57,6 +57,28 @@ describe('buildMeetingPayload', () => {
         assert.deepEqual(payload.transDestLanguage, [0, 1, 2]);
         assert.deepEqual(payload.selectedTransChannels, ['cn', 'en', 'jp']);
     });
+
+    it('overrides meeting defaults with parsed command parameters', () => {
+        const stimeMs = new Date('2026-06-10T10:00:00+08:00').getTime();
+        const payload = buildMeetingPayload('AI策略会', stimeMs, {
+            eventWays: 1,
+            length: 60,
+            eventMode: 567,
+            serviceType: 7,
+            openStatus: 2,
+            tagName: '专场活动'
+        });
+
+        assert.equal(payload.stime, stimeMs);
+        assert.equal(payload.title, 'BOT: AI策略会 10:00');
+        assert.equal(payload.audioTitle, 'BOT: AI策略会 10:00');
+        assert.equal(payload.eventWays, 1);
+        assert.equal(payload.length, 60);
+        assert.equal(payload.eventMode, 567);
+        assert.equal(payload.serviceType, 7);
+        assert.equal(payload.openStatus, 2);
+        assert.equal(payload.tagName, '专场活动');
+    });
 });
 
 describe('getManagerToken', () => {

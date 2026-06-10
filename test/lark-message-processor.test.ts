@@ -289,7 +289,7 @@ describe('createLarkMessageProcessor', () => {
         assert.deepEqual(actions, [
             'reaction:om_create_meeting:Typing',
             'create-meeting:跨项目接入测试会议',
-            `send:chat_1:${['会议创建成功', '会议标题：BOT: 跨项目接入测试会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`,
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: 跨项目接入测试会议 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`,
             'remove-reaction:om_create_meeting:reaction_1'
         ]);
     });
@@ -324,7 +324,59 @@ describe('createLarkMessageProcessor', () => {
 
         assert.deepEqual(actions, [
             'create-meeting:云播会议:https://media.comein.cn/video/344317-1740031837920.mp4:2',
-            `send:chat_1:${['会议创建成功', '会议标题：BOT: 云播会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: 云播会议 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`
+        ]);
+    });
+
+    it('passes parsed meeting parameters from a natural language create meeting command', async () => {
+        const actions: string[] = [];
+        const stimeMs = new Date('2026-06-10T10:00:00+08:00').getTime();
+
+        const processor = createLarkMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            meetingParameterParser: {
+                async parse(input) {
+                    actions.push(`parse:${input.text}`);
+                    return {
+                        title: 'AI策略会',
+                        stimeMs,
+                        eventWays: 1,
+                        length: 60,
+                        eventMode: 567,
+                        serviceType: 7,
+                        openStatus: 2,
+                        tagName: '专场活动'
+                    };
+                }
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor fallback';
+            },
+            createMeeting: async request => {
+                actions.push(`create-meeting:${request.title}:${request.stimeMs}:${request.eventWays}:${request.length}:${request.eventMode}:${request.serviceType}:${request.openStatus}:${request.tagName}`);
+                return {
+                    title: 'BOT: AI策略会 10:00',
+                    roadshowId: 123456,
+                    eventId: 789012,
+                    netLiveUrl: 'http://s.comein.cn/live'
+                };
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        const text = '创建会议 明天10点开视频路演，主题是AI策略会，权限专场活动，时长60分钟，直播类型上麦直播';
+        processor.handleEvent(createTextEvent('om_create_meeting_params', text));
+        await processor.drain();
+
+        assert.deepEqual(actions, [
+            `parse:${text}`,
+            `create-meeting:AI策略会:${stimeMs}:1:60:567:7:2:专场活动`,
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: AI策略会 10:00', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`
         ]);
     });
 
@@ -359,7 +411,7 @@ describe('createLarkMessageProcessor', () => {
 
         assert.deepEqual(actions, [
             'create-meeting:会议:https://media.comein.cn/video/344317-1740031837920.mp4:2',
-            `send:chat_1:${['会议创建成功', '会议标题：BOT: 会议 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live', '云播：已创建'].join('\n')}`
+            `send:chat_1:${['会议创建成功', '会议标题：BOT: 会议 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live', '云播：已创建'].join('\n')}`
         ]);
     });
 
@@ -428,7 +480,7 @@ describe('createLarkMessageProcessor', () => {
         processor.handleEvent(createTextEvent('om_mention_create_meeting', '@_user_1 创建会议 AI总结', [{ key: '@_user_1', name: '会议机器人' }]));
         await processor.drain();
 
-        assert.deepEqual(actions, ['create-meeting:AI总结', `send:chat_1:${['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '事件 ID：789012', '观看链接：http://s.comein.cn/live'].join('\n')}`]);
+        assert.deepEqual(actions, ['create-meeting:AI总结', `send:chat_1:${['会议创建成功', '会议标题：BOT: AI总结 15:33', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`]);
     });
 
     it('queries Cursor token usage without calling the assistant fallback', async () => {
