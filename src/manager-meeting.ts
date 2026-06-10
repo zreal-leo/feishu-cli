@@ -41,6 +41,7 @@ const DEFAULT_START_AFTER_MINUTES = 3;
 const MANAGER_LOGIN_ORIGIN = 'manager-test.comein.cn';
 const DEFAULT_MEETING_LOGO = 'https://image.comein.cn/comein-files/img/1ead173108694842bcbea9227c70b4ce.jpg';
 const MANAGER_BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
+const CHINA_STANDARD_TIME_OFFSET_MS = 8 * 60 * 60 * 1000;
 
 type ManagerLoginVerificationPayload = {
     id: string | number;
@@ -378,8 +379,9 @@ function joinManagerUrl(baseUrl: string, path: string): string {
 }
 
 function formatMeetingTitle(topic: string, date: Date): string {
-    const hours = pad2(date.getHours());
-    const minutes = pad2(date.getMinutes());
+    const chinaTime = new Date(date.getTime() + CHINA_STANDARD_TIME_OFFSET_MS);
+    const hours = pad2(chinaTime.getUTCHours());
+    const minutes = pad2(chinaTime.getUTCMinutes());
     return `BOT: ${topic} ${hours}:${minutes}`;
 }
 

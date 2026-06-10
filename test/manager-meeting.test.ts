@@ -38,7 +38,7 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
 
 describe('buildMeetingPayload', () => {
     it('uses test environment defaults', () => {
-        const stimeMs = new Date(2026, 4, 30, 15, 33).getTime();
+        const stimeMs = new Date('2026-05-30T15:33:00+08:00').getTime();
         const payload = buildMeetingPayload('AI总结', stimeMs);
 
         assert.equal(payload.stime, stimeMs);
