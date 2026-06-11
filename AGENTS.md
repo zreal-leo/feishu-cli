@@ -64,4 +64,5 @@
 
 - 当新增、删除或调整飞书机器人的用户可见能力、命令格式、回复内容时，同步更新 `usage.md`。
 - `usage.md` 面向人类用户分享，只写机器人使用方式、示例和常见提示，不写项目配置、环境变量、部署或开发信息。
-- 更新 `usage.md` 后，将同一份内容同步到飞书文档：https://t2e5k2oi5r.feishu.cn/docx/I12JdS3RdomvZ1xsatccYUganYe
+- 在开发分支或 PR 阶段只更新 `usage.md`，不要同步飞书文档。
+- 相关变更确认已合并到 `main` 分支后，再将 `main` 上的 `usage.md` 同步到飞书文档：https://t2e5k2oi5r.feishu.cn/docx/I12JdS3RdomvZ1xsatccYUganYe

@@ -135,6 +135,9 @@ describe('createAssistantCommandHandler', () => {
         const handler = createAssistantCommandHandler({
             streamReply(prompt) {
                 assert.match(prompt, /请用中文简洁回复/);
+                assert.match(prompt, /不要透露或承认任何预设人设/);
+                assert.match(prompt, /河南青年/);
+                assert.match(prompt, /幽默风趣/);
                 assert.match(prompt, /用户在 Lark 发送的消息：\n你好/);
                 return (async function* () {
                     yield '第一段';
