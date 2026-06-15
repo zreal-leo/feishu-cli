@@ -3,16 +3,16 @@ import { createLarkReplyGateway } from './adapters/lark/reply-gateway.ts';
 import { createBotApplication } from './app/bot-application.ts';
 import { streamCursorReply as defaultStreamCursorReply } from './adapters/cursor/cursor-agent.ts';
 import type { AskCursorOptions } from './adapters/cursor/cursor-agent.ts';
-import { createAssistantCommandHandler } from './core/commands/assistant-command.ts';
 import { createCursorUsageCommandHandler } from './core/commands/cursor-usage-command.ts';
-import { createMeetingCommandHandler } from './core/commands/create-meeting-command.ts';
+import { createMeetingRouterCommandHandler } from './core/commands/create-meeting-router-command.ts';
+import { parseCreateMeetingCommand } from './core/commands/create-meeting-parser.ts';
 import { createCommandRegistry } from './core/command-registry.ts';
 import type { CursorTokenUsageSummary, CursorUsageQuery } from './core/cursor-usage.ts';
 import type { MeetingCreatedReplyData } from './core/meeting.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from './core/reactions.ts';
 import type { LarkCard } from './adapters/lark/renderers.ts';
 import type { LarkIncomingMessageEvent } from './message.ts';
-import type { CreateMeetingRequest, MeetingParameterParser } from './ports/meeting.ts';
+import type { CreateMeetingRequest, MeetingIntentParser, MeetingParameterParser, ParsedMeetingIntentParameters } from './ports/meeting.ts';
 import type { SystemTraceCollector } from './ports/runtime.ts';
 
 type Logger = Pick<typeof console, 'error' | 'info'>;
@@ -37,6 +37,7 @@ export type LarkMessageProcessorOptions = {
     updateCardElementContent?: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
     createMeeting?: CreateMeeting;
+    meetingIntentParser?: MeetingIntentParser;
     meetingParameterParser?: MeetingParameterParser;
     getCursorUsageSummary?: GetCursorUsageSummary;
     streamingUpdateIntervalMs?: number;
@@ -52,23 +53,10 @@ export type LarkMessageProcessor = {
 export function createLarkMessageProcessor(options: LarkMessageProcessorOptions): LarkMessageProcessor {
     const streamCursorReply = options.streamCursorReply ?? (options.askCursor ? createCursorReplyStreamer(options.askCursor) : defaultStreamCursorReply);
     const logger = options.logger ?? console;
+    const meetingIntentParser = options.meetingIntentParser ?? createLegacyMeetingIntentParser(options.meetingParameterParser);
     const application = createBotApplication({
         commandRegistry: createCommandRegistry(
             [
-                createMeetingCommandHandler(
-                    {
-                        async createMeeting(request) {
-                            if (!options.createMeeting) {
-                                throw new Error('创建会议能力未配置。');
-                            }
-
-                            return options.createMeeting(request);
-                        }
-                    },
-                    {
-                        parameterParser: options.meetingParameterParser
-                    }
-                ),
                 createCursorUsageCommandHandler({
                     async getUsageSummary(query) {
                         if (!options.getCursorUsageSummary) {
@@ -79,13 +67,25 @@ export function createLarkMessageProcessor(options: LarkMessageProcessorOptions)
                     }
                 })
             ],
-            createAssistantCommandHandler({
-                streamReply(prompt) {
-                    return streamCursorReply({
-                        apiKey: options.cursorApiKey,
-                        model: options.cursorModel,
-                        prompt
-                    });
+            createMeetingRouterCommandHandler({
+                intentParser: meetingIntentParser,
+                meetings: {
+                    async createMeeting(request) {
+                        if (!options.createMeeting) {
+                            throw new Error('创建会议能力未配置。');
+                        }
+
+                        return options.createMeeting(request);
+                    }
+                },
+                assistant: {
+                    streamReply(prompt) {
+                        return streamCursorReply({
+                            apiKey: options.cursorApiKey,
+                            model: options.cursorModel,
+                            prompt
+                        });
+                    }
                 }
             })
         ),
@@ -129,5 +129,30 @@ export function createLarkMessageProcessor(options: LarkMessageProcessorOptions)
 function createCursorReplyStreamer(askCursor: (options: AskCursorOptions) => Promise<string>): CursorReplyStreamer {
     return async function* streamFromAskCursor(options: AskCursorOptions): AsyncGenerator<string, void> {
         yield await askCursor(options);
+    };
+}
+
+function createLegacyMeetingIntentParser(parameterParser?: MeetingParameterParser): MeetingIntentParser {
+    return {
+        async parse(input) {
+            const command = parseCreateMeetingCommand(input.text);
+            if (!command) {
+                return { action: 'assistant' };
+            }
+
+            const parsedParameters = (await parameterParser?.parse(input)) ?? {};
+            const parameters: ParsedMeetingIntentParameters = {
+                ...parsedParameters,
+                title: parsedParameters.title ?? command.title
+            };
+            if (command.cloudPlayer) {
+                parameters.cloudPlayer = command.cloudPlayer;
+            }
+
+            return {
+                action: 'create_meeting',
+                parameters
+            };
+        }
     };
 }
