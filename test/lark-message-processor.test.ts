@@ -145,7 +145,7 @@ describe('createLarkMessageProcessor', () => {
 
     it('returns after queueing without waiting for Cursor', async () => {
         const sentMessages: Array<{ chatId: string; text: string }> = [];
-        let resolveCursor!: (reply: string) => void;
+        let resolveCursor: ((reply: string) => void) | undefined;
 
         const processor = createLarkMessageProcessor({
             cursorApiKey: 'cursor_key',
@@ -165,7 +165,12 @@ describe('createLarkMessageProcessor', () => {
         assert.equal(result, undefined);
         assert.deepEqual(sentMessages, []);
 
-        await Promise.resolve();
+        for (let attempt = 0; attempt < 5 && !resolveCursor; attempt += 1) {
+            await Promise.resolve();
+        }
+        if (!resolveCursor) {
+            throw new Error('Cursor reply promise was not created');
+        }
         resolveCursor('收到');
         await processor.drain();
 
@@ -378,6 +383,85 @@ describe('createLarkMessageProcessor', () => {
             `create-meeting:AI策略会:${stimeMs}:1:60:567:7:2:专场活动`,
             `send:chat_1:${['会议创建成功', '会议标题：BOT: AI策略会 10:00', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`
         ]);
+    });
+
+    it('creates a meeting when Cursor classifies a free-form message as meeting intent', async () => {
+        const actions: string[] = [];
+        const stimeMs = new Date('2026-06-10T10:00:00+08:00').getTime();
+
+        const processor = createLarkMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            meetingIntentParser: {
+                async parse(input) {
+                    actions.push(`intent:${input.text}`);
+                    return {
+                        action: 'create_meeting',
+                        parameters: {
+                            title: 'AI策略会',
+                            stimeMs,
+                            eventWays: 1,
+                            length: 60
+                        }
+                    };
+                }
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '不应该调用 Cursor fallback';
+            },
+            createMeeting: async request => {
+                actions.push(`create-meeting:${request.title}:${request.stimeMs}:${request.eventWays}:${request.length}`);
+                return {
+                    title: 'BOT: AI策略会 10:00',
+                    roadshowId: 123456,
+                    eventId: 789012,
+                    netLiveUrl: 'http://s.comein.cn/live'
+                };
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        const text = '帮我明天10点开个视频路演，主题是AI策略会，时长60分钟';
+        processor.handleEvent(createTextEvent('om_free_form_meeting', text));
+        await processor.drain();
+
+        assert.deepEqual(actions, [`intent:${text}`, `create-meeting:AI策略会:${stimeMs}:1:60`, `send:chat_1:${['会议创建成功', '会议标题：BOT: AI策略会 10:00', '会议 ID：123456', '观看链接：http://s.comein.cn/live'].join('\n')}`]);
+    });
+
+    it('streams the assistant reply when Cursor classifies a free-form message as non-meeting', async () => {
+        const actions: string[] = [];
+
+        const processor = createLarkMessageProcessor({
+            cursorApiKey: 'cursor_key',
+            cursorModel: 'composer-2.5',
+            logger: silentLogger,
+            meetingIntentParser: {
+                async parse(input) {
+                    actions.push(`intent:${input.text}`);
+                    return { action: 'assistant' };
+                }
+            },
+            streamCursorReply: async function* () {
+                actions.push('cursor:start');
+                yield '普通';
+                yield '回复';
+            },
+            createMeeting: async () => {
+                throw new Error('meeting should not be created');
+            },
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send:${chatId}:${text}`);
+            }
+        });
+
+        processor.handleEvent(createTextEvent('om_free_form_assistant', '你好'));
+        await processor.drain();
+
+        assert.deepEqual(actions, ['intent:你好', 'cursor:start', 'send:chat_1:普通回复']);
     });
 
     it('uses the default title and video URL for a default cloud player command', async () => {

@@ -12,7 +12,7 @@ export type CursorMeetingParameterParserOptions = {
     askCursor?: AskCursor;
 };
 
-type RawCursorMeetingParameters = {
+export type RawCursorMeetingParameters = {
     title?: unknown;
     startTime?: unknown;
     eventWays?: unknown;
@@ -80,7 +80,7 @@ function buildCreateMeetingParameterPrompt(input: ParseMeetingParametersInput): 
     ].join('\n');
 }
 
-function normalizeMeetingParameters(rawParameters: RawCursorMeetingParameters): ParsedMeetingParameters {
+export function normalizeMeetingParameters(rawParameters: RawCursorMeetingParameters): ParsedMeetingParameters {
     const normalized: ParsedMeetingParameters = {};
     const title = normalizeOptionalString(rawParameters.title);
     if (title) {
@@ -115,7 +115,7 @@ function normalizeMeetingParameters(rawParameters: RawCursorMeetingParameters): 
     return normalized;
 }
 
-function parseCursorJson(responseText: string): RawCursorMeetingParameters {
+export function parseCursorJson<T extends Record<string, unknown> = RawCursorMeetingParameters>(responseText: string): T {
     const jsonText = extractFirstJsonObject(responseText.trim());
     let parsed: unknown;
     try {
@@ -128,7 +128,7 @@ function parseCursorJson(responseText: string): RawCursorMeetingParameters {
         throw new Error('Cursor 参数解析失败：返回内容不是 JSON 对象。');
     }
 
-    return parsed;
+    return parsed as T;
 }
 
 function extractFirstJsonObject(text: string): string {

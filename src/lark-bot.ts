@@ -2,7 +2,7 @@ import * as Lark from '@larksuiteoapi/node-sdk';
 
 import type { CursorUsageConfig, ManagerMeetingConfig } from './config.ts';
 import type { SystemTraceConfig } from './config.ts';
-import { createCursorMeetingParameterParser } from './adapters/cursor/create-meeting-parameter-parser.ts';
+import { createCursorMeetingIntentParser } from './adapters/cursor/create-meeting-intent-parser.ts';
 import { createCursorUsageClient } from './adapters/cursor/cursor-usage.ts';
 import { createFileSystemTraceCollector } from './adapters/file-system-trace.ts';
 import { createManagerMeetingClient } from './adapters/manager/index.ts';
@@ -29,7 +29,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
 
     const client = new Lark.Client(baseConfig);
     const cursorUsageClient = createCursorUsageClient(options.cursorUsage);
-    const meetingParameterParser = createCursorMeetingParameterParser({
+    const meetingIntentParser = createCursorMeetingIntentParser({
         apiKey: options.cursorApiKey,
         model: options.cursorModel
     });
@@ -42,7 +42,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
     const messageProcessor = createLarkMessageProcessor({
         cursorApiKey: options.cursorApiKey,
         cursorModel: options.cursorModel,
-        meetingParameterParser,
+        meetingIntentParser,
         systemTraceCollector,
         addMessageReaction: async (messageId, emojiType) => {
             const response = await client.im.v1.messageReaction.create({

@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { createAssistantCommandHandler } from '../src/core/commands/assistant-command.ts';
 import { createCursorUsageCommandHandler } from '../src/core/commands/cursor-usage-command.ts';
 import { createMeetingCommandHandler } from '../src/core/commands/create-meeting-command.ts';
+import { createMeetingRouterCommandHandler } from '../src/core/commands/create-meeting-router-command.ts';
 import type { MessageInput } from '../src/core/types.ts';
 
 const input: MessageInput = {
@@ -156,6 +157,132 @@ describe('createAssistantCommandHandler', () => {
             chunks.push(chunk);
         }
         assert.deepEqual(chunks, ['第一段', '第二段']);
+    });
+});
+
+describe('createMeetingRouterCommandHandler', () => {
+    it('creates a meeting when Cursor classifies the message as a create meeting intent', async () => {
+        const handler = createMeetingRouterCommandHandler({
+            intentParser: {
+                async parse(input) {
+                    assert.equal(input.text, '帮我明天10点开个视频路演，主题是AI策略会');
+                    return {
+                        action: 'create_meeting',
+                        parameters: {
+                            title: 'AI策略会',
+                            stimeMs: new Date('2026-06-10T10:00:00+08:00').getTime(),
+                            eventWays: 1,
+                            length: 60
+                        }
+                    };
+                }
+            },
+            meetings: {
+                async createMeeting(request) {
+                    assert.deepEqual(request, {
+                        title: 'AI策略会',
+                        stimeMs: new Date('2026-06-10T10:00:00+08:00').getTime(),
+                        eventWays: 1,
+                        length: 60
+                    });
+                    return {
+                        title: 'BOT: AI策略会 10:00',
+                        roadshowId: 123,
+                        eventId: 456,
+                        netLiveUrl: 'http://s.comein.cn/live'
+                    };
+                }
+            },
+            assistant: {
+                streamReply() {
+                    throw new Error('assistant should not be called');
+                }
+            }
+        });
+
+        const message = { ...input, text: '帮我明天10点开个视频路演，主题是AI策略会' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'meeting-router');
+        assert.deepEqual(reply, {
+            type: 'meeting_created',
+            data: {
+                title: 'BOT: AI策略会 10:00',
+                roadshowId: 123,
+                eventId: 456,
+                netLiveUrl: 'http://s.comein.cn/live'
+            }
+        });
+    });
+
+    it('streams the assistant reply when Cursor does not classify the message as a meeting', async () => {
+        const chunks: string[] = [];
+        const handler = createMeetingRouterCommandHandler({
+            intentParser: {
+                async parse() {
+                    return { action: 'assistant' };
+                }
+            },
+            meetings: {
+                async createMeeting() {
+                    throw new Error('meeting should not be created');
+                }
+            },
+            assistant: {
+                streamReply(prompt) {
+                    assert.match(prompt, /用户在 Lark 发送的消息：\n你好/);
+                    return (async function* () {
+                        yield '普通';
+                        yield '回复';
+                    })();
+                }
+            }
+        });
+
+        const message = { ...input, text: '你好' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.equal(match?.commandName, 'meeting-router');
+        assert.ok(reply && Symbol.asyncIterator in reply);
+        for await (const chunk of reply as AsyncIterable<string>) {
+            chunks.push(chunk);
+        }
+        assert.deepEqual(chunks, ['普通', '回复']);
+    });
+
+    it('falls back to the assistant without creating a meeting when intent parsing fails', async () => {
+        const chunks: string[] = [];
+        const handler = createMeetingRouterCommandHandler({
+            intentParser: {
+                async parse() {
+                    throw new Error('Cursor 参数解析失败：返回内容不是合法 JSON。');
+                }
+            },
+            meetings: {
+                async createMeeting() {
+                    throw new Error('meeting should not be created');
+                }
+            },
+            assistant: {
+                streamReply() {
+                    return (async function* () {
+                        yield '我不确定是否要创建会议，请再补充一下。';
+                    })();
+                }
+            }
+        });
+
+        const message = { ...input, text: '可能要不要开个会' };
+        const match = handler.match(message);
+        const reply = match ? await handler.execute({ message }, match) : null;
+
+        assert.ok(reply && Symbol.asyncIterator in reply);
+        for await (const chunk of reply as AsyncIterable<string>) {
+            chunks.push(chunk);
+        }
+        assert.deepEqual(chunks, ['我不确定是否要创建会议，请再补充一下。']);
     });
 });
 
