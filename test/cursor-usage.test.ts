@@ -157,7 +157,7 @@ describe('createCursorUsageClient', () => {
 });
 
 describe('formatCursorTokenUsageSummary', () => {
-    it('formats token counts in yi and wan units while dropping sub-wan remainders', () => {
+    it('formats token counts with separators without dropping smaller values', () => {
         const text = formatCursorTokenUsageSummary({
             startDate: '2026-05-06',
             endDate: '2026-06-04',
@@ -167,6 +167,6 @@ describe('formatCursorTokenUsageSummary', () => {
             cacheReadTokens: 9999
         });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1亿2345万', '输出 Tokens：1亿', '缓存读取 Tokens：0', '合计 Tokens：2亿2347万'].join('\n'));
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：123,456,789', '输出 Tokens：100,009,999', '缓存读取 Tokens：9,999', '合计 Tokens：223,476,787'].join('\n'));
     });
 });

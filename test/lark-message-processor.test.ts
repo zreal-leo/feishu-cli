@@ -599,7 +599,7 @@ describe('createLarkMessageProcessor', () => {
 
         assert.deepEqual(actions, [
             'cursor-usage:2026-05-06:2026-06-04',
-            `send:chat_1:${['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：1万'].join('\n')}`
+            `send:chat_1:${['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：2,898', '输出 Tokens：83', '缓存读取 Tokens：7,364', '合计 Tokens：10,345'].join('\n')}`
         ]);
     });
 

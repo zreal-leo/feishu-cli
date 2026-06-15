@@ -287,12 +287,12 @@ describe('createMeetingRouterCommandHandler', () => {
 });
 
 describe('createCursorUsageCommandHandler', () => {
-    it('queries token usage from the 26th of last month by default', async () => {
+    it('queries token usage for the latest 30-day inclusive range by default', async () => {
         const handler = createCursorUsageCommandHandler(
             {
                 async getUsageSummary(query) {
                     assert.deepEqual(query, {
-                        startDate: '2026-05-26',
+                        startDate: '2026-05-06',
                         endDate: '2026-06-04'
                     });
                     return {
@@ -317,7 +317,7 @@ describe('createCursorUsageCommandHandler', () => {
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：0'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1,000', '输出 Tokens：200', '缓存读取 Tokens：3,000', '合计 Tokens：4,200'].join('\n')
         });
     });
 

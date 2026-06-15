@@ -64,7 +64,8 @@ export function parseCursorUsageCommand(text: string, now = new Date()): CursorU
 
 function getDefaultDateRange(now: Date): CursorUsageQuery {
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const start = new Date(end.getFullYear(), end.getMonth() - 1, 26);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 29);
 
     return {
         startDate: formatDate(start),
