@@ -10,7 +10,7 @@
         "build": "node scripts/build.mjs",
         "dev": "tsx src/index.ts",
         "start": "pnpm build && node dist/index.js",
-        "test": "tsx --test test/**/*.test.ts",
+        "test": "TZ=Asia/Shanghai tsx --test test/**/*.test.ts",
         "typecheck": "tsc --noEmit",
         "format": "oxfmt --write .",
         "format:check": "oxfmt --check ."
