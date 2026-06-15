@@ -55,7 +55,8 @@
 
 ### 开发运行注意
 
-- `pnpm dev` 与 `pnpm start` 都会先打印 `lark-cli is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。
+- 运行 `pnpm test` 时建议使用 `TZ=Asia/Shanghai pnpm test`。`test/manager-meeting.test.ts` 的会议时间断言按本地时区（UTC+8）格式化；在 UTC 环境（如云 VM 默认）下会有一条用例因 8 小时偏移失败，设置 `TZ=Asia/Shanghai` 后全部通过。
+- `pnpm dev` 与 `pnpm start` 都会先打印 `lark-cli is running...`，随后由 `@larksuiteoapi/node-sdk` 建立 WebSocket；凭证无效时会出现 `[ws] invalid appId` 等错误并退出，属预期行为。凭证有效时会打印 `[ws] ws client ready`，表示已连接 Lark 长连接。
 - 使用 tmux 托管长驻 `pnpm dev` 或 `pnpm start` 进程，便于后续查看日志。
 - 临时脚本请用 `pnpm exec tsx`（`tsx` 不在全局 PATH）；`-e` 内联脚本需包在 async IIFE 中，避免 top-level await 报错。
 - 格式化检查：`pnpm format:check`（不写回文件）。
