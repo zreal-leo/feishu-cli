@@ -16,6 +16,7 @@
         "format:check": "oxfmt --check ."
     },
     "dependencies": {
+        "@connectrpc/connect-node": "1.6.1",
         "@cursor/sdk": "^1.0.19",
         "@larksuiteoapi/node-sdk": "^1.67.0",
         "dotenv": "^17.4.2"
