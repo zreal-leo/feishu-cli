@@ -7,7 +7,7 @@
 ### 文档分工
 
 - 面向飞书普通用户的命令格式、示例和常见提示见 [`usage.md`](./usage.md)。
-- 面向 Cursor Agent 和开发者的环境变量、常用命令、运行注意事项见 [`AGENTS.md`](./AGENTS.md)。
+- 面向 Cursor Agent 和开发者的分支开发流程、环境变量、常用命令、运行注意事项见 [`AGENTS.md`](./AGENTS.md)。
 - 代码分层、目录结构、数据流与扩展指南见 [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)。
 
 ### 代码结构

@@ -1,0 +1,21 @@
+name: Branch Policy
+
+on:
+    pull_request:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    require-feature-branch:
+        name: Require feature branch
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Reject pull request from main
+              if: github.head_ref == 'main'
+              run: |
+                  echo "::error::Do not open pull requests from main. Create a feature branch first."
+                  exit 1

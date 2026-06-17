@@ -20,6 +20,25 @@
 
 新增命令时优先新增 `CommandHandler`，在 `src/bootstrap/composition-root.ts` 注册，并按需在 `src/adapters/` 实现对应端口；不要把业务分支写回组合根。
 
+### 分支开发流程
+
+`main` 为稳定分支，**禁止**在 `main` 上直接开发新需求或提交功能变更。
+
+开始新需求前，先从最新的 `main` 切出功能分支：
+
+```bash
+git fetch origin
+git checkout main
+git pull origin main
+git checkout -b feat/short-description
+```
+
+分支命名建议：`feat/`、`fix/`、`refactor/`、`docs/` 等前缀 + 简短英文描述（例如 `feat/meeting-card-streaming`）。
+
+开发、提交、推送均在功能分支上进行；合并前在本地运行 `pnpm test`、`pnpm typecheck`、`pnpm format`，再通过 Pull Request 合并回 `main`。PR 合并后可删除远程与本地功能分支（`git fetch --prune` 后清理上游已删除的本地分支）。
+
+Cursor Agent 接到实现类任务时，若当前分支为 `main`，应先创建功能分支再改代码，不要直接在 `main` 上编辑。
+
 ### 常用命令
 
 | 任务     | 命令                                                     |
