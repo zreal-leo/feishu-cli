@@ -16,14 +16,14 @@
         "format:check": "oxfmt --check ."
     },
     "dependencies": {
-        "@cursor/sdk": "^1.0.19",
-        "@larksuiteoapi/node-sdk": "^1.67.0",
+        "@cursor/sdk": "^1.0.18",
+        "@larksuiteoapi/node-sdk": "^1.66.1",
         "dotenv": "^17.4.2"
     },
     "devDependencies": {
-        "@types/node": "^25.9.3",
-        "esbuild": "^0.28.1",
-        "oxfmt": "^0.55.0",
+        "@types/node": "^25.9.2",
+        "esbuild": "^0.28.0",
+        "oxfmt": "^0.54.0",
         "tsx": "^4.22.4",
         "typescript": "^6.0.3"
     },

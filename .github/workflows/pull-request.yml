@@ -29,5 +29,8 @@ jobs:
                   node-version: 24
                   cache: pnpm
 
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
             - name: Check formatting
-              run: pnpm dlx oxfmt@0.55.0 --check .
+              run: pnpm format:check
