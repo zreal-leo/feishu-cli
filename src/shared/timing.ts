@@ -3,10 +3,6 @@ export type SegmentTiming = {
     totalMs: number;
 };
 
-export function formatDurationMs(durationMs: number): string {
-    return `${Math.round(Math.max(0, durationMs))}ms`;
-}
-
 export function createSegmentTimer(now: () => number = () => performance.now()): {
     mark: () => SegmentTiming;
 } {

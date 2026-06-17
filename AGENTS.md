@@ -4,17 +4,21 @@
 
 ### 项目概览
 
-单包 Node.js 应用（`lark-cli`）：通过 Lark WebSocket 接收文本消息，经命令注册表路由到内置命令或 `@cursor/sdk` fallback，再把回复发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
+单包 Node.js 应用（`lark-cli`）：通过 Lark WebSocket 接收文本消息，经命令注册表路由到内置命令或经 LLM 意图路由兜底，再把回复发回同一会话。无独立 HTTP 服务、无 Docker/数据库。
 
-当前内部架构是单进程可扩展机器人框架：
+当前内部架构是「模块化单体 + 端口适配器」的单进程可扩展机器人框架：
 
-- `src/app/`：应用编排、串行队列、消息去重。
-- `src/core/`：命令模型、`CommandRegistry`、创建会议命令、Cursor fallback 命令。
-- `src/ports/`：核心层依赖的接口。
-- `src/adapters/lark/`：Lark 事件映射、回复网关、卡片渲染。
-- `src/adapters/cursor/` 与 `src/adapters/manager/`：外部系统适配入口。
+- `src/bootstrap/`：唯一装配点（`composition-root.ts`）、配置加载与进程入口。
+- `src/app/`：应用编排、串行队列、消息去重、reaction/trace/回复编排。
+- `src/core/`：领域核心（命令模型、`CommandRegistry`、会议路由命令、用量命令、trace 类型），不依赖任何 adapter。
+- `src/ports/`：核心 / 应用依赖的抽象接口。
+- `src/adapters/lark/`：Lark 事件映射、协议序列化、底层网关、回复网关、卡片渲染。
+- `src/adapters/cursor/` 与 `src/adapters/manager/`：Cursor 与运营后台的端口实现。
+- `src/shared/`：无业务依赖的通用工具。
 
-新增命令时优先新增 `CommandHandler` 并在组合入口注册，避免把业务分支写回 `src/lark-message-processor.ts`。
+依赖方向单向收敛：`adapters -> ports -> core`、`app -> core/ports`、`bootstrap -> 全部`。完整结构图、数据流与扩展指南见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
+
+新增命令时优先新增 `CommandHandler`，在 `src/bootstrap/composition-root.ts` 注册，并按需在 `src/adapters/` 实现对应端口；不要把业务分支写回组合根。
 
 ### 常用命令
 
@@ -32,12 +36,12 @@
 
 ### 环境变量
 
-复制 `.env.example` 为 `.env`，或导出以下变量（`src/config.ts` 在启动时校验）：
+复制 `.env.example` 为 `.env`，或导出以下变量（`src/bootstrap/config.ts` 在启动时校验）：
 
 - **必填**：`CURSOR_API_KEY`、`LARK_APP_ID`、`LARK_APP_SECRET`
 - **可选**：`LARK_ENCRYPT_KEY`（仅当 Lark 事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）
 
-非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
+非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/bootstrap/default-config.ts` 中维护。
 
 ### 原生依赖
 

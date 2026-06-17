@@ -1,27 +1,20 @@
-import type { ManagerMeetingConfig } from './config.ts';
-import type { MeetingParameterOptions } from './core/meeting.ts';
+import type { CloudPlayerCommandOptions, MeetingParameterOptions } from '../../core/meeting.ts';
+import type { CreateMeetingRequest, MeetingGateway } from '../../ports/meeting.ts';
 
 type FetchLike = typeof fetch;
+
+export type ManagerMeetingConfig = {
+    env: 'test';
+    baseUrl: string;
+    loginName?: string;
+    password?: string;
+};
 
 export type CreateManagerMeetingRequest = MeetingParameterOptions & {
     title: string;
     startAfterMinutes?: number;
     now?: Date;
-    cloudPlayer?: ManagerCloudPlayerOptions;
-};
-
-export type ManagerCloudPlayerMediaStreamType = 1 | 2;
-export type ManagerCloudPlayerPlayType = 1;
-export type ManagerCloudPlayerRepeatMode = -1 | 1 | 2;
-export type ManagerCloudPlayerType = 0 | 1 | 2;
-
-export type ManagerCloudPlayerOptions = {
-    mediaStreamType: ManagerCloudPlayerMediaStreamType;
-    streamUrl: string;
-    playType: ManagerCloudPlayerPlayType;
-    repeatMode: ManagerCloudPlayerRepeatMode;
-    repeatTime: number;
-    type: ManagerCloudPlayerType;
+    cloudPlayer?: CloudPlayerCommandOptions;
 };
 
 export type ManagerMeetingResult = {
@@ -53,6 +46,16 @@ class ManagerTokenExpiredError extends Error {
         super(`后台 token 已失效: ${JSON.stringify(body)}`);
         this.name = 'ManagerTokenExpiredError';
     }
+}
+
+export function createManagerMeetingGateway(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): MeetingGateway {
+    const client = createManagerMeetingClient(config, fetchImpl);
+
+    return {
+        createMeeting(request: CreateMeetingRequest) {
+            return client.createMeeting(request);
+        }
+    };
 }
 
 export function createManagerMeetingClient(config: ManagerMeetingConfig, fetchImpl: FetchLike = fetch): ManagerMeetingClient {
@@ -328,7 +331,7 @@ function resolveStartTimeMs(request: CreateManagerMeetingRequest): number {
     return nowMs + (request.startAfterMinutes ?? DEFAULT_START_AFTER_MINUTES) * 60 * 1000;
 }
 
-async function createManagerCloudPlayer(config: ManagerMeetingConfig, cloudPlayer: ManagerCloudPlayerOptions, roadshowId: number, playTs: number, token: string, fetchImpl: FetchLike): Promise<void> {
+async function createManagerCloudPlayer(config: ManagerMeetingConfig, cloudPlayer: CloudPlayerCommandOptions, roadshowId: number, playTs: number, token: string, fetchImpl: FetchLike): Promise<void> {
     const body = await readManagerJson(
         await fetchImpl(joinManagerUrl(config.baseUrl, '/managecenter/cloud-player/create'), {
             method: 'POST',

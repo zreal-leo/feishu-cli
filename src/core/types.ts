@@ -3,7 +3,13 @@ import type { MeetingCreatedReplyData } from './meeting.ts';
 export type MessageInput = {
     chatId: string;
     messageId?: string;
+    sender?: MessageSender;
     text: string;
+};
+
+export type MessageSender = {
+    id?: string;
+    name?: string;
 };
 
 export type CommandMatch<TData = unknown> = {

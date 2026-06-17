@@ -1,8 +1,15 @@
-import type { CursorUsageConfig } from '../../config.ts';
 import type { CursorTokenUsageSummary, CursorUsageQuery } from '../../core/cursor-usage.ts';
 import type { CursorUsageGateway } from '../../ports/cursor-usage.ts';
 
 type FetchLike = typeof fetch;
+
+export type CursorUsageClientConfig = {
+    baseUrl: string;
+    cookie?: string;
+    pageSize: number;
+    teamId?: number;
+    userId?: number;
+};
 
 type CursorUsageEvent = {
     tokenUsage?: {
@@ -18,7 +25,7 @@ type CursorUsageApiResponse = {
     usageEventsDisplay?: CursorUsageEvent[];
 };
 
-export function createCursorUsageClient(config: CursorUsageConfig, fetchImpl: FetchLike = fetch): CursorUsageGateway {
+export function createCursorUsageClient(config: CursorUsageClientConfig, fetchImpl: FetchLike = fetch): CursorUsageGateway {
     return {
         async getUsageSummary(query) {
             const requestConfig = requireCursorUsageRequestConfig(config);
@@ -51,9 +58,9 @@ export function createCursorUsageClient(config: CursorUsageConfig, fetchImpl: Fe
     };
 }
 
-type CursorUsageRequestConfig = Required<CursorUsageConfig>;
+type CursorUsageRequestConfig = Required<CursorUsageClientConfig>;
 
-function requireCursorUsageRequestConfig(config: CursorUsageConfig): CursorUsageRequestConfig {
+function requireCursorUsageRequestConfig(config: CursorUsageClientConfig): CursorUsageRequestConfig {
     const missing: string[] = [];
     if (!config.cookie) {
         missing.push('CURSOR_USAGE_COOKIE');

@@ -1,50 +1,20 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
-import type { CursorUsageConfig, ManagerMeetingConfig } from './config.ts';
-import type { SystemTraceConfig } from './config.ts';
-import { createCursorMeetingIntentParser } from './adapters/cursor/create-meeting-intent-parser.ts';
-import { createCursorUsageClient } from './adapters/cursor/cursor-usage.ts';
-import { createFileSystemTraceCollector } from './adapters/file-system-trace.ts';
-import { createManagerMeetingClient } from './adapters/manager/index.ts';
-import { createLarkMessageProcessor } from './lark-message-processor.ts';
-import type { LarkIncomingMessageEvent } from './message.ts';
-import { toLarkCardReferenceContent, toLarkReactionPayload, toLarkTextContent } from './message.ts';
+import type { ReactionGateway } from '../../ports/reaction.ts';
+import { toLarkCardReferenceContent, toLarkReactionPayload, toLarkTextContent } from './protocol.ts';
+import type { LarkCard } from './renderers.ts';
 
-export type StartBotOptions = {
-    cursorApiKey: string;
-    cursorModel: string;
-    larkAppId: string;
-    larkAppSecret: string;
-    larkEncryptKey?: string;
-    cursorUsage: CursorUsageConfig;
-    managerMeeting: ManagerMeetingConfig;
-    systemTrace: SystemTraceConfig;
+export type LarkMessageSender = {
+    sendTextMessage: (chatId: string, text: string) => Promise<{ messageId?: string }>;
+    updateTextMessage: (messageId: string, text: string) => Promise<void>;
+    sendCardMessage: (chatId: string, card: LarkCard) => Promise<{ cardId: string; messageId?: string }>;
+    updateCardElementContent: (cardId: string, elementId: string, content: string, sequence: number) => Promise<void>;
+    finishCardStreaming: (cardId: string, sequence: number, summary: string) => Promise<void>;
 };
 
-export function startLarkCursorBot(options: StartBotOptions): void {
-    const baseConfig = {
-        appId: options.larkAppId,
-        appSecret: options.larkAppSecret
-    };
-
-    const client = new Lark.Client(baseConfig);
-    const cursorUsageClient = createCursorUsageClient(options.cursorUsage);
-    const meetingIntentParser = createCursorMeetingIntentParser({
-        apiKey: options.cursorApiKey,
-        model: options.cursorModel
-    });
-    const managerMeetingClient = createManagerMeetingClient(options.managerMeeting);
-    const systemTraceCollector = createFileSystemTraceCollector(options.systemTrace);
-    const wsClient = new Lark.WSClient({
-        ...baseConfig,
-        loggerLevel: Lark.LoggerLevel.info
-    });
-    const messageProcessor = createLarkMessageProcessor({
-        cursorApiKey: options.cursorApiKey,
-        cursorModel: options.cursorModel,
-        meetingIntentParser,
-        systemTraceCollector,
-        addMessageReaction: async (messageId, emojiType) => {
+export function createLarkReactionGateway(client: Lark.Client): ReactionGateway {
+    return {
+        async add(messageId, emojiType) {
             const response = await client.im.v1.messageReaction.create({
                 path: {
                     message_id: messageId
@@ -54,15 +24,20 @@ export function startLarkCursorBot(options: StartBotOptions): void {
 
             return { reactionId: response.data?.reaction_id };
         },
-        removeMessageReaction: async (messageId, reactionId) => {
+        async remove(messageId, reactionId) {
             await client.im.v1.messageReaction.delete({
                 path: {
                     message_id: messageId,
                     reaction_id: reactionId
                 }
             });
-        },
-        sendTextMessage: async (chatId, text) => {
+        }
+    };
+}
+
+export function createLarkMessageSender(client: Lark.Client): LarkMessageSender {
+    return {
+        async sendTextMessage(chatId, text) {
             const response = await client.im.v1.message.create({
                 params: {
                     receive_id_type: 'chat_id'
@@ -76,7 +51,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
 
             return { messageId: response.data?.message_id };
         },
-        updateTextMessage: async (messageId, text) => {
+        async updateTextMessage(messageId, text) {
             await client.im.v1.message.update({
                 path: {
                     message_id: messageId
@@ -87,7 +62,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
                 }
             });
         },
-        sendCardMessage: async (chatId, card) => {
+        async sendCardMessage(chatId, card) {
             const cardResponse = await client.cardkit.v1.card.create({
                 data: {
                     type: 'card_json',
@@ -116,7 +91,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
                 messageId: messageResponse.data?.message_id
             };
         },
-        updateCardElementContent: async (cardId, elementId, content, sequence) => {
+        async updateCardElementContent(cardId, elementId, content, sequence) {
             await client.cardkit.v1.cardElement.content({
                 path: {
                     card_id: cardId,
@@ -129,7 +104,7 @@ export function startLarkCursorBot(options: StartBotOptions): void {
                 }
             });
         },
-        finishCardStreaming: async (cardId, sequence, summary) => {
+        async finishCardStreaming(cardId, sequence, summary) {
             await client.cardkit.v1.card.settings({
                 path: {
                     card_id: cardId
@@ -147,22 +122,6 @@ export function startLarkCursorBot(options: StartBotOptions): void {
                     uuid: `settings_${cardId}_${sequence}`
                 }
             });
-        },
-        createMeeting: async request => {
-            return managerMeetingClient.createMeeting(request);
-        },
-        getCursorUsageSummary: async query => {
-            return cursorUsageClient.getUsageSummary(query);
         }
-    });
-
-    const eventDispatcher = new Lark.EventDispatcher({
-        encryptKey: options.larkEncryptKey
-    }).register({
-        'im.message.receive_v1': (event: LarkIncomingMessageEvent) => {
-            messageProcessor.handleEvent(event);
-        }
-    });
-
-    wsClient.start({ eventDispatcher });
+    };
 }

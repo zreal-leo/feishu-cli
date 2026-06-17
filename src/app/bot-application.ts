@@ -1,10 +1,12 @@
 import type { CommandRegistry } from '../core/command-registry.ts';
 import type { MessageInput } from '../core/types.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
+import { captureReplyOutput, createSystemTraceContext } from '../core/system-trace.ts';
+import type { SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../core/system-trace.ts';
 import type { ReplyGateway } from '../ports/reply.ts';
-import type { DedupStore, JobQueue, Logger, ReactionGateway, SystemTraceCollector } from '../ports/runtime.ts';
-import { captureReplyOutput, createSystemTraceContext } from '../system-trace.ts';
-import type { SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../system-trace.ts';
+import type { ReactionGateway } from '../ports/reaction.ts';
+import type { SystemTraceCollector } from '../ports/trace.ts';
+import type { DedupStore, JobQueue, Logger } from '../ports/runtime.ts';
 import { createInMemoryDedupStore } from './in-memory-dedup-store.ts';
 import { createSerialJobQueue } from './serial-job-queue.ts';
 
@@ -37,7 +39,7 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
 
             if (message.messageId && !dedupStore.remember(message.messageId)) {
                 trace?.markStep('dedup');
-                logger.info(`[bot-app] duplicate message ignored chatId=${message.chatId} messageId=${message.messageId} textLength=${message.text.length}`);
+                logger.info(`[bot-app] duplicate message ignored chatId=${message.chatId} messageId=${message.messageId} ${formatSenderLogFields(message)} textLength=${message.text.length}`);
                 void recordTraceBestEffort(options.systemTraceCollector, trace?.finish('duplicate_ignored'), logger);
                 return;
             }
@@ -71,7 +73,7 @@ async function processMessage(message: MessageInput, options: BotApplicationOpti
         const resolved = runSyncStep(trace, 'command.resolve', () => options.commandRegistry.resolve(message));
         if (!resolved) {
             status = 'no_command';
-            logger.error(`[bot-app] no command resolved chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'}`);
+            logger.error(`[bot-app] no command resolved chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} ${formatSenderLogFields(message)}`);
             return;
         }
         trace?.setCommandName(resolved.match.commandName);
@@ -88,7 +90,7 @@ async function processMessage(message: MessageInput, options: BotApplicationOpti
         if (getOutput) {
             trace?.setOutput(getOutput());
         }
-        logger.error(`[bot-app] message handling failed chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'}`, error);
+        logger.error(`[bot-app] message handling failed chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} ${formatSenderLogFields(message)}`, error);
     } finally {
         if (message.messageId && addedReactionId && options.reactions) {
             await removeReactionBestEffort(message.messageId, addedReactionId, options.reactions, logger, message.chatId, trace);
@@ -175,4 +177,8 @@ async function recordTraceBestEffort(collector: SystemTraceCollector | undefined
     } catch (error) {
         logger.error(`[bot-app] system trace write failed chatId=${trace.chatId} messageId=${trace.messageId ?? 'unknown'}`, error);
     }
+}
+
+function formatSenderLogFields(message: MessageInput): string {
+    return `senderId=${message.sender?.id ?? 'unknown'} senderName=${message.sender?.name ?? 'unknown'}`;
 }

@@ -1,35 +1,22 @@
 import 'dotenv/config';
 
+import type { CursorUsageClientConfig } from '../adapters/cursor/cursor-usage-client.ts';
+import type { ManagerMeetingConfig } from '../adapters/manager/manager-meeting.ts';
 import { DEFAULT_CONFIG } from './default-config.ts';
 
-type Config = {
+export type SystemTraceConfig = {
+    logPath: string;
+};
+
+export type Config = {
     cursorApiKey: string;
     cursorModel: string;
-    cursorUsage: CursorUsageConfig;
+    cursorUsage: CursorUsageClientConfig;
     larkAppId: string;
     larkAppSecret: string;
     larkEncryptKey?: string;
     managerMeeting: ManagerMeetingConfig;
     systemTrace: SystemTraceConfig;
-};
-
-export type CursorUsageConfig = {
-    baseUrl: string;
-    cookie?: string;
-    pageSize: number;
-    teamId?: number;
-    userId?: number;
-};
-
-export type ManagerMeetingConfig = {
-    env: 'test';
-    baseUrl: string;
-    loginName?: string;
-    password?: string;
-};
-
-export type SystemTraceConfig = {
-    logPath: string;
 };
 
 function requireEnv(name: string): string {

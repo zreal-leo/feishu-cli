@@ -64,12 +64,6 @@ export const MEETING_PERMISSION_OPTIONS = {
     '9': { serviceType: 0, openStatus: 10, tagName: '付费' }
 } as const satisfies Record<string, MeetingPermissionBackendFields>;
 
-export type CreateMeetingCommand = {
-    type: 'create_meeting';
-    title: string;
-    cloudPlayer?: CloudPlayerCommandOptions;
-} & MeetingParameterOptions;
-
 export type MeetingCreatedReplyData = {
     title: string;
     roadshowId: number;

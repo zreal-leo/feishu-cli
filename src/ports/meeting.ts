@@ -27,10 +27,6 @@ export type ParsedMeetingIntent =
           parameters: ParsedMeetingIntentParameters;
       };
 
-export type MeetingParameterParser = {
-    parse: (input: ParseMeetingParametersInput) => Promise<ParsedMeetingParameters>;
-};
-
 export type MeetingIntentParser = {
     parse: (input: ParseMeetingParametersInput) => Promise<ParsedMeetingIntent>;
 };

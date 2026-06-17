@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createCursorUsageClient } from '../src/adapters/cursor/cursor-usage.ts';
-import type { CursorUsageConfig } from '../src/config.ts';
+import { createCursorUsageClient } from '../src/adapters/cursor/cursor-usage-client.ts';
+import type { CursorUsageClientConfig } from '../src/adapters/cursor/cursor-usage-client.ts';
 import { formatCursorTokenUsageSummary } from '../src/core/cursor-usage.ts';
 
-function createTestConfig(overrides: Partial<CursorUsageConfig> = {}): CursorUsageConfig {
+function createTestConfig(overrides: Partial<CursorUsageClientConfig> = {}): CursorUsageClientConfig {
     return {
         baseUrl: 'https://cursor.com',
         cookie: 'WorkosCursorSessionToken=session',

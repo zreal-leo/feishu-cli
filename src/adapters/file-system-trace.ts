@@ -1,8 +1,8 @@
 import { appendFile, mkdir } from 'node:fs/promises';
 import { basename, dirname, extname, join } from 'node:path';
 
-import type { SystemTraceCollector } from '../ports/runtime.ts';
-import { formatSystemTraceDate, serializeSystemTraceRecord } from '../system-trace.ts';
+import type { SystemTraceCollector } from '../ports/trace.ts';
+import { formatSystemTraceDate, serializeSystemTraceRecord } from '../core/system-trace.ts';
 
 export function createFileSystemTraceCollector(options: { logPath: string }): SystemTraceCollector {
     return {
