@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { describe, it } from 'node:test';
 
 import { createFileSystemTraceCollector } from '../src/adapters/file-system-trace.ts';
-import type { SystemTraceRecord } from '../src/system-trace.ts';
+import type { SystemTraceRecord } from '../src/core/system-trace.ts';
 
 describe('createFileSystemTraceCollector', () => {
     it('creates a date-stamped log file and appends one NDJSON record per trace', async () => {

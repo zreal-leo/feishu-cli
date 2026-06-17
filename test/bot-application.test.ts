@@ -4,11 +4,15 @@ import { describe, it } from 'node:test';
 import { createBotApplication } from '../src/app/bot-application.ts';
 import { createCommandRegistry } from '../src/core/command-registry.ts';
 import type { BotReply, CommandHandler, MessageInput } from '../src/core/types.ts';
-import type { SystemTraceRecord } from '../src/system-trace.ts';
+import type { SystemTraceRecord } from '../src/core/system-trace.ts';
 
 const input: MessageInput = {
     chatId: 'chat_1',
     messageId: 'om_1',
+    sender: {
+        id: 'ou_sender',
+        name: '张三'
+    },
     text: '创建会议 AI 总结'
 };
 
@@ -76,7 +80,7 @@ describe('createBotApplication', () => {
         application.handleMessage({ ...input, text: '你好' });
         await application.drain();
 
-        assert.deepEqual(actions, ['error:[bot-app] no command resolved chatId=chat_1 messageId=om_1']);
+        assert.deepEqual(actions, ['error:[bot-app] no command resolved chatId=chat_1 messageId=om_1 senderId=ou_sender senderName=张三']);
     });
 
     it('records full input, output, status, command name, and step timings for a handled message', async () => {
@@ -122,6 +126,7 @@ describe('createBotApplication', () => {
                 input: traces[0]?.input,
                 messageId: traces[0]?.messageId,
                 output: traces[0]?.output,
+                sender: traces[0]?.sender,
                 status: traces[0]?.status,
                 steps: traces[0]?.steps
             },
@@ -131,6 +136,10 @@ describe('createBotApplication', () => {
                 input: { text: '创建会议 AI 总结' },
                 messageId: 'om_1',
                 output: { type: 'text', text: '会议创建成功，详情见卡片。' },
+                sender: {
+                    id: 'ou_sender',
+                    name: '张三'
+                },
                 status: 'success',
                 steps: [
                     { name: '消息去重', durationMs: 1, elapsedMs: 1 },
@@ -178,6 +187,10 @@ describe('createBotApplication', () => {
         assert.deepEqual(duplicateTrace?.input, { text: '创建会议 AI 总结' });
         assert.equal(duplicateTrace?.chatId, 'chat_1');
         assert.equal(duplicateTrace?.messageId, 'om_1');
+        assert.deepEqual(duplicateTrace?.sender, {
+            id: 'ou_sender',
+            name: '张三'
+        });
         assert.equal(duplicateTrace?.output, undefined);
         assert.deepEqual(
             duplicateTrace?.steps.map(step => step.name),

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import { loadConfig } from '../src/config.ts';
-import { DEFAULT_CONFIG } from '../src/default-config.ts';
+import { loadConfig } from '../src/bootstrap/config.ts';
+import { DEFAULT_CONFIG } from '../src/bootstrap/default-config.ts';
 
 const managedEnvNames = [
     'CURSOR_API_KEY',

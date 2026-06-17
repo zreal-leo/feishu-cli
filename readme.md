@@ -7,7 +7,12 @@
 ### 文档分工
 
 - 面向飞书普通用户的命令格式、示例和常见提示见 [`usage.md`](./usage.md)。
-- 面向 Cursor Agent 和开发者的架构、环境变量、常用命令、运行注意事项见 [`AGENTS.md`](./AGENTS.md)。
+- 面向 Cursor Agent 和开发者的环境变量、常用命令、运行注意事项见 [`AGENTS.md`](./AGENTS.md)。
+- 代码分层、目录结构、数据流与扩展指南见 [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)。
+
+### 代码结构
+
+采用「模块化单体 + 端口适配器」：`src/core` 领域核心只依赖 `src/ports` 抽象接口，外部系统（Lark / Cursor / 运营后台 / 文件系统）在 `src/adapters` 实现，`src/app` 负责去重、串行队列与回复编排，`src/bootstrap` 是唯一装配点（`composition-root.ts`）与进程入口。详见 [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)。
 
 ### 运行时日志
 
@@ -24,7 +29,7 @@ MANAGER_LOGIN_NAME=admin
 MANAGER_PASSWORD=password
 ```
 
-非敏感默认值（如默认视频 URL、Cursor 模型和测试运营后台域名）在 `src/default-config.ts` 中维护。
+非敏感默认值（如默认视频 URL、Cursor 模型和测试运营后台域名）在 `src/bootstrap/default-config.ts` 中维护。
 
 ### 查询 Cursor Token 用量
 
@@ -42,8 +47,8 @@ MANAGER_PASSWORD=password
 
 ```bash
 CURSOR_USAGE_COOKIE='WorkosCursorSessionToken=...; team_id=...'
-CURSOR_USAGE_TEAM_ID=11326557
-CURSOR_USAGE_USER_ID=208513979
+CURSOR_USAGE_TEAM_ID=xxx
+CURSOR_USAGE_USER_ID=xxx
 ```
 
-`CURSOR_USAGE_COOKIE` 可从浏览器访问 Cursor Dashboard usage 页面时的请求 Cookie 中复制；Cookie 属于敏感凭证，不要提交到仓库。分页大小固定在 `src/default-config.ts` 的 `cursorUsage.pageSize` 中，当前默认每页 100 条。
+`CURSOR_USAGE_COOKIE` 可从浏览器访问 Cursor Dashboard usage 页面时的请求 Cookie 中复制；Cookie 属于敏感凭证，不要提交到仓库。分页大小固定在 `src/bootstrap/default-config.ts` 的 `cursorUsage.pageSize` 中，当前默认每页 100 条。

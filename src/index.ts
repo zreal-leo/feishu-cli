@@ -1,7 +1,7 @@
-import { loadConfig } from './config.ts';
-import { startLarkCursorBot } from './lark-bot.ts';
+import { loadConfig } from './bootstrap/config.ts';
+import { startBot } from './bootstrap/composition-root.ts';
 
 const config = loadConfig();
 
-startLarkCursorBot(config);
+startBot(config);
 console.log('lark-cli is running. Send a text message to the bot in Lark.');

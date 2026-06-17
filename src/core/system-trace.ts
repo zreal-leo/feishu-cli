@@ -1,7 +1,7 @@
-import type { BotReply, MessageInput, ReplyStream } from './core/types.ts';
-import { isReplyStream } from './core/types.ts';
-import type { MeetingCreatedReplyData } from './core/meeting.ts';
-import { createSegmentTimer } from './timing.ts';
+import type { BotReply, MessageInput, MessageSender, ReplyStream } from './types.ts';
+import { isReplyStream } from './types.ts';
+import type { MeetingCreatedReplyData } from './meeting.ts';
+import { createSegmentTimer } from '../shared/timing.ts';
 
 export type SystemTraceStatus = 'success' | 'duplicate_ignored' | 'no_command' | 'error';
 
@@ -44,6 +44,7 @@ export type SystemTraceRecord = {
     timestamp: string;
     chatId: string;
     messageId?: string;
+    sender?: MessageSender;
     commandName?: string;
     input: SystemTraceInput;
     output?: SystemTraceOutput;
@@ -80,6 +81,7 @@ export function createSystemTraceContext(
         timestamp: new Date().toISOString(),
         chatId: message.chatId,
         messageId: message.messageId,
+        sender: message.sender,
         input: { text: message.text },
         status: 'success',
         steps: []
