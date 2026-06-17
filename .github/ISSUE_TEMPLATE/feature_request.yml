@@ -1,0 +1,52 @@
+name: Feature Request
+description: Suggest a new or improved Lark bot capability.
+title: '[Feature]: '
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Describe the user workflow first. Avoid including credentials, private messages, or internal customer data.
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem or User Need
+          description: What user need should this solve?
+          placeholder: Users need to...
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed Behavior
+          description: What should the bot do?
+          placeholder: When a user sends..., the bot should...
+      validations:
+          required: true
+    - type: textarea
+      id: examples
+      attributes:
+          label: Example Messages or Replies
+          description: Use mock data only. Do not paste real private conversations.
+          render: text
+      validations:
+          required: false
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives Considered
+          description: What other approaches did you consider?
+      validations:
+          required: false
+    - type: dropdown
+      id: user-docs
+      attributes:
+          label: User Documentation Impact
+          description: Would this require updating usage.md?
+          options:
+              - 'Yes'
+              - 'No'
+              - 'Not sure'
+      validations:
+          required: true
