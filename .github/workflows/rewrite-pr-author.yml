@@ -1,0 +1,73 @@
+name: Rewrite PR Commit Author
+
+on:
+    issue_comment:
+        types:
+            - created
+
+permissions:
+    issues: write
+    pull-requests: read
+
+concurrency:
+    group: rewrite-pr-author-${{ github.event.issue.number }}
+    cancel-in-progress: false
+
+jobs:
+    rewrite:
+        name: Dispatch Cursor Agent from PR comment
+        if: >-
+            github.event.issue.pull_request != null &&
+            github.event.comment.body == '/rewrite-author'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Dispatch rewrite request
+              env:
+                  AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+                  GH_TOKEN: ${{ github.token }}
+                  PR_NUMBER: ${{ github.event.issue.number }}
+                  REPO: ${{ github.repository }}
+                  TRIGGER_USER_ID: ${{ github.event.comment.user.id }}
+                  TRIGGER_USER_LOGIN: ${{ github.event.comment.user.login }}
+              run: |
+                  set -euo pipefail
+
+                  comment() {
+                      gh issue comment "$PR_NUMBER" --repo "$REPO" --body "$1"
+                  }
+
+                  if [ "$AUTHOR_ASSOCIATION" != "OWNER" ]; then
+                      comment "已拒绝：只有仓库 OWNER 可以触发 Cursor Agent 改写 PR commit author。"
+                      exit 0
+                  fi
+
+                  if ! pr_json=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}"); then
+                      comment "未完成：读取 PR 元数据失败，请查看本次 Actions 日志。"
+                      exit 1
+                  fi
+
+                  head_repo=$(jq -r '.head.repo.full_name' <<< "$pr_json")
+                  base_repo=$(jq -r '.base.repo.full_name' <<< "$pr_json")
+                  head_ref=$(jq -r '.head.ref' <<< "$pr_json")
+                  base_ref=$(jq -r '.base.ref' <<< "$pr_json")
+                  head_sha=$(jq -r '.head.sha' <<< "$pr_json")
+
+                  if [ "$head_repo" != "$base_repo" ]; then
+                      comment "已跳过：该 PR 来自 fork，workflow 不会请求 Cursor Agent 自动强推改写外部仓库分支。"
+                      exit 0
+                  fi
+
+                  target_email="${TRIGGER_USER_ID}+${TRIGGER_USER_LOGIN}@users.noreply.github.com"
+
+                  comment "$(cat <<EOF
+                  @cursoragent 请处理这个 PR：
+
+                  1. 将 PR 中相对 \`${base_ref}\` 分支新增的所有 commit author 改成触发命令的用户 @${TRIGGER_USER_LOGIN}，author email 使用 \`${target_email}\`。
+                  2. 保持 commit message 中已有的 \`Co-authored-by\` 不变，不要新增、删除或改写这些 trailer。
+                  3. 根据本 PR 的实际变更，把 PR title 改成合适、简短、符合项目提交/PR 风格的标题。
+                  4. 处理分支 \`${head_ref}\` 时请以当前 head SHA \`${head_sha}\` 为安全基准；如果分支已经变化、权限不足或存在冲突，请停止并在 PR 下说明原因。
+
+                  触发命令：\`/rewrite-author\`
+                  触发用户：@${TRIGGER_USER_LOGIN}
+                  EOF
+                  )"
