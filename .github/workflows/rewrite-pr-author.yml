@@ -7,7 +7,7 @@ on:
 
 permissions:
     issues: write
-    pull-requests: read
+    pull-requests: write
 
 concurrency:
     group: rewrite-pr-author-${{ github.event.issue.number }}
@@ -33,7 +33,11 @@ jobs:
                   set -euo pipefail
 
                   comment() {
-                      gh issue comment "$PR_NUMBER" --repo "$REPO" --body "$1"
+                      gh api \
+                          --method POST \
+                          "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+                          --field body="$1" \
+                          >/dev/null
                   }
 
                   if [ "$AUTHOR_ASSOCIATION" != "OWNER" ]; then
