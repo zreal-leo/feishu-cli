@@ -37,7 +37,7 @@ jobs:
                       gh api \
                           --method POST \
                           "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-                          --field body="$1" \
+                          --raw-field body="$1" \
                           >/dev/null
                   }
 
