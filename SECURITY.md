@@ -8,7 +8,7 @@ Older experimental branches, local worktrees, and unmerged prototypes are not co
 
 ## Reporting a Vulnerability
 
-Report suspected vulnerabilities through the private maintainer channel already used for this repository. Do not open a public issue or pull request that includes exploit details, credentials, tokens, cookies, message logs, or user data.
+Report suspected vulnerabilities through GitHub private vulnerability reporting for this repository when it is available from the Security tab. If private vulnerability reporting is unavailable, open a minimal public issue asking the maintainers to provide a private contact path; do not include exploit details, credentials, tokens, cookies, message logs, or user data in that issue.
 
 Please include:
 

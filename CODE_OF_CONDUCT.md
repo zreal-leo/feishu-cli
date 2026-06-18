@@ -21,6 +21,6 @@ We are committed to making this repository a respectful and productive space for
 
 Maintainers may edit or remove comments, close issues, reject contributions, or restrict repository access when behavior violates this code of conduct.
 
-Report concerns through the private channel already used by the maintainers of this repository. Do not include secrets, private user data, or sensitive logs in public issues or pull requests.
+Report concerns to the maintainers through the private channel used for repository access or project coordination. If you do not have a private channel yet, open a minimal public issue asking for maintainer contact and omit secrets, private user data, sensitive logs, or personal details.
 
 This policy is adapted from the Contributor Covenant.

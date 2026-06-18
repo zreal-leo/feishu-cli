@@ -4,10 +4,9 @@
 
 ## Validation
 
-- [ ] `pnpm test`
-- [ ] `pnpm typecheck`
+- [ ] `pnpm test` or not applicable because this is documentation-only
+- [ ] `pnpm typecheck` or not applicable because this is documentation-only
 - [ ] `pnpm format` or `pnpm format:check`
-- [ ] Not applicable because this is documentation-only
 
 ## Documentation
 
