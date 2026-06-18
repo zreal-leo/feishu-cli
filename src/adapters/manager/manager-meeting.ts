@@ -34,6 +34,13 @@ const DEFAULT_START_AFTER_MINUTES = 3;
 const MANAGER_LOGIN_ORIGIN = 'manager-test.comein.cn';
 const DEFAULT_MEETING_LOGO = 'https://image.comein.cn/comein-files/img/1ead173108694842bcbea9227c70b4ce.jpg';
 const MANAGER_BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
+const MEETING_TITLE_TIME_ZONE = 'Asia/Shanghai';
+const MEETING_TITLE_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MEETING_TITLE_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+});
 
 type ManagerLoginVerificationPayload = {
     id: string | number;
@@ -381,13 +388,10 @@ function joinManagerUrl(baseUrl: string, path: string): string {
 }
 
 function formatMeetingTitle(topic: string, date: Date): string {
-    const hours = pad2(date.getHours());
-    const minutes = pad2(date.getMinutes());
+    const parts = MEETING_TITLE_TIME_FORMATTER.formatToParts(date);
+    const hours = parts.find(part => part.type === 'hour')?.value ?? '00';
+    const minutes = parts.find(part => part.type === 'minute')?.value ?? '00';
     return `BOT: ${topic} ${hours}:${minutes}`;
-}
-
-function pad2(value: number): string {
-    return String(value).padStart(2, '0');
 }
 
 function getNestedString(value: unknown, path: string[]): string | undefined {

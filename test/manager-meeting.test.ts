@@ -38,7 +38,7 @@ function createTestConfig(overrides: Partial<ManagerMeetingConfig> = {}): Manage
 
 describe('buildMeetingPayload', () => {
     it('uses test environment defaults', () => {
-        const stimeMs = new Date(2026, 4, 30, 15, 33).getTime();
+        const stimeMs = new Date('2026-05-30T15:33:00+08:00').getTime();
         const payload = buildMeetingPayload('AI总结', stimeMs);
 
         assert.equal(payload.stime, stimeMs);
@@ -137,7 +137,7 @@ describe('createManagerMeeting', () => {
             return new Response(JSON.stringify({ code: '0', msg: 'success', data: { id: 123456, eid: 789012, netLiveUrl: 'http://s.comein.cn/live' } }), { status: 200 });
         }) as typeof fetch;
 
-        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date(2026, 4, 30, 15, 30) }, 'manager_token', fetchImpl);
+        const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date('2026-05-30T15:30:00+08:00') }, 'manager_token', fetchImpl);
 
         assert.deepEqual(result, {
             title: 'BOT: 跨项目接入测试会议 15:33',
@@ -152,7 +152,7 @@ describe('createManagerMeeting', () => {
         });
 
         const payload = JSON.parse(String(requestInit?.body)) as Record<string, unknown>;
-        assert.equal(payload.stime, new Date(2026, 4, 30, 15, 33).getTime());
+        assert.equal(payload.stime, new Date('2026-05-30T15:33:00+08:00').getTime());
         assert.equal(payload.title, 'BOT: 跨项目接入测试会议 15:33');
         assert.equal(payload.uid, 15281329);
         assert.equal(payload.organizationId, 747);
@@ -211,7 +211,7 @@ describe('createManagerMeeting', () => {
     });
 
     it('returns the meeting result with a cloud player error when optional cloud player creation fails', async () => {
-        const stimeMs = new Date(2026, 4, 30, 15, 33).getTime();
+        const stimeMs = new Date('2026-05-30T15:33:00+08:00').getTime();
         const fetchImpl = (async (input, init) => {
             const url = String(input);
 
@@ -317,7 +317,7 @@ describe('createManagerMeetingClient', () => {
         }) as typeof fetch;
 
         const client = createManagerMeetingClient(createTestConfig(), fetchImpl);
-        const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: new Date(2026, 4, 30, 15, 33).getTime() });
+        const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: new Date('2026-05-30T15:33:00+08:00').getTime() });
 
         assert.deepEqual(result, {
             title: 'BOT: 刷新 token 会议 15:33',

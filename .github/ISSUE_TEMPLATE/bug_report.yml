@@ -1,0 +1,65 @@
+name: Bug Report
+description: Report a reproducible problem in the Lark bot.
+title: '[Bug]: '
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for reporting a bug. Do not include real Lark messages, Cursor tokens, cookies, app secrets, or manager credentials.
+    - type: textarea
+      id: impact
+      attributes:
+          label: Impact
+          description: What user workflow or bot capability is affected?
+          placeholder: The bot fails to reply when...
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to Reproduce
+          description: Provide the smallest reproducible steps.
+          placeholder: |
+              1. Start the bot with...
+              2. Send...
+              3. Observe...
+      validations:
+          required: true
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected Behavior
+          description: What should have happened?
+      validations:
+          required: true
+    - type: textarea
+      id: actual
+      attributes:
+          label: Actual Behavior
+          description: What happened instead?
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Sanitized Logs or Trace
+          description: Paste only sanitized output. Remove secrets, cookies, tokens, and private message content.
+          render: text
+      validations:
+          required: false
+    - type: input
+      id: node-version
+      attributes:
+          label: Node.js Version
+          placeholder: '24.x'
+      validations:
+          required: false
+    - type: input
+      id: command
+      attributes:
+          label: Command Used
+          placeholder: pnpm dev
+      validations:
+          required: false

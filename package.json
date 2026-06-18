@@ -1,7 +1,9 @@
 {
     "name": "lark-cli",
     "version": "0.1.0",
+    "description": "A local Lark bot process that routes text messages to built-in commands or Cursor fallback replies.",
     "private": true,
+    "license": "MIT",
     "type": "module",
     "engines": {
         "node": ">=24"
