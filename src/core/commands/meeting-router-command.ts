@@ -1,6 +1,6 @@
-import type { AssistantGateway } from '../../ports/assistant.ts';
-import type { CreateMeetingRequest, MeetingGateway, MeetingIntentParser, ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
-import { buildCursorPrompt } from '../assistant-prompt.ts';
+import type { CreateMeetingRequest, MeetingGateway, ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
+import type { MessageRouterGateway } from '../../ports/message-router.ts';
+import { runCommandTraceStep } from '../system-trace.ts';
 import type { CommandHandler, CommandMatch } from '../types.ts';
 
 type MeetingRouterCommandMatch = CommandMatch;
@@ -9,9 +9,8 @@ const DEFAULT_MEETING_TOPIC = '会议';
 const PARSED_PARAMETER_KEYS = ['stimeMs', 'eventWays', 'length', 'eventMode', 'serviceType', 'openStatus', 'tagName'] as const satisfies Array<keyof ParsedMeetingIntentParameters>;
 
 export type CreateMeetingRouterCommandHandlerOptions = {
-    intentParser: MeetingIntentParser;
+    router: MessageRouterGateway;
     meetings: MeetingGateway;
-    assistant: AssistantGateway;
     now?: () => Date;
 };
 
@@ -22,38 +21,31 @@ export function createMeetingRouterCommandHandler(options: CreateMeetingRouterCo
             return { commandName: 'meeting-router' };
         },
         async execute(context) {
-            let intent;
-            try {
-                intent = await options.intentParser.parse({
+            const route = await runCommandTraceStep(context.trace, 'router.invoke', () =>
+                options.router.route({
                     text: context.message.text,
                     now: options.now?.() ?? new Date()
-                });
-            } catch {
-                return streamAssistantReply(options.assistant, context.message.text);
+                })
+            );
+
+            if (route.action === 'create_meeting') {
+                try {
+                    const meeting = await runCommandTraceStep(context.trace, 'meeting.create', () => options.meetings.createMeeting(buildCreateMeetingRequest(route.parameters)));
+                    return {
+                        type: 'meeting_created',
+                        data: meeting
+                    };
+                } catch (error) {
+                    return {
+                        type: 'meeting_failed',
+                        error
+                    };
+                }
             }
 
-            if (intent.action !== 'create_meeting') {
-                return streamAssistantReply(options.assistant, context.message.text);
-            }
-
-            try {
-                const meeting = await options.meetings.createMeeting(buildCreateMeetingRequest(intent.parameters));
-                return {
-                    type: 'meeting_created',
-                    data: meeting
-                };
-            } catch (error) {
-                return {
-                    type: 'meeting_failed',
-                    error
-                };
-            }
+            return route.stream;
         }
     };
-}
-
-function streamAssistantReply(assistant: AssistantGateway, text: string): AsyncIterable<string> {
-    return assistant.streamReply(buildCursorPrompt(text));
 }
 
 function buildCreateMeetingRequest(parameters: ParsedMeetingIntentParameters): CreateMeetingRequest {

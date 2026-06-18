@@ -12,11 +12,11 @@ const input: MessageInput = {
 };
 
 describe('createMeetingRouterCommandHandler', () => {
-    it('creates a meeting when Cursor classifies the message as a create meeting intent', async () => {
+    it('creates a meeting when the unified router returns a create meeting route', async () => {
         const handler = createMeetingRouterCommandHandler({
-            intentParser: {
-                async parse(input) {
-                    assert.equal(input.text, '帮我明天10点开个视频路演，主题是AI策略会');
+            router: {
+                async route(routeInput) {
+                    assert.equal(routeInput.text, '帮我明天10点开个视频路演，主题是AI策略会');
                     return {
                         action: 'create_meeting',
                         parameters: {
@@ -43,11 +43,6 @@ describe('createMeetingRouterCommandHandler', () => {
                         netLiveUrl: 'http://s.comein.cn/live'
                     };
                 }
-            },
-            assistant: {
-                streamReply() {
-                    throw new Error('assistant should not be called');
-                }
             }
         });
 
@@ -67,26 +62,24 @@ describe('createMeetingRouterCommandHandler', () => {
         });
     });
 
-    it('streams the assistant reply when Cursor does not classify the message as a meeting', async () => {
+    it('returns the assistant stream when the unified router chooses assistant', async () => {
         const chunks: string[] = [];
         const handler = createMeetingRouterCommandHandler({
-            intentParser: {
-                async parse() {
-                    return { action: 'assistant' };
+            router: {
+                async route(routeInput) {
+                    assert.equal(routeInput.text, '你好');
+                    return {
+                        action: 'assistant',
+                        stream: (async function* () {
+                            yield '普通';
+                            yield '回复';
+                        })()
+                    };
                 }
             },
             meetings: {
                 async createMeeting() {
                     throw new Error('meeting should not be created');
-                }
-            },
-            assistant: {
-                streamReply(prompt) {
-                    assert.match(prompt, /用户在 Lark 发送的消息：\n你好/);
-                    return (async function* () {
-                        yield '普通';
-                        yield '回复';
-                    })();
                 }
             }
         });
@@ -101,39 +94,6 @@ describe('createMeetingRouterCommandHandler', () => {
             chunks.push(chunk);
         }
         assert.deepEqual(chunks, ['普通', '回复']);
-    });
-
-    it('falls back to the assistant without creating a meeting when intent parsing fails', async () => {
-        const chunks: string[] = [];
-        const handler = createMeetingRouterCommandHandler({
-            intentParser: {
-                async parse() {
-                    throw new Error('Cursor 参数解析失败：返回内容不是合法 JSON。');
-                }
-            },
-            meetings: {
-                async createMeeting() {
-                    throw new Error('meeting should not be created');
-                }
-            },
-            assistant: {
-                streamReply() {
-                    return (async function* () {
-                        yield '我不确定是否要创建会议，请再补充一下。';
-                    })();
-                }
-            }
-        });
-
-        const message = { ...input, text: '可能要不要开个会' };
-        const match = handler.match(message);
-        const reply = match ? await handler.execute({ message }, match) : null;
-
-        assert.ok(reply && Symbol.asyncIterator in reply);
-        for await (const chunk of reply as AsyncIterable<string>) {
-            chunks.push(chunk);
-        }
-        assert.deepEqual(chunks, ['我不确定是否要创建会议，请再补充一下。']);
     });
 });
 

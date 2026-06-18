@@ -1,5 +1,6 @@
 import type { AskCursorOptions } from './cursor-agent.ts';
 import { askCursor as defaultAskCursor } from './cursor-agent.ts';
+import { buildMeetingRoutingInstructions } from '../../core/meeting-routing-instructions.ts';
 import { MEETING_EVENT_MODE_LABELS, MEETING_EVENT_WAY_LABELS, MEETING_PERMISSION_OPTIONS } from '../../core/meeting.ts';
 import type { CloudPlayerCommandOptions, CloudPlayerMediaStreamType, CloudPlayerPlayType, CloudPlayerRepeatMode, CloudPlayerType, MeetingEventMode, MeetingEventWay } from '../../core/meeting.ts';
 import type { MeetingIntentParser, ParseMeetingParametersInput, ParsedMeetingIntent, ParsedMeetingIntentParameters, ParsedMeetingParameters } from '../../ports/meeting.ts';
@@ -80,28 +81,21 @@ export function createCursorMeetingIntentParser(options: CursorMeetingIntentPars
                 model: options.model,
                 prompt: buildMeetingIntentPrompt(input)
             });
-            const rawIntent = parseCursorJson<RawCursorMeetingIntent>(responseText);
-
-            return normalizeMeetingIntent(rawIntent);
+            return parseMeetingIntentResponse(responseText);
         }
     };
+}
+
+export function parseMeetingIntentResponse(responseText: string): ParsedMeetingIntent {
+    const rawIntent = parseCursorJson<RawCursorMeetingIntent>(responseText);
+    return normalizeMeetingIntent(rawIntent);
 }
 
 function buildMeetingIntentPrompt(input: ParseMeetingParametersInput): string {
     const now = input.now ?? new Date();
     return [
         '你是一个飞书机器人消息路由器。只输出 JSON，不要输出 Markdown、解释或代码块。',
-        `当前时间：${now.toISOString()}。用户可能使用相对时间，例如“3分钟后”“明天10点”，请解析成带时区的 ISO 8601 时间。`,
-        '判断用户是否明确要求创建路演、直播、会议或云播。只有明确要求创建/安排/发起/开一个会议时，action 才能是 create_meeting。',
-        '如果只是普通聊天、查询、总结、讨论是否要开会、信息不明确或需要先澄清，action 必须是 assistant。',
-        '当 action 是 create_meeting 时，请提取字段，无法确定的字段填 null：',
-        '- title: 路演主题或会议主题，字符串或 null。',
-        '- startTime: 开始时间，ISO 8601 字符串或 null。',
-        `- eventWays: 路演方式，只能是 ${formatAllowedEntries(MEETING_EVENT_WAY_LABELS)} 或对应中文标签，无法确定填 null。`,
-        '- length: 视频时长，单位分钟，数字或 null。',
-        `- eventMode: 直播类型，只能是 ${formatAllowedEntries(MEETING_EVENT_MODE_LABELS)} 或对应中文标签，无法确定填 null。`,
-        `- permission: 路演权限，只能是 ${formatAllowedPermissions()} 或对应中文标签，无法确定填 null。`,
-        '- cloudPlayer: 需要同时创建云播时填写对象，否则填 null。对象字段为 mediaStreamType 和 streamUrl；mediaStreamType 只能是 1、2、音频、视频；视频云播没有 URL 时可以填 null，音频云播必须提取 URL。',
+        ...buildMeetingRoutingInstructions(now),
         'JSON schema: {"action":"create_meeting"|"assistant","title":string|null,"startTime":string|null,"eventWays":-1|0|1|null,"length":number|null,"eventMode":number|null,"permission":string|number|null,"cloudPlayer":{"mediaStreamType":1|2|string|null,"streamUrl":string|null}|null}',
         `用户消息：${input.text}`
     ].join('\n');
@@ -334,18 +328,6 @@ function normalizeScalarKey(value: unknown): string | undefined {
     }
 
     return normalizeOptionalString(value);
-}
-
-function formatAllowedEntries(entries: Record<string, string>): string {
-    return Object.entries(entries)
-        .map(([value, label]) => `${value}:${label}`)
-        .join('、');
-}
-
-function formatAllowedPermissions(): string {
-    return Object.entries(MEETING_PERMISSION_OPTIONS)
-        .map(([value, fields]) => `${value}:${fields.tagName}`)
-        .join('、');
 }
 
 function buildPermissionAliases(): Array<[string, MeetingPermissionOption]> {

@@ -36,8 +36,11 @@ export type BotReply = TextReply | MeetingCreatedReply | MeetingFailedReply;
 
 export type ReplyStream = AsyncIterable<string>;
 
+import type { CommandTrace } from './system-trace.ts';
+
 export type CommandContext = {
     message: MessageInput;
+    trace?: CommandTrace;
 };
 
 export type CommandHandler<TMatch extends CommandMatch = CommandMatch> = {

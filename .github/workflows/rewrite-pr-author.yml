@@ -18,12 +18,13 @@ jobs:
         name: Dispatch Cursor Agent from PR comment
         if: >-
             github.event.issue.pull_request != null &&
-            github.event.comment.body == '/rewrite-author'
+            contains(github.event.comment.body, '/rewrite-author')
         runs-on: ubuntu-latest
         steps:
             - name: Dispatch rewrite request
               env:
                   AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+                  COMMENT_BODY: ${{ github.event.comment.body }}
                   GH_TOKEN: ${{ github.token }}
                   PR_NUMBER: ${{ github.event.issue.number }}
                   REPO: ${{ github.repository }}
@@ -39,6 +40,11 @@ jobs:
                           --field body="$1" \
                           >/dev/null
                   }
+
+                  command=$(printf '%s' "$COMMENT_BODY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+                  if [ "$command" != "/rewrite-author" ]; then
+                      exit 0
+                  fi
 
                   if [ "$AUTHOR_ASSOCIATION" != "OWNER" ]; then
                       comment "已拒绝：只有仓库 OWNER 可以触发 Cursor Agent 改写 PR commit author。"
