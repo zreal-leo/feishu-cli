@@ -111,7 +111,10 @@ describe('createCursorUsageClient', () => {
                 return new Response(
                     JSON.stringify({
                         totalUsageEventsCount: 3,
-                        usageEventsDisplay: [{ tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4, totalCents: 1 } }, { tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, cacheWriteTokens: 7, totalCents: 1 } }]
+                        usageEventsDisplay: [
+                            { tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4, totalCents: 1 } },
+                            { tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, cacheWriteTokens: 7, totalCents: 1 } }
+                        ]
                     }),
                     { status: 200 }
                 );
@@ -182,6 +185,9 @@ describe('formatCursorTokenUsageSummary', () => {
             cacheWriteTokens: 5000
         });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1,2345,6789', '输出 Tokens：1,0000,9999', '缓存读取 Tokens：9999', '缓存写入 Tokens：5000', '合计 Tokens：2,2348,1787'].join('\n'));
+        assert.equal(
+            text,
+            ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1,2345,6789', '输出 Tokens：1,0000,9999', '缓存读取 Tokens：9999', '缓存写入 Tokens：5000', '合计 Tokens：2,2348,1787'].join('\n')
+        );
     });
 });
