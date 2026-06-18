@@ -152,7 +152,8 @@ describe('createCursorUsageCommandHandler', () => {
                         recordsCount: 2,
                         inputTokens: 1000,
                         outputTokens: 200,
-                        cacheReadTokens: 3000
+                        cacheReadTokens: 3000,
+                        cacheWriteTokens: 500
                     };
                 }
             },
@@ -168,7 +169,7 @@ describe('createCursorUsageCommandHandler', () => {
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：0'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', '输入 Tokens：1000', '输出 Tokens：200', '缓存读取 Tokens：3000', '缓存写入 Tokens：500', '合计 Tokens：4700'].join('\n')
         });
     });
 
@@ -185,7 +186,8 @@ describe('createCursorUsageCommandHandler', () => {
                     recordsCount: 0,
                     inputTokens: 0,
                     outputTokens: 0,
-                    cacheReadTokens: 0
+                    cacheReadTokens: 0,
+                    cacheWriteTokens: 0
                 };
             }
         });
@@ -197,7 +199,7 @@ describe('createCursorUsageCommandHandler', () => {
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '合计 Tokens：0'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '缓存写入 Tokens：0', '合计 Tokens：0'].join('\n')
         });
     });
 

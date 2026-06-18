@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { createCursorUsageClient } from '../src/adapters/cursor/cursor-usage-client.ts';
 import type { CursorUsageClientConfig } from '../src/adapters/cursor/cursor-usage-client.ts';
-import { formatCursorTokenUsageSummary } from '../src/core/cursor-usage.ts';
+import { formatCursorTokenUsageSummary, formatTokenCount } from '../src/core/cursor-usage.ts';
 
 function createTestConfig(overrides: Partial<CursorUsageClientConfig> = {}): CursorUsageClientConfig {
     return {
@@ -50,6 +50,7 @@ describe('createCursorUsageClient', () => {
                                 inputTokens: 2898,
                                 outputTokens: 83,
                                 cacheReadTokens: 7364,
+                                cacheWriteTokens: 500,
                                 totalCents: 1.3621000051498413
                             }
                         },
@@ -58,6 +59,7 @@ describe('createCursorUsageClient', () => {
                                 inputTokens: 100,
                                 outputTokens: 20,
                                 cacheReadTokens: 300,
+                                cacheWriteTokens: 50,
                                 totalCents: 99
                             }
                         }
@@ -78,7 +80,8 @@ describe('createCursorUsageClient', () => {
             recordsCount: 2,
             inputTokens: 2998,
             outputTokens: 103,
-            cacheReadTokens: 7664
+            cacheReadTokens: 7664,
+            cacheWriteTokens: 550
         });
         assert.equal(requestedUrl, 'https://cursor.com/api/dashboard/get-filtered-usage-events');
         assert.equal(requestInit?.method, 'POST');
@@ -108,7 +111,10 @@ describe('createCursorUsageClient', () => {
                 return new Response(
                     JSON.stringify({
                         totalUsageEventsCount: 3,
-                        usageEventsDisplay: [{ tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, totalCents: 1 } }, { tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, totalCents: 1 } }]
+                        usageEventsDisplay: [
+                            { tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4, totalCents: 1 } },
+                            { tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, cacheWriteTokens: 7, totalCents: 1 } }
+                        ]
                     }),
                     { status: 200 }
                 );
@@ -117,7 +123,7 @@ describe('createCursorUsageClient', () => {
             return new Response(
                 JSON.stringify({
                     totalUsageEventsCount: 3,
-                    usageEventsDisplay: [{ tokenUsage: { inputTokens: 7, outputTokens: 8, cacheReadTokens: 9, totalCents: 1 } }]
+                    usageEventsDisplay: [{ tokenUsage: { inputTokens: 7, outputTokens: 8, cacheReadTokens: 9, cacheWriteTokens: 10, totalCents: 1 } }]
                 }),
                 { status: 200 }
             );
@@ -138,7 +144,8 @@ describe('createCursorUsageClient', () => {
             recordsCount: 3,
             inputTokens: 12,
             outputTokens: 15,
-            cacheReadTokens: 18
+            cacheReadTokens: 18,
+            cacheWriteTokens: 21
         });
     });
 
@@ -156,17 +163,31 @@ describe('createCursorUsageClient', () => {
     });
 });
 
+describe('formatTokenCount', () => {
+    it('groups digits in fours from right to left with commas', () => {
+        assert.equal(formatTokenCount(0), '0');
+        assert.equal(formatTokenCount(9999), '9999');
+        assert.equal(formatTokenCount(10000), '1,0000');
+        assert.equal(formatTokenCount(123456789), '1,2345,6789');
+        assert.equal(formatTokenCount(100009999), '1,0000,9999');
+    });
+});
+
 describe('formatCursorTokenUsageSummary', () => {
-    it('formats token counts in yi and wan units while dropping sub-wan remainders', () => {
+    it('formats token counts with comma-separated groups of four digits', () => {
         const text = formatCursorTokenUsageSummary({
             startDate: '2026-05-06',
             endDate: '2026-06-04',
             recordsCount: 2,
             inputTokens: 123456789,
             outputTokens: 100009999,
-            cacheReadTokens: 9999
+            cacheReadTokens: 9999,
+            cacheWriteTokens: 5000
         });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1亿2345万', '输出 Tokens：1亿', '缓存读取 Tokens：0', '合计 Tokens：2亿2347万'].join('\n'));
+        assert.equal(
+            text,
+            ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1,2345,6789', '输出 Tokens：1,0000,9999', '缓存读取 Tokens：9999', '缓存写入 Tokens：5000', '合计 Tokens：2,2348,1787'].join('\n')
+        );
     });
 });

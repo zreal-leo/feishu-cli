@@ -16,6 +16,7 @@ type CursorUsageEvent = {
         inputTokens?: number;
         outputTokens?: number;
         cacheReadTokens?: number;
+        cacheWriteTokens?: number;
         totalCents?: number;
     };
 };
@@ -37,7 +38,8 @@ export function createCursorUsageClient(config: CursorUsageClientConfig, fetchIm
                 recordsCount: 0,
                 inputTokens: 0,
                 outputTokens: 0,
-                cacheReadTokens: 0
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0
             };
 
             do {
@@ -47,6 +49,7 @@ export function createCursorUsageClient(config: CursorUsageClientConfig, fetchIm
                     summary.inputTokens += normalizeNumber(event.tokenUsage?.inputTokens);
                     summary.outputTokens += normalizeNumber(event.tokenUsage?.outputTokens);
                     summary.cacheReadTokens += normalizeNumber(event.tokenUsage?.cacheReadTokens);
+                    summary.cacheWriteTokens += normalizeNumber(event.tokenUsage?.cacheWriteTokens);
                 }
 
                 page += 1;
