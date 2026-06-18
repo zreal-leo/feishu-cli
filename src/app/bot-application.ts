@@ -2,7 +2,7 @@ import type { CommandRegistry } from '../core/command-registry.ts';
 import type { MessageInput } from '../core/types.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import { captureReplyOutput, createSystemTraceContext } from '../core/system-trace.ts';
-import type { SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../core/system-trace.ts';
+import type { CommandTrace, SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../core/system-trace.ts';
 import type { ReplyGateway } from '../ports/reply.ts';
 import type { ReactionGateway } from '../ports/reaction.ts';
 import type { SystemTraceCollector } from '../ports/trace.ts';
@@ -38,14 +38,9 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
             const trace = options.systemTraceCollector ? createSystemTraceContext(message, { now: options.now }) : undefined;
 
             if (message.messageId && !dedupStore.remember(message.messageId)) {
-                trace?.markStep('dedup');
                 logger.info(`[bot-app] duplicate message ignored chatId=${message.chatId} messageId=${message.messageId} ${formatSenderLogFields(message)} textLength=${message.text.length}`);
                 void recordTraceBestEffort(options.systemTraceCollector, trace?.finish('duplicate_ignored'), logger);
                 return;
-            }
-
-            if (message.messageId) {
-                trace?.markStep('dedup');
             }
 
             jobQueue.add(() => processMessage(message, options, logger, reactionEmojiType, trace));
@@ -64,8 +59,6 @@ async function processMessage(message: MessageInput, options: BotApplicationOpti
     let getOutput: (() => SystemTraceOutput) | undefined;
 
     try {
-        trace?.markStep('queue.wait');
-
         if (message.messageId && options.reactions) {
             addedReactionId = extractReactionId(await runAsyncStep(trace, 'reaction.add', () => options.reactions?.add(message.messageId as string, reactionEmojiType) ?? Promise.resolve()));
         }
@@ -78,7 +71,7 @@ async function processMessage(message: MessageInput, options: BotApplicationOpti
         }
         trace?.setCommandName(resolved.match.commandName);
 
-        const executionResult = executeCommandStep(trace, () => resolved.handler.execute({ message }, resolved.match));
+        const executionResult = executeCommandStep(trace, commandTrace => resolved.handler.execute({ message, trace: commandTrace }, resolved.match));
         const reply = isPromiseLike(executionResult) ? await executionResult : executionResult;
         const captured = captureReplyOutput(reply);
         getOutput = captured.getOutput;
@@ -129,28 +122,52 @@ async function runAsyncStep<T>(trace: SystemTraceContext | undefined, name: stri
     }
 }
 
-function executeCommandStep<T>(trace: SystemTraceContext | undefined, operation: () => T | Promise<T>): T | Promise<T> {
+function createCommandTrace(trace: SystemTraceContext | undefined, onStepMarked: () => void): CommandTrace | undefined {
+    if (!trace) {
+        return undefined;
+    }
+
+    return {
+        markStep(name, error) {
+            onStepMarked();
+            trace.markStep(name, error);
+        }
+    };
+}
+
+function executeCommandStep<T>(trace: SystemTraceContext | undefined, operation: (commandTrace: CommandTrace | undefined) => T | Promise<T>): T | Promise<T> {
+    let commandStepCount = 0;
+    const commandTrace = createCommandTrace(trace, () => {
+        commandStepCount += 1;
+    });
+
+    const markFallbackExecuteStep = (error?: unknown) => {
+        if (trace && commandStepCount === 0) {
+            trace.markStep('command.execute', error);
+        }
+    };
+
     let result: T | Promise<T>;
 
     try {
-        result = operation();
+        result = operation(commandTrace);
     } catch (error) {
-        trace?.markStep('command.execute', error);
+        markFallbackExecuteStep(error);
         throw error;
     }
 
     if (!isPromiseLike(result)) {
-        trace?.markStep('command.execute');
+        markFallbackExecuteStep();
         return result;
     }
 
     return result.then(
         awaitedResult => {
-            trace?.markStep('command.execute');
+            markFallbackExecuteStep();
             return awaitedResult;
         },
         error => {
-            trace?.markStep('command.execute', error);
+            markFallbackExecuteStep(error);
             throw error;
         }
     );

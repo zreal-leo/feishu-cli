@@ -83,9 +83,9 @@ describe('createBotApplication', () => {
         assert.deepEqual(actions, ['error:[bot-app] no command resolved chatId=chat_1 messageId=om_1 senderId=ou_sender senderName=张三']);
     });
 
-    it('records full input, output, status, command name, and step timings for a handled message', async () => {
+    it('records simplified input, output, status, command name, and step timings for a handled message', async () => {
         const traces: SystemTraceRecord[] = [];
-        const timestamps = [100, 101, 104, 114, 116, 130, 150, 155];
+        const timestamps = [100, 110, 112, 126, 146, 151];
         const handler: CommandHandler = {
             name: 'create-meeting',
             match(message) {
@@ -142,13 +142,11 @@ describe('createBotApplication', () => {
                 },
                 status: 'success',
                 steps: [
-                    { name: '消息去重', durationMs: 1, elapsedMs: 1 },
-                    { name: '队列等待', durationMs: 3, elapsedMs: 4 },
-                    { name: '添加响应表情', durationMs: 10, elapsedMs: 14 },
-                    { name: '解析命令', durationMs: 2, elapsedMs: 16 },
-                    { name: '执行命令', durationMs: 14, elapsedMs: 30 },
-                    { name: '发送回复', durationMs: 20, elapsedMs: 50 },
-                    { name: '移除响应表情', durationMs: 5, elapsedMs: 55 }
+                    { name: '添加响应表情', durationMs: 10, elapsedMs: 10 },
+                    { name: '解析命令', durationMs: 2, elapsedMs: 12 },
+                    { name: '执行命令', durationMs: 14, elapsedMs: 26 },
+                    { name: '发送回复', durationMs: 20, elapsedMs: 46 },
+                    { name: '移除响应表情', durationMs: 5, elapsedMs: 51 }
                 ]
             }
         );
@@ -194,7 +192,83 @@ describe('createBotApplication', () => {
         assert.equal(duplicateTrace?.output, undefined);
         assert.deepEqual(
             duplicateTrace?.steps.map(step => step.name),
-            ['消息去重']
+            []
+        );
+    });
+
+    it('records command sub-steps for meeting-router and cursor-usage handlers', async () => {
+        const traces: SystemTraceRecord[] = [];
+        const timestamps = [100, 101, 104, 114, 116, 130, 150, 155, 160, 170, 180, 190, 200, 210];
+        const meetingRouterHandler: CommandHandler = {
+            name: 'meeting-router',
+            match() {
+                return { commandName: 'meeting-router' };
+            },
+            async execute(context) {
+                context.trace?.markStep('router.invoke');
+                return (async function* () {
+                    yield '你好';
+                })();
+            }
+        };
+        const usageHandler: CommandHandler = {
+            name: 'cursor-usage',
+            match(message) {
+                return message.text === '查询token' ? { commandName: 'cursor-usage', data: { ok: true, command: { type: 'cursor_usage', query: { startDate: '2026-05-26', endDate: '2026-06-18' } } } } : null;
+            },
+            async execute(context) {
+                context.trace?.markStep('usage.fetch');
+                return { type: 'text', text: '用量' };
+            }
+        };
+        const application = createBotApplication({
+            commandRegistry: createCommandRegistry([usageHandler], meetingRouterHandler),
+            logger: silentLogger,
+            now: () => timestamps.shift() ?? 210,
+            reactions: {
+                async add() {
+                    return { reactionId: 'reaction_1' };
+                },
+                async remove() {}
+            },
+            replies: {
+                async send(_chatId, reply) {
+                    if (Symbol.asyncIterator in reply) {
+                        for await (const _chunk of reply) {
+                            // consume stream
+                        }
+                    }
+                }
+            },
+            systemTraceCollector: {
+                async record(trace) {
+                    traces.push(trace);
+                }
+            }
+        });
+
+        application.handleMessage({ ...input, messageId: 'om_router', text: '你好' });
+        application.handleMessage({ ...input, messageId: 'om_usage', text: '查询token' });
+        await application.drain();
+
+        const routerTrace = traces.find(trace => trace.messageId === 'om_router');
+        const usageTrace = traces.find(trace => trace.messageId === 'om_usage');
+
+        assert.deepEqual(
+            routerTrace?.steps.map(step => step.name),
+            ['添加响应表情', '解析命令', '路由调用', '发送回复', '移除响应表情']
+        );
+        assert.deepEqual(
+            usageTrace?.steps.map(step => step.name),
+            ['添加响应表情', '解析命令', '查询用量', '发送回复', '移除响应表情']
+        );
+        assert.equal(
+            routerTrace?.steps.some(step => step.name === '执行命令'),
+            false
+        );
+        assert.equal(
+            usageTrace?.steps.some(step => step.name === '执行命令'),
+            false
         );
     });
 

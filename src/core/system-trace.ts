@@ -60,15 +60,33 @@ export type SystemTraceContext = {
     finish: (status: SystemTraceStatus, error?: unknown) => SystemTraceRecord;
 };
 
+export type CommandTrace = {
+    markStep: (name: string, error?: unknown) => void;
+};
+
 const SYSTEM_TRACE_STEP_NAMES: Record<string, string> = {
+    'assistant.prepare': '准备助手回复',
     'command.execute': '执行命令',
     'command.resolve': '解析命令',
-    dedup: '消息去重',
-    'queue.wait': '队列等待',
+    'intent.parse': '意图解析',
+    'meeting.create': '创建会议',
     'reaction.add': '添加响应表情',
     'reaction.remove': '移除响应表情',
-    'reply.send': '发送回复'
+    'reply.send': '发送回复',
+    'router.invoke': '路由调用',
+    'usage.fetch': '查询用量'
 };
+
+export async function runCommandTraceStep<T>(trace: CommandTrace | undefined, name: string, operation: () => T | Promise<T>): Promise<T> {
+    try {
+        const result = await operation();
+        trace?.markStep(name);
+        return result;
+    } catch (error) {
+        trace?.markStep(name, error);
+        throw error;
+    }
+}
 
 export function createSystemTraceContext(
     message: MessageInput,

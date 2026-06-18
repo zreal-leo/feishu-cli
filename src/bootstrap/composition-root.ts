@@ -5,8 +5,7 @@ import { createCommandRegistry } from '../core/command-registry.ts';
 import { createCursorUsageCommandHandler } from '../core/commands/cursor-usage-command.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
-import { createCursorAssistantGateway } from '../adapters/cursor/assistant-gateway.ts';
-import { createCursorMeetingIntentParser } from '../adapters/cursor/meeting-intent-parser.ts';
+import { createCursorUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
 import { createCursorUsageClient } from '../adapters/cursor/cursor-usage-client.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
 import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
@@ -40,11 +39,7 @@ export function startBot(config: Config): void {
     });
     const reactions = createLarkReactionGateway(client);
 
-    const assistant = createCursorAssistantGateway({
-        apiKey: config.cursorApiKey,
-        model: config.cursorModel
-    });
-    const intentParser = createCursorMeetingIntentParser({
+    const router = createCursorUnifiedRouterGateway({
         apiKey: config.cursorApiKey,
         model: config.cursorModel
     });
@@ -52,7 +47,7 @@ export function startBot(config: Config): void {
     const usage = createCursorUsageClient(config.cursorUsage);
     const systemTraceCollector = createFileSystemTraceCollector(config.systemTrace);
 
-    const commandRegistry = createCommandRegistry([createCursorUsageCommandHandler(usage)], createMeetingRouterCommandHandler({ intentParser, meetings, assistant }));
+    const commandRegistry = createCommandRegistry([createCursorUsageCommandHandler(usage)], createMeetingRouterCommandHandler({ router, meetings }));
 
     const application = createBotApplication({
         commandRegistry,
