@@ -15,7 +15,8 @@
         "test": "tsx --test test/**/*.test.ts",
         "typecheck": "tsc --noEmit",
         "format": "oxfmt --write .",
-        "format:check": "oxfmt --check ."
+        "format:check": "oxfmt --check .",
+        "git:prune-branches": "node scripts/prune-gone-branches.mjs"
     },
     "dependencies": {
         "@connectrpc/connect-node": "1.6.1",
