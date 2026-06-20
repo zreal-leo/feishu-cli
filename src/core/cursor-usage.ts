@@ -10,12 +10,7 @@ export type CursorTokenUsageSummary = CursorUsageQuery & {
 };
 
 export function formatCursorTokenUsageSummary(summary: CursorTokenUsageSummary): string {
-    return [
-        'Cursor Token 用量',
-        `时间范围：${summary.startDate} 至 ${summary.endDate}`,
-        `记录数：${summary.recordsCount}`,
-        `token : ${formatTokenCount(summary.totalTokens)}`
-    ].join('\n');
+    return ['Cursor Token 用量', `时间范围：${summary.startDate} 至 ${summary.endDate}`, `记录数：${summary.recordsCount}`, `token : ${formatTokenCount(summary.totalTokens)}`].join('\n');
 }
 
 function formatDollarsFromCents(chargedCents: number): string {

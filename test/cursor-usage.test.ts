@@ -228,10 +228,7 @@ describe('createCursorUsageClient', () => {
         });
 
         assert.equal(summary.chargedCents, 53);
-        assert.equal(
-            formatCursorTokenUsageSummary(summary),
-            ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'token : 0'].join('\n')
-        );
+        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'token : 0'].join('\n'));
     });
 
     it('throws a readable error when the Cursor API returns a non-2xx response', async () => {
