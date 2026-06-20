@@ -110,11 +110,9 @@ describe('createCursorUsageCommandHandler', () => {
                         startDate: query.startDate,
                         endDate: query.endDate,
                         recordsCount: 2,
-                        inputTokens: 1000,
-                        outputTokens: 200,
-                        cacheReadTokens: 3000,
-                        cacheWriteTokens: 500
-                    };
+                        totalTokens: 4700,
+                        chargedCents: 1234
+                    } as any;
                 }
             },
             {
@@ -122,14 +120,14 @@ describe('createCursorUsageCommandHandler', () => {
             }
         );
 
-        const message = { ...input, text: '查询token' };
+        const message = { ...input, text: 'cursor' };
         const match = handler.match(message);
         const reply = match ? await handler.execute({ message }, match) : null;
 
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', '输入 Tokens：1000', '输出 Tokens：200', '缓存读取 Tokens：3000', '缓存写入 Tokens：500', '合计 Tokens：4700'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', 'token : 4700'].join('\n')
         });
     });
 
@@ -144,22 +142,20 @@ describe('createCursorUsageCommandHandler', () => {
                     startDate: query.startDate,
                     endDate: query.endDate,
                     recordsCount: 0,
-                    inputTokens: 0,
-                    outputTokens: 0,
-                    cacheReadTokens: 0,
-                    cacheWriteTokens: 0
-                };
+                    totalTokens: 0,
+                    chargedCents: 0
+                } as any;
             }
         });
 
-        const message = { ...input, text: '查询 token 2026-05-06 2026-06-04' };
+        const message = { ...input, text: 'cursor 2026-05-06 2026-06-04' };
         const match = handler.match(message);
         const reply = match ? await handler.execute({ message }, match) : null;
 
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', '输入 Tokens：0', '输出 Tokens：0', '缓存读取 Tokens：0', '缓存写入 Tokens：0', '合计 Tokens：0'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', 'token : 0'].join('\n')
         });
     });
 
@@ -170,14 +166,14 @@ describe('createCursorUsageCommandHandler', () => {
             }
         });
 
-        const message = { ...input, text: '查询token 2026-06-04 2026-05-06' };
+        const message = { ...input, text: 'cursor 2026-06-04 2026-05-06' };
         const match = handler.match(message);
         const reply = match ? await handler.execute({ message }, match) : null;
 
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: '查询 token 失败：开始日期不能晚于结束日期。\n用法：查询token 或 查询token YYYY-MM-DD YYYY-MM-DD'
+            text: '查询 cursor token 失败：开始日期不能晚于结束日期。\n用法：cursor 或 cursor YYYY-MM-DD YYYY-MM-DD'
         });
     });
 
@@ -188,7 +184,7 @@ describe('createCursorUsageCommandHandler', () => {
             }
         });
 
-        const message = { ...input, text: '查询token 2026-05-06 2026-06-04' };
+        const message = { ...input, text: 'cursor 2026-05-06 2026-06-04' };
         const match = handler.match(message);
         const reply = match ? await handler.execute({ message }, match) : null;
 

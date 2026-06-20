@@ -6,7 +6,7 @@ todos:
       content: 新增 Cursor usage 领域类型、汇总和文本格式化函数
       status: completed
     - id: command-parser
-      content: 新增 `查询token` 命令 parser 与 command handler
+      content: 新增 `cursor` 命令 parser 与 command handler
       status: completed
     - id: http-client
       content: 实现 Cursor Dashboard usage API HTTP client 和分页汇总
@@ -26,7 +26,7 @@ isProject: false
 
 实现推荐采用“命令层 + 端口 + Cursor usage HTTP adapter”的小型分层：
 
-- 命令入口：新增 `查询token` 命令。`查询token` 默认查最近 30 天；`查询token 2026-05-06 2026-06-04` 查询指定闭区间日期。
+- 命令入口：新增 `cursor` 命令。`cursor` 默认查最近 30 天；`cursor 2026-05-06 2026-06-04` 查询指定闭区间日期。
 - 配置入口：在 [src/config.ts](src/config.ts) 读取 `CURSOR_USAGE_COOKIE`、`CURSOR_USAGE_TEAM_ID`、`CURSOR_USAGE_USER_ID`，可选 `CURSOR_USAGE_PAGE_SIZE`，并在 [.env.example](.env.example) 只写占位说明。
 - API adapter：新增 [src/adapters/cursor/cursor-usage.ts](src/adapters/cursor/cursor-usage.ts)，封装 `POST https://cursor.com/api/dashboard/get-filtered-usage-events`、分页、响应校验和 token 汇总。
 - 命令实现：新增 [src/core/commands/cursor-usage-command.ts](src/core/commands/cursor-usage-command.ts) 和 parser，命令只依赖 [src/ports/cursor-usage.ts](src/ports/cursor-usage.ts)，返回已有 `text` 类型回复。
@@ -42,7 +42,7 @@ isProject: false
 
 ```mermaid
 flowchart TD
-    userMessage["Lark message: 查询token"] --> inbound[mapLarkIncomingMessage]
+    userMessage["Lark message: cursor"] --> inbound[mapLarkIncomingMessage]
     inbound --> registry[CommandRegistry]
     registry --> usageCommand[CursorUsageCommand]
     usageCommand --> usagePort[CursorUsageGateway]
@@ -69,9 +69,8 @@ flowchart TD
 
 2. 新增命令解析与 handler
     - 在 [src/core/commands/cursor-usage-parser.ts](src/core/commands/cursor-usage-parser.ts) 支持：
-        - `查询token`
-        - `查询 token`
-        - `查询token 2026-05-06 2026-06-04`
+        - `cursor`
+        - `cursor 2026-05-06 2026-06-04`
     - 默认日期为最近 30 天：以当前本地日期结束，开始日期为结束日前 29 天。
     - 日期无效或开始日期晚于结束日期时，handler 返回 `text` 错误提示，不走 Cursor fallback。
     - 在 [src/core/commands/cursor-usage-command.ts](src/core/commands/cursor-usage-command.ts) 调用 `CursorUsageGateway.getUsageSummary()` 并返回文本回复。
@@ -93,7 +92,7 @@ flowchart TD
     - 在 [src/lark-message-processor.ts](src/lark-message-processor.ts) 注册 usage command，位置在会议命令之后、assistant fallback 之前。
 
 5. 补测试
-    - 在 [test/command-handlers.test.ts](test/command-handlers.test.ts) 覆盖 `查询token`、显式日期、非法日期、gateway 失败。
+    - 在 [test/command-handlers.test.ts](test/command-handlers.test.ts) 覆盖 `cursor`、显式日期、非法日期、gateway 失败。
     - 新增 [test/cursor-usage.test.ts](test/cursor-usage.test.ts) 用注入的 `fetchImpl` 模拟：
         - 单页汇总。
         - `totalUsageEventsCount` 大于 `pageSize` 时多页请求。

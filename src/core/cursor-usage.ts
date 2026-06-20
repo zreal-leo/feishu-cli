@@ -5,24 +5,22 @@ export type CursorUsageQuery = {
 
 export type CursorTokenUsageSummary = CursorUsageQuery & {
     recordsCount: number;
-    inputTokens: number;
-    outputTokens: number;
-    cacheReadTokens: number;
-    cacheWriteTokens: number;
+    totalTokens: number;
+    chargedCents: number;
 };
 
 export function formatCursorTokenUsageSummary(summary: CursorTokenUsageSummary): string {
-    const totalTokens = summary.inputTokens + summary.outputTokens + summary.cacheReadTokens + summary.cacheWriteTokens;
     return [
         'Cursor Token 用量',
         `时间范围：${summary.startDate} 至 ${summary.endDate}`,
         `记录数：${summary.recordsCount}`,
-        `输入 Tokens：${formatTokenCount(summary.inputTokens)}`,
-        `输出 Tokens：${formatTokenCount(summary.outputTokens)}`,
-        `缓存读取 Tokens：${formatTokenCount(summary.cacheReadTokens)}`,
-        `缓存写入 Tokens：${formatTokenCount(summary.cacheWriteTokens)}`,
-        `合计 Tokens：${formatTokenCount(totalTokens)}`
+        `token : ${formatTokenCount(summary.totalTokens)}`
     ].join('\n');
+}
+
+function formatDollarsFromCents(chargedCents: number): string {
+    const dollars = chargedCents / 100;
+    return dollars.toFixed(2);
 }
 
 export function formatTokenCount(value: number): string {

@@ -214,7 +214,7 @@ describe('createBotApplication', () => {
         const usageHandler: CommandHandler = {
             name: 'cursor-usage',
             match(message) {
-                return message.text === '查询token' ? { commandName: 'cursor-usage', data: { ok: true, command: { type: 'cursor_usage', query: { startDate: '2026-05-26', endDate: '2026-06-18' } } } } : null;
+                return message.text === 'cursor' ? { commandName: 'cursor-usage', data: { ok: true, command: { type: 'cursor_usage', query: { startDate: '2026-05-26', endDate: '2026-06-18' } } } } : null;
             },
             async execute(context) {
                 context.trace?.markStep('usage.fetch');
@@ -248,7 +248,7 @@ describe('createBotApplication', () => {
         });
 
         application.handleMessage({ ...input, messageId: 'om_router', text: '你好' });
-        application.handleMessage({ ...input, messageId: 'om_usage', text: '查询token' });
+        application.handleMessage({ ...input, messageId: 'om_usage', text: 'cursor' });
         await application.drain();
 
         const routerTrace = traces.find(trace => trace.messageId === 'om_router');
