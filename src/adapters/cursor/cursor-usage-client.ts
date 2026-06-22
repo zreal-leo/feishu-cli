@@ -12,6 +12,8 @@ export type CursorUsageClientConfig = {
 };
 
 type CursorUsageEvent = {
+    chargedCents?: number;
+    cursorTokenFee?: number;
     tokenUsage?: {
         inputTokens?: number;
         outputTokens?: number;
@@ -36,26 +38,24 @@ export function createCursorUsageClient(config: CursorUsageClientConfig, fetchIm
                 startDate: query.startDate,
                 endDate: query.endDate,
                 recordsCount: 0,
-                inputTokens: 0,
-                outputTokens: 0,
-                cacheReadTokens: 0,
-                cacheWriteTokens: 0
+                totalTokens: 0,
+                chargedCents: 0
             };
 
             do {
                 const body = await fetchUsagePage(requestConfig, query, page, fetchImpl);
                 totalUsageEventsCount = normalizeCount(body.totalUsageEventsCount);
                 for (const event of body.usageEventsDisplay ?? []) {
-                    summary.inputTokens += normalizeNumber(event.tokenUsage?.inputTokens);
-                    summary.outputTokens += normalizeNumber(event.tokenUsage?.outputTokens);
-                    summary.cacheReadTokens += normalizeNumber(event.tokenUsage?.cacheReadTokens);
-                    summary.cacheWriteTokens += normalizeNumber(event.tokenUsage?.cacheWriteTokens);
+                    summary.totalTokens +=
+                        normalizeNumber(event.tokenUsage?.inputTokens) + normalizeNumber(event.tokenUsage?.outputTokens) + normalizeNumber(event.tokenUsage?.cacheReadTokens) + normalizeNumber(event.tokenUsage?.cacheWriteTokens);
+                    summary.chargedCents += resolveEventChargedCents(event);
                 }
 
                 page += 1;
             } while (totalUsageEventsCount > (page - 1) * config.pageSize);
 
             summary.recordsCount = totalUsageEventsCount;
+            summary.chargedCents = roundTotalChargedCents(summary.chargedCents);
             return summary;
         }
     };
@@ -126,6 +126,18 @@ function toStartOfDayMs(date: string): number {
 function toEndOfDayMs(date: string): number {
     const [year, month, day] = date.split('-').map(Number);
     return new Date(year, month - 1, day, 23, 59, 59, 999).getTime();
+}
+
+function resolveEventChargedCents(event: CursorUsageEvent): number {
+    if (typeof event.chargedCents === 'number' && Number.isFinite(event.chargedCents)) {
+        return event.chargedCents;
+    }
+
+    return normalizeNumber(event.tokenUsage?.totalCents) + normalizeNumber(event.cursorTokenFee);
+}
+
+function roundTotalChargedCents(cents: number): number {
+    return Math.round(cents);
 }
 
 function normalizeNumber(value: unknown): number {

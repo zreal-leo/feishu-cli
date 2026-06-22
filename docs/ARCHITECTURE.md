@@ -164,7 +164,7 @@ sequenceDiagram
 
 `CommandRegistry` 按注册顺序逐个调用 `handler.match(message)`，命中即返回；都未命中再尝试兜底 handler。当前装配为：
 
-- 显式命令：`cursor-usage-command`（匹配「查询token …」）。
+- 显式命令：`cursor-usage-command`（匹配「cursor …」）。
 - 兜底：`meeting-router-command`。它调用 `MeetingIntentParser`（Cursor）对消息做意图判定：
     - `create_meeting`：归一化参数后调用 `MeetingGateway`（运营后台）创建会议 / 云播，返回 `meeting_created` / `meeting_failed`。
     - 其它（含解析失败）：调用 `AssistantGateway`（Cursor）以流式文本兜底回复。

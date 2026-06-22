@@ -43,7 +43,7 @@ return command ? { commandName: 'create-meeting', data: command } : null;
 
 ```mermaid
 flowchart TD
-    larkText[Lark 文本] --> usage[同步命令: 查询 token]
+    larkText[Lark 文本] --> usage[同步命令: cursor]
     usage -->|命中| usageReply[返回用量]
     usage -->|未命中| router[Cursor 路由 fallback]
     router --> classify[Cursor 输出 JSON: action 和会议参数]

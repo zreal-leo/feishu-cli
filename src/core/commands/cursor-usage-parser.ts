@@ -15,10 +15,10 @@ export type CursorUsageParseResult =
           error: string;
       };
 
-const USAGE_HINT = '用法：查询token 或 查询token YYYY-MM-DD YYYY-MM-DD';
+const USAGE_HINT = '用法：cursor 或 cursor YYYY-MM-DD YYYY-MM-DD';
 
 export function parseCursorUsageCommand(text: string, now = new Date()): CursorUsageParseResult | null {
-    const match = text.trim().match(/^查询\s*token(?:\s+(.+))?$/i);
+    const match = text.trim().match(/^cursor(?:\s+(.+))?$/i);
     if (!match) {
         return null;
     }
@@ -75,7 +75,7 @@ function getDefaultDateRange(now: Date): CursorUsageQuery {
 function parseError(message: string): CursorUsageParseResult {
     return {
         ok: false,
-        error: `查询 token 失败：${message}\n${USAGE_HINT}`
+        error: `查询 cursor token 失败：${message}\n${USAGE_HINT}`
     };
 }
 

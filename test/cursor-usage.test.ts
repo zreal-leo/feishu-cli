@@ -35,7 +35,7 @@ describe('createCursorUsageClient', () => {
         assert.equal(fetchCalled, false);
     });
 
-    it('fetches one usage page and sums token fields except totalCents', async () => {
+    it('fetches one usage page and sums token totals and charged cents', async () => {
         let requestedUrl = '';
         let requestInit: RequestInit | undefined;
         const fetchImpl = (async (input, init) => {
@@ -46,21 +46,23 @@ describe('createCursorUsageClient', () => {
                     totalUsageEventsCount: 2,
                     usageEventsDisplay: [
                         {
+                            chargedCents: 1362,
                             tokenUsage: {
                                 inputTokens: 2898,
                                 outputTokens: 83,
                                 cacheReadTokens: 7364,
                                 cacheWriteTokens: 500,
-                                totalCents: 1.3621000051498413
+                                totalCents: 1300
                             }
                         },
                         {
+                            chargedCents: 99,
                             tokenUsage: {
                                 inputTokens: 100,
                                 outputTokens: 20,
                                 cacheReadTokens: 300,
                                 cacheWriteTokens: 50,
-                                totalCents: 99
+                                totalCents: 80
                             }
                         }
                     ]
@@ -78,10 +80,8 @@ describe('createCursorUsageClient', () => {
             startDate: '2026-05-06',
             endDate: '2026-06-04',
             recordsCount: 2,
-            inputTokens: 2998,
-            outputTokens: 103,
-            cacheReadTokens: 7664,
-            cacheWriteTokens: 550
+            totalTokens: 11315,
+            chargedCents: 1461
         });
         assert.equal(requestedUrl, 'https://cursor.com/api/dashboard/get-filtered-usage-events');
         assert.equal(requestInit?.method, 'POST');
@@ -112,8 +112,8 @@ describe('createCursorUsageClient', () => {
                     JSON.stringify({
                         totalUsageEventsCount: 3,
                         usageEventsDisplay: [
-                            { tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4, totalCents: 1 } },
-                            { tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, cacheWriteTokens: 7, totalCents: 1 } }
+                            { chargedCents: 100, tokenUsage: { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4, totalCents: 90 } },
+                            { chargedCents: 200, tokenUsage: { inputTokens: 4, outputTokens: 5, cacheReadTokens: 6, cacheWriteTokens: 7, totalCents: 180 } }
                         ]
                     }),
                     { status: 200 }
@@ -123,7 +123,7 @@ describe('createCursorUsageClient', () => {
             return new Response(
                 JSON.stringify({
                     totalUsageEventsCount: 3,
-                    usageEventsDisplay: [{ tokenUsage: { inputTokens: 7, outputTokens: 8, cacheReadTokens: 9, cacheWriteTokens: 10, totalCents: 1 } }]
+                    usageEventsDisplay: [{ chargedCents: 300, tokenUsage: { inputTokens: 7, outputTokens: 8, cacheReadTokens: 9, cacheWriteTokens: 10, totalCents: 280 } }]
                 }),
                 { status: 200 }
             );
@@ -142,11 +142,93 @@ describe('createCursorUsageClient', () => {
             startDate: '2026-05-06',
             endDate: '2026-06-04',
             recordsCount: 3,
-            inputTokens: 12,
-            outputTokens: 15,
-            cacheReadTokens: 18,
-            cacheWriteTokens: 21
+            totalTokens: 66,
+            chargedCents: 600
         });
+    });
+
+    it('falls back to tokenUsage.totalCents plus cursorTokenFee when chargedCents is missing', async () => {
+        const fetchImpl = (async () =>
+            new Response(
+                JSON.stringify({
+                    totalUsageEventsCount: 1,
+                    usageEventsDisplay: [
+                        {
+                            cursorTokenFee: 3.32,
+                            tokenUsage: {
+                                inputTokens: 3,
+                                outputTokens: 20525,
+                                cacheWriteTokens: 112151,
+                                totalCents: 121.41
+                            }
+                        }
+                    ]
+                }),
+                { status: 200 }
+            )) as typeof fetch;
+
+        const summary = await createCursorUsageClient(createTestConfig(), fetchImpl).getUsageSummary({
+            startDate: '2026-05-06',
+            endDate: '2026-06-04'
+        });
+
+        assert.equal(summary.chargedCents, 125);
+    });
+
+    it('rounds the summed charged cents after accumulation', async () => {
+        const fetchImpl = (async () =>
+            new Response(
+                JSON.stringify({
+                    totalUsageEventsCount: 2,
+                    usageEventsDisplay: [{ chargedCents: 50.556 }, { chargedCents: 50.556 }]
+                }),
+                { status: 200 }
+            )) as typeof fetch;
+
+        const summary = await createCursorUsageClient(createTestConfig(), fetchImpl).getUsageSummary({
+            startDate: '2026-05-06',
+            endDate: '2026-06-04'
+        });
+
+        assert.equal(summary.chargedCents, 101);
+    });
+
+    it('matches reference usage events by summing charged cents before final rounding', async () => {
+        const fetchImpl = (async () =>
+            new Response(
+                JSON.stringify({
+                    totalUsageEventsCount: 3,
+                    usageEventsDisplay: [
+                        {
+                            usageBasedCosts: '$0.03',
+                            tokenUsage: { totalCents: 3.3828999996185303 },
+                            cursorTokenFee: 0.2772749960422516,
+                            chargedCents: 3.660175085067749
+                        },
+                        {
+                            usageBasedCosts: '$0.38',
+                            tokenUsage: { totalCents: 38.47526931762695 },
+                            cursorTokenFee: 6.665174961090088,
+                            chargedCents: 45.140445709228516
+                        },
+                        {
+                            usageBasedCosts: '$0.04',
+                            tokenUsage: { totalCents: 3.5501999855041504 },
+                            cursorTokenFee: 0.27445000410079956,
+                            chargedCents: 3.8246500492095947
+                        }
+                    ]
+                }),
+                { status: 200 }
+            )) as typeof fetch;
+
+        const summary = await createCursorUsageClient(createTestConfig(), fetchImpl).getUsageSummary({
+            startDate: '2026-06-01',
+            endDate: '2026-06-19'
+        });
+
+        assert.equal(summary.chargedCents, 53);
+        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'Token：N/A'].join('\n'));
     });
 
     it('throws a readable error when the Cursor API returns a non-2xx response', async () => {
@@ -179,15 +261,22 @@ describe('formatCursorTokenUsageSummary', () => {
             startDate: '2026-05-06',
             endDate: '2026-06-04',
             recordsCount: 2,
-            inputTokens: 123456789,
-            outputTokens: 100009999,
-            cacheReadTokens: 9999,
-            cacheWriteTokens: 5000
+            totalTokens: 223481787,
+            chargedCents: 123456
         });
 
-        assert.equal(
-            text,
-            ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', '输入 Tokens：1,2345,6789', '输出 Tokens：1,0000,9999', '缓存读取 Tokens：9999', '缓存写入 Tokens：5000', '合计 Tokens：2,2348,1787'].join('\n')
-        );
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', 'Token：2,2348,1787'].join('\n'));
+    });
+
+    it('shows Token N/A when totalTokens is zero', () => {
+        const text = formatCursorTokenUsageSummary({
+            startDate: '2026-06-01',
+            endDate: '2026-06-30',
+            recordsCount: 1,
+            totalTokens: 0,
+            chargedCents: 50
+        });
+
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-30', '记录数：1', 'Token：N/A'].join('\n'));
     });
 });
