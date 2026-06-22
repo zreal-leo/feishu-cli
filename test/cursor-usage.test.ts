@@ -228,7 +228,7 @@ describe('createCursorUsageClient', () => {
         });
 
         assert.equal(summary.chargedCents, 53);
-        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'token : 0'].join('\n'));
+        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'Token：N/A'].join('\n'));
     });
 
     it('throws a readable error when the Cursor API returns a non-2xx response', async () => {
@@ -263,8 +263,20 @@ describe('formatCursorTokenUsageSummary', () => {
             recordsCount: 2,
             totalTokens: 223481787,
             chargedCents: 123456
-        } as any);
+        });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', 'token : 2,2348,1787'].join('\n'));
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', 'Token：2,2348,1787'].join('\n'));
+    });
+
+    it('shows Token N/A when totalTokens is zero', () => {
+        const text = formatCursorTokenUsageSummary({
+            startDate: '2026-06-01',
+            endDate: '2026-06-30',
+            recordsCount: 1,
+            totalTokens: 0,
+            chargedCents: 50
+        });
+
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-30', '记录数：1', 'Token：N/A'].join('\n'));
     });
 });

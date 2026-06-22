@@ -112,7 +112,7 @@ describe('createCursorUsageCommandHandler', () => {
                         recordsCount: 2,
                         totalTokens: 4700,
                         chargedCents: 1234
-                    } as any;
+                    };
                 }
             },
             {
@@ -127,7 +127,7 @@ describe('createCursorUsageCommandHandler', () => {
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', 'token : 4700'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-26 至 2026-06-04', '记录数：2', 'Token：4700'].join('\n')
         });
     });
 
@@ -144,7 +144,7 @@ describe('createCursorUsageCommandHandler', () => {
                     recordsCount: 0,
                     totalTokens: 0,
                     chargedCents: 0
-                } as any;
+                };
             }
         });
 
@@ -155,7 +155,7 @@ describe('createCursorUsageCommandHandler', () => {
         assert.equal(match?.commandName, 'cursor-usage');
         assert.deepEqual(reply, {
             type: 'text',
-            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', 'token : 0'].join('\n')
+            text: ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：0', 'Token：N/A'].join('\n')
         });
     });
 

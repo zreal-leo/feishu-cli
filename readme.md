@@ -40,7 +40,7 @@ cursor
 cursor 2026-05-06 2026-06-04
 ```
 
-`cursor` 默认查询最近 30 天；带两个日期时按 `YYYY-MM-DD` 闭区间查询。回复返回总 token 数（`token : xxx`），不再展示费用（`chargedCents`/100，单位为 $）；同时不再展示输入/输出/缓存读取/缓存写入 tokens 明细。
+`cursor` 默认查询最近 30 天；带两个日期时按 `YYYY-MM-DD` 闭区间查询。回复返回时间范围、记录数和总 Token 数。
 
 这个功能需要 Cursor 网页端 Dashboard 的登录 Cookie 和账号参数，但这些变量只在执行 `cursor` 时才需要；不配置也可以正常 `pnpm dev` 启动机器人。需要使用时，在 `.env` 中填写：
 

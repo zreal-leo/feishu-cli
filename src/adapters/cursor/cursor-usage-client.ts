@@ -137,8 +137,7 @@ function resolveEventChargedCents(event: CursorUsageEvent): number {
 }
 
 function roundTotalChargedCents(cents: number): number {
-    const dollars = cents / 100;
-    return Math.round(dollars * 100);
+    return Math.round(cents);
 }
 
 function normalizeNumber(value: unknown): number {
