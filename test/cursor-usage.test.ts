@@ -175,12 +175,12 @@ describe('createCursorUsageClient', () => {
         assert.equal(summary.chargedCents, 125);
     });
 
-    it('rounds the summed charged cents after accumulation', async () => {
+    it('rounds each charged cents value before accumulation', async () => {
         const fetchImpl = (async () =>
             new Response(
                 JSON.stringify({
                     totalUsageEventsCount: 2,
-                    usageEventsDisplay: [{ chargedCents: 50.556 }, { chargedCents: 50.556 }]
+                    usageEventsDisplay: [{ chargedCents: 50.4 }, { chargedCents: 50.4 }]
                 }),
                 { status: 200 }
             )) as typeof fetch;
@@ -190,10 +190,10 @@ describe('createCursorUsageClient', () => {
             endDate: '2026-06-04'
         });
 
-        assert.equal(summary.chargedCents, 101);
+        assert.equal(summary.chargedCents, 100);
     });
 
-    it('matches reference usage events by summing charged cents before final rounding', async () => {
+    it('matches reference usage events by rounding each charged cents value', async () => {
         const fetchImpl = (async () =>
             new Response(
                 JSON.stringify({
@@ -228,7 +228,7 @@ describe('createCursorUsageClient', () => {
         });
 
         assert.equal(summary.chargedCents, 53);
-        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'Token：N/A'].join('\n'));
+        assert.equal(formatCursorTokenUsageSummary(summary), ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-19', '记录数：3', 'Token：N/A', '费用：$0.53'].join('\n'));
     });
 
     it('throws a readable error when the Cursor API returns a non-2xx response', async () => {
@@ -265,7 +265,7 @@ describe('formatCursorTokenUsageSummary', () => {
             chargedCents: 123456
         });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', 'Token：2,2348,1787'].join('\n'));
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-05-06 至 2026-06-04', '记录数：2', 'Token：2,2348,1787', '费用：$1234.56'].join('\n'));
     });
 
     it('shows Token N/A when totalTokens is zero', () => {
@@ -277,6 +277,6 @@ describe('formatCursorTokenUsageSummary', () => {
             chargedCents: 50
         });
 
-        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-30', '记录数：1', 'Token：N/A'].join('\n'));
+        assert.equal(text, ['Cursor Token 用量', '时间范围：2026-06-01 至 2026-06-30', '记录数：1', 'Token：N/A', '费用：$0.50'].join('\n'));
     });
 });

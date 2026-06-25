@@ -55,7 +55,6 @@ export function createCursorUsageClient(config: CursorUsageClientConfig, fetchIm
             } while (totalUsageEventsCount > (page - 1) * config.pageSize);
 
             summary.recordsCount = totalUsageEventsCount;
-            summary.chargedCents = roundTotalChargedCents(summary.chargedCents);
             return summary;
         }
     };
@@ -130,14 +129,10 @@ function toEndOfDayMs(date: string): number {
 
 function resolveEventChargedCents(event: CursorUsageEvent): number {
     if (typeof event.chargedCents === 'number' && Number.isFinite(event.chargedCents)) {
-        return event.chargedCents;
+        return Math.round(event.chargedCents);
     }
 
-    return normalizeNumber(event.tokenUsage?.totalCents) + normalizeNumber(event.cursorTokenFee);
-}
-
-function roundTotalChargedCents(cents: number): number {
-    return Math.round(cents);
+    return Math.round(normalizeNumber(event.tokenUsage?.totalCents) + normalizeNumber(event.cursorTokenFee));
 }
 
 function normalizeNumber(value: unknown): number {
