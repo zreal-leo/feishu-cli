@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { extractIncomingText, mapLarkIncomingMessage } from '../src/adapters/lark/inbound.ts';
 import { createLarkReplyGateway } from '../src/adapters/lark/reply-gateway.ts';
-import { buildMeetingCreatedCard, CURSOR_REPLY_CARD_ELEMENT_ID, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
+import { buildMeetingCreatedCard, AI_REPLY_CARD_ELEMENT_ID, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE, toLarkReactionPayload, toLarkTextContent } from '../src/adapters/lark/protocol.ts';
 import type { LarkIncomingMessageEvent } from '../src/adapters/lark/protocol.ts';
 
@@ -252,7 +252,7 @@ describe('createLarkReplyGateway', () => {
             })()
         );
 
-        assert.deepEqual(actions, ['send-card:chat_1:第一段:true', `update-card:card_reply:${CURSOR_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
+        assert.deepEqual(actions, ['send-card:chat_1:第一段:true', `update-card:card_reply:${AI_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
     });
 
     it('finishes a streaming Lark card even when a card update fails', async () => {
@@ -288,7 +288,7 @@ describe('createLarkReplyGateway', () => {
             /Lark 卡片更新失败/
         );
 
-        assert.deepEqual(actions, ['send-card:chat_1:第一段', `update-card:card_reply:${CURSOR_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
+        assert.deepEqual(actions, ['send-card:chat_1:第一段', `update-card:card_reply:${AI_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
     });
 
     it('streams assistant replies into a single Lark text message when cards are unavailable', async () => {

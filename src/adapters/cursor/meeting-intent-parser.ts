@@ -1,19 +1,20 @@
-import type { AskCursorOptions } from './cursor-agent.ts';
-import { askCursor as defaultAskCursor } from './cursor-agent.ts';
+import type { AskAIOptions } from './ai-agent.ts';
+import { askAI as defaultAskAI } from './ai-agent.ts';
 import { buildMeetingRoutingInstructions } from '../../core/meeting-routing-instructions.ts';
 import { MEETING_EVENT_MODE_LABELS, MEETING_EVENT_WAY_LABELS, MEETING_PERMISSION_OPTIONS } from '../../core/meeting.ts';
 import type { CloudPlayerCommandOptions, CloudPlayerMediaStreamType, CloudPlayerPlayType, CloudPlayerRepeatMode, CloudPlayerType, MeetingEventMode, MeetingEventWay } from '../../core/meeting.ts';
 import type { MeetingIntentParser, ParseMeetingParametersInput, ParsedMeetingIntent, ParsedMeetingIntentParameters, ParsedMeetingParameters } from '../../ports/meeting.ts';
 
-type AskCursor = (options: AskCursorOptions) => Promise<string>;
+type AskAI = (options: AskAIOptions) => Promise<string>;
 
-export type CursorMeetingIntentParserOptions = {
+export type AIMeetingIntentParserOptions = {
     apiKey: string;
+    baseURL?: string;
     model: string;
-    askCursor?: AskCursor;
+    askAI?: AskAI;
 };
 
-type RawCursorMeetingParameters = {
+type RawMeetingParameters = {
     title?: unknown;
     startTime?: unknown;
     eventWays?: unknown;
@@ -22,7 +23,7 @@ type RawCursorMeetingParameters = {
     permission?: unknown;
 };
 
-type RawCursorMeetingIntent = RawCursorMeetingParameters & {
+type RawMeetingIntent = RawMeetingParameters & {
     action?: unknown;
     cloudPlayer?: unknown;
 };
@@ -71,13 +72,14 @@ const EVENT_MODE_ALIASES = new Map<string, MeetingEventMode>(
 
 const PERMISSION_ALIASES = new Map<string, MeetingPermissionOption>(buildPermissionAliases());
 
-export function createCursorMeetingIntentParser(options: CursorMeetingIntentParserOptions): MeetingIntentParser {
-    const askCursor = options.askCursor ?? defaultAskCursor;
+export function createAIMeetingIntentParser(options: AIMeetingIntentParserOptions): MeetingIntentParser {
+    const askAI = options.askAI ?? defaultAskAI;
 
     return {
         async parse(input) {
-            const responseText = await askCursor({
+            const responseText = await askAI({
                 apiKey: options.apiKey,
+                baseURL: options.baseURL,
                 model: options.model,
                 prompt: buildMeetingIntentPrompt(input)
             });
@@ -87,7 +89,7 @@ export function createCursorMeetingIntentParser(options: CursorMeetingIntentPars
 }
 
 export function parseMeetingIntentResponse(responseText: string): ParsedMeetingIntent {
-    const rawIntent = parseCursorJson<RawCursorMeetingIntent>(responseText);
+    const rawIntent = parseJSON<RawMeetingIntent>(responseText);
     return normalizeMeetingIntent(rawIntent);
 }
 
@@ -101,7 +103,7 @@ function buildMeetingIntentPrompt(input: ParseMeetingParametersInput): string {
     ].join('\n');
 }
 
-function normalizeMeetingIntent(rawIntent: RawCursorMeetingIntent): ParsedMeetingIntent {
+function normalizeMeetingIntent(rawIntent: RawMeetingIntent): ParsedMeetingIntent {
     if (normalizeAction(rawIntent.action) !== 'create_meeting') {
         return { action: 'assistant' };
     }
@@ -179,7 +181,7 @@ function normalizeCloudPlayerStreamUrl(value: unknown, mediaStreamType: CloudPla
     return text;
 }
 
-function normalizeMeetingParameters(rawParameters: RawCursorMeetingParameters): ParsedMeetingParameters {
+function normalizeMeetingParameters(rawParameters: RawMeetingParameters): ParsedMeetingParameters {
     const normalized: ParsedMeetingParameters = {};
     const title = normalizeOptionalString(rawParameters.title);
     if (title) {
@@ -214,7 +216,7 @@ function normalizeMeetingParameters(rawParameters: RawCursorMeetingParameters): 
     return normalized;
 }
 
-function parseCursorJson<T extends Record<string, unknown> = RawCursorMeetingParameters>(responseText: string): T {
+function parseJSON<T extends Record<string, unknown> = RawMeetingParameters>(responseText: string): T {
     const jsonText = extractFirstJsonObject(responseText.trim());
     let parsed: unknown;
     try {

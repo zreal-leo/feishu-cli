@@ -2,31 +2,33 @@ import { buildUnifiedRouterPrompt } from '../../core/unified-router-prompt.ts';
 import type { ParseMeetingParametersInput, ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
 import type { MessageRouterGateway, RoutedMessage } from '../../ports/message-router.ts';
 import { parseMeetingIntentResponse } from './meeting-intent-parser.ts';
-import { streamCursorReply } from './cursor-agent.ts';
+import { streamAIReply } from './ai-agent.ts';
 
 const MAX_MEETING_JSON_BUFFER = 8_192;
 
-export type CursorUnifiedRouterGatewayOptions = {
+export type AIUnifiedRouterGatewayOptions = {
     apiKey: string;
+    baseURL?: string;
     model: string;
-    streamCursorReply?: typeof streamCursorReply;
+    streamAIReply?: typeof streamAIReply;
 };
 
 type StreamMode = 'undecided' | 'json' | 'assistant';
 
-export function createCursorUnifiedRouterGateway(options: CursorUnifiedRouterGatewayOptions): MessageRouterGateway {
-    const streamReply = options.streamCursorReply ?? streamCursorReply;
+export function createAIUnifiedRouterGateway(options: AIUnifiedRouterGatewayOptions): MessageRouterGateway {
+    const streamReply = options.streamAIReply ?? streamAIReply;
 
     return {
         route(input) {
-            return routeMessage(input, streamReply, options.apiKey, options.model);
+            return routeMessage(input, streamReply, options.apiKey, options.baseURL, options.model);
         }
     };
 }
 
-async function routeMessage(input: ParseMeetingParametersInput, streamReply: typeof streamCursorReply, apiKey: string, model: string): Promise<RoutedMessage> {
+async function routeMessage(input: ParseMeetingParametersInput, streamReply: typeof streamAIReply, apiKey: string, baseURL: string | undefined, model: string): Promise<RoutedMessage> {
     const source = streamReply({
         apiKey,
+        baseURL,
         model,
         prompt: buildUnifiedRouterPrompt(input)
     });

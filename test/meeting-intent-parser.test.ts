@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createCursorMeetingIntentParser } from '../src/adapters/cursor/meeting-intent-parser.ts';
+import { createAIMeetingIntentParser } from '../src/adapters/cursor/meeting-intent-parser.ts';
 
-describe('createCursorMeetingIntentParser', () => {
+describe('createAIMeetingIntentParser', () => {
     it('normalizes a create meeting intent into backend meeting parameters', async () => {
-        const parser = createCursorMeetingIntentParser({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            askCursor: async options => {
-                assert.equal(options.apiKey, 'cursor_key');
-                assert.equal(options.model, 'composer-2.5');
+        const parser = createAIMeetingIntentParser({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            askAI: async options => {
+                assert.equal(options.apiKey, 'test_key');
+                assert.equal(options.model, 'claude-haiku-4-5');
                 assert.match(options.prompt, /帮我明天10点开个视频路演/);
                 return JSON.stringify({
                     action: 'create_meeting',
@@ -57,10 +57,10 @@ describe('createCursorMeetingIntentParser', () => {
     });
 
     it('returns assistant intent for ordinary or ambiguous messages', async () => {
-        const parser = createCursorMeetingIntentParser({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            askCursor: async () =>
+        const parser = createAIMeetingIntentParser({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            askAI: async () =>
                 JSON.stringify({
                     action: 'assistant'
                 })
@@ -77,10 +77,10 @@ describe('createCursorMeetingIntentParser', () => {
     });
 
     it('rejects unsupported enum values returned for a create meeting intent', async () => {
-        const parser = createCursorMeetingIntentParser({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            askCursor: async () =>
+        const parser = createAIMeetingIntentParser({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            askAI: async () =>
                 JSON.stringify({
                     action: 'create_meeting',
                     title: '测试会议',
