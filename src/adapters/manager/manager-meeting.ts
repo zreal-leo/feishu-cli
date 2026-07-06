@@ -298,6 +298,7 @@ export function buildMeetingPayload(title: string, stimeMs: number, options: Mee
         isNet: 1,
         isGenerateMeetSummary: 1,
         enableComeinAiSum: 1,
+        enableGuestWeb: 1,
         enableQaAudit: 1,
         autoCall: 1,
         interactionType: 0,

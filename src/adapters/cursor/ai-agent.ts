@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk';
 
 export type AskAIOptions = {
     apiKey: string;
@@ -14,29 +14,23 @@ export async function askAI(options: AskAIOptions): Promise<string> {
         chunks.push(chunk);
     }
 
-    return chunks.join("").trim() || "AI 没有返回可回复的内容。";
+    return chunks.join('').trim() || 'AI 没有返回可回复的内容。';
 }
 
-export async function* streamAIReply(
-    options: AskAIOptions,
-): AsyncGenerator<string, void> {
+export async function* streamAIReply(options: AskAIOptions): AsyncGenerator<string, void> {
     const client = new Anthropic({
         apiKey: options.apiKey,
-        baseURL: options.baseURL,
+        baseURL: options.baseURL
     });
 
     const stream = client.messages.stream({
         model: options.model,
         max_tokens: 4096,
-        messages: [{ role: "user", content: options.prompt }],
+        messages: [{ role: 'user', content: options.prompt }]
     });
 
     for await (const event of stream) {
-        if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta" &&
-            event.delta.text.length > 0
-        ) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta' && event.delta.text.length > 0) {
             yield event.delta.text;
         }
     }
