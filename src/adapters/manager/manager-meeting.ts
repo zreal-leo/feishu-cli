@@ -308,18 +308,7 @@ export function buildMeetingPayload(title: string, stimeMs: number, options: Mee
         audioState: 0,
         audioTitle: fullTitle,
         removePhoneIds: '2506',
-        attendee: [
-            {
-                name: '联席主讲人',
-                areaCode: '+86',
-                phoneNumber: '1871872',
-                company: '测试机构',
-                occupation: '副董事长',
-                identity: '2',
-                isShow: 1,
-                identityTypes: '4,7'
-            }
-        ],
+        attendee: [],
         enableInteractiveMode: 1,
         enableHandUpQa: 1,
         enableTextQa: 1,
