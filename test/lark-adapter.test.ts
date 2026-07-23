@@ -186,6 +186,7 @@ describe('buildMeetingCreatedCard', () => {
 
         assert.match(String(card.body.elements[0].content), /\*\*云播：\*\* 已创建/);
         assert.doesNotMatch(String(card.body.elements[0].content), /事件 ID/);
+        assert.match(String(card.body.elements[0].content), /\*\*观看链接：\*\* `http:\/\/s\.comein\.cn\/live`/);
         assert.equal(card.card_link, undefined);
         const actionButton = card.body.elements.at(-1);
         assert.equal(actionButton?.url, 'http://s.comein.cn/live');

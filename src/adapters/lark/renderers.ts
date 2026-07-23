@@ -110,7 +110,7 @@ export function buildAIReplyCard(text = AI_REPLY_INITIAL_TEXT, options: { stream
 }
 
 export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard {
-    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**观看链接：** ${data.netLiveUrl}`];
+    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**观看链接：** \`${data.netLiveUrl}\``];
     if (data.cloudPlayerCreated) {
         detailLines.push('**云播：** 已创建');
     } else if (data.cloudPlayerError) {
