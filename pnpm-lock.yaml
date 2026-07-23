@@ -11,12 +11,12 @@ importers:
 
   .:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.109.1
+        version: 0.109.1
       '@connectrpc/connect-node':
         specifier: 1.6.1
         version: 1.6.1(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.6.1(@bufbuild/protobuf@1.10.0))
-      '@cursor/sdk':
-        specifier: ^1.0.19
-        version: 1.0.19
       '@larksuiteoapi/node-sdk':
         specifier: ^1.67.0
         version: 1.67.0
@@ -42,6 +42,19 @@ importers:
 
 packages:
 
+  '@anthropic-ai/sdk@0.109.1':
+    resolution: {integrity: sha512-q9OnEKLr5H9nxSuXdgDgJhxfYMiE+AaUEBze2Gk91UcaaLnsN+Lx5fbCYywiqurU/APLdwv23x03Wm6WN3EBsg==}
+    hasBin: true
+    peerDependencies:
+      zod: 3.25.76
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
+    engines: {node: '>=6.9.0'}
+
   '@bufbuild/protobuf@1.10.0':
     resolution: {integrity: sha512-QDdVFLoN93Zjg36NoQPZfsVH9tZew7wKDKyV5qRdj8ntT4wQCOradQjRaTdwMhWUYsgKsvCINKKm87FdEk96Ag==}
 
@@ -52,50 +65,10 @@ packages:
       '@bufbuild/protobuf': ^1.10.0
       '@connectrpc/connect': 1.6.1
 
-  '@connectrpc/connect-web@1.6.1':
-    resolution: {integrity: sha512-GVfxQOmt3TtgTaKeXLS/EA2IHa3nHxwe2BCHT7X0Q/0hohM+nP5DDnIItGEjGrGdt3LTTqWqE4s70N4h+qIMlQ==}
-    peerDependencies:
-      '@bufbuild/protobuf': ^1.10.0
-      '@connectrpc/connect': 1.6.1
-
   '@connectrpc/connect@1.6.1':
     resolution: {integrity: sha512-KchMDNtU4CDTdkyf0qG7ugJ6qHTOR/aI7XebYn3OTCNagaDYWiZUVKgRgwH79yeMkpNgvEUaXSK7wKjaBK9b/Q==}
     peerDependencies:
       '@bufbuild/protobuf': ^1.10.0
-
-  '@cursor/sdk-darwin-arm64@1.0.19':
-    resolution: {integrity: sha512-CPhqcpDaqjjqkkVGMLsdfXv7PGznL5L6U5CJXps/oaGW5mtHoxDpsRNj1rszCRQXNAvmMU+EFxLWnBwlE8mUNg==}
-    cpu: [arm64]
-    os: [darwin]
-    hasBin: true
-
-  '@cursor/sdk-darwin-x64@1.0.19':
-    resolution: {integrity: sha512-6/Jj0hxrxEs9V9wtYEApSkMcJwYAaT4Vwna9xBzgN6CK1K4Ws0E1/PfiddahAAFZpkp9pgjb8wQXwG7qJ2g77A==}
-    cpu: [x64]
-    os: [darwin]
-    hasBin: true
-
-  '@cursor/sdk-linux-arm64@1.0.19':
-    resolution: {integrity: sha512-Dq/BhGT1jAZ6eHJwy1Vugi/Upc+yoL0X/LN6ppd9cVPM9OAB1xX5KIbvIwsGlNiZccPLVXFv/1KOp5SBK+y+jQ==}
-    cpu: [arm64]
-    os: [linux]
-    hasBin: true
-
-  '@cursor/sdk-linux-x64@1.0.19':
-    resolution: {integrity: sha512-ZHgHH+SdEwYwfPg/uVKqZRVOIMCV3/3vghxc/usOMYMrhbY9TYXZxYqwWTduVLzCXH7Dz0aT19mSJHmhwkQ1CA==}
-    cpu: [x64]
-    os: [linux]
-    hasBin: true
-
-  '@cursor/sdk-win32-x64@1.0.19':
-    resolution: {integrity: sha512-XGIQmx3J0K8uKkA00qnoy1FJHFdFdwNdcmUqtRF1PXLcYup91YYetAHk9afXM7S/v1t0L4EatydsirL8uz7SIw==}
-    cpu: [x64]
-    os: [win32]
-    hasBin: true
-
-  '@cursor/sdk@1.0.19':
-    resolution: {integrity: sha512-DJbVnGeRJq7iwt9mz1cMACqVfAYP15IB+Q8Iz2eDtEN4A8Dp83yB0Y31YREj1jeA9EPUEdRZJRIYch/s+Wi9Ow==}
-    engines: {node: '>=22.13'}
 
   '@esbuild/aix-ppc64@0.28.1':
     resolution: {integrity: sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==}
@@ -409,11 +382,8 @@ packages:
   '@protobufjs/utf8@1.1.1':
     resolution: {integrity: sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg==}
 
-  '@statsig/client-core@3.31.0':
-    resolution: {integrity: sha512-SuxQD6TmVszPG7FoMKwTk/uyBuVFk7XnxI3T/E0uyb7PL7GNjONtfsoh+NqBBVUJVse0CUeSFfgJPoZy1ZOslQ==}
-
-  '@statsig/js-client@3.31.0':
-    resolution: {integrity: sha512-LFa5E0LjT6sTfZv3sNGoyRLSZ1078+agdgOA+Vm1ecjG+KbSOfBLTW7hMwimrJ29slRwbYDzbtKaPJo/R37N2g==}
+  '@stablelib/base64@1.0.1':
+    resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
 
   '@types/node@25.9.3':
     resolution: {integrity: sha512-603BddQMv3pUcr4U2dhujk83N2tTDVr/34wII2B6bJy6g+8WD6yUb11jszNs0gdi4PesVWl7ABt8nYMVpnLUcg==}
@@ -469,6 +439,9 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  fast-sha256@1.3.0:
+    resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
+
   follow-redirects@1.16.0:
     resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
     engines: {node: '>=4.0'}
@@ -513,6 +486,10 @@ packages:
   hasown@2.0.4:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
+
+  json-schema-to-ts@3.1.1:
+    resolution: {integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==}
+    engines: {node: '>=16'}
 
   lodash.identity@3.0.0:
     resolution: {integrity: sha512-AupTIzdLQxJS5wIYUQlgGyk2XRTfGXA+MCghDHqZk0pzUNYvd3EESS6dkChNauNYVIutcb0dfHw1ri9Q1yPV8Q==}
@@ -582,9 +559,15 @@ packages:
     resolution: {integrity: sha512-6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ==}
     engines: {node: '>= 0.4'}
 
+  standardwebhooks@1.0.0:
+    resolution: {integrity: sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==}
+
   tinypool@2.1.0:
     resolution: {integrity: sha512-Pugqs6M0m7Lv1I7FtxN4aoyToKg1C4tu+/381vH35y8oENM/Ai7f7C4StcoK4/+BSw9ebcS8jRiVrORFKCALLw==}
     engines: {node: ^20.0.0 || >=22.0.0}
+
+  ts-algebra@2.0.0:
+    resolution: {integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==}
 
   tsx@4.22.4:
     resolution: {integrity: sha512-X8EX+XV4QR5xCsrgxaED954zTDfY8KqlDtskKEL0cHhyS/P8b4IFOvGDQpsC9Q1XnLq915wEfwwY/zzskCtmhg==}
@@ -615,10 +598,14 @@ packages:
       utf-8-validate:
         optional: true
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
 snapshots:
+
+  '@anthropic-ai/sdk@0.109.1':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+      standardwebhooks: 1.0.0
+
+  '@babel/runtime@7.29.7': {}
 
   '@bufbuild/protobuf@1.10.0': {}
 
@@ -628,43 +615,9 @@ snapshots:
       '@connectrpc/connect': 1.6.1(@bufbuild/protobuf@1.10.0)
       undici: 5.28.4
 
-  '@connectrpc/connect-web@1.6.1(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.6.1(@bufbuild/protobuf@1.10.0))':
-    dependencies:
-      '@bufbuild/protobuf': 1.10.0
-      '@connectrpc/connect': 1.6.1(@bufbuild/protobuf@1.10.0)
-
   '@connectrpc/connect@1.6.1(@bufbuild/protobuf@1.10.0)':
     dependencies:
       '@bufbuild/protobuf': 1.10.0
-
-  '@cursor/sdk-darwin-arm64@1.0.19':
-    optional: true
-
-  '@cursor/sdk-darwin-x64@1.0.19':
-    optional: true
-
-  '@cursor/sdk-linux-arm64@1.0.19':
-    optional: true
-
-  '@cursor/sdk-linux-x64@1.0.19':
-    optional: true
-
-  '@cursor/sdk-win32-x64@1.0.19':
-    optional: true
-
-  '@cursor/sdk@1.0.19':
-    dependencies:
-      '@bufbuild/protobuf': 1.10.0
-      '@connectrpc/connect': 1.6.1(@bufbuild/protobuf@1.10.0)
-      '@connectrpc/connect-web': 1.6.1(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.6.1(@bufbuild/protobuf@1.10.0))
-      '@statsig/js-client': 3.31.0
-      zod: 3.25.76
-    optionalDependencies:
-      '@cursor/sdk-darwin-arm64': 1.0.19
-      '@cursor/sdk-darwin-x64': 1.0.19
-      '@cursor/sdk-linux-arm64': 1.0.19
-      '@cursor/sdk-linux-x64': 1.0.19
-      '@cursor/sdk-win32-x64': 1.0.19
 
   '@esbuild/aix-ppc64@0.28.1':
     optional: true
@@ -837,11 +790,7 @@ snapshots:
 
   '@protobufjs/utf8@1.1.1': {}
 
-  '@statsig/client-core@3.31.0': {}
-
-  '@statsig/js-client@3.31.0':
-    dependencies:
-      '@statsig/client-core': 3.31.0
+  '@stablelib/base64@1.0.1': {}
 
   '@types/node@25.9.3':
     dependencies:
@@ -925,6 +874,8 @@ snapshots:
       '@esbuild/win32-ia32': 0.28.1
       '@esbuild/win32-x64': 0.28.1
 
+  fast-sha256@1.3.0: {}
+
   follow-redirects@1.16.0: {}
 
   form-data@4.0.6:
@@ -969,6 +920,11 @@ snapshots:
   hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
+
+  json-schema-to-ts@3.1.1:
+    dependencies:
+      '@babel/runtime': 7.29.7
+      ts-algebra: 2.0.0
 
   lodash.identity@3.0.0: {}
 
@@ -1060,7 +1016,14 @@ snapshots:
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
 
+  standardwebhooks@1.0.0:
+    dependencies:
+      '@stablelib/base64': 1.0.1
+      fast-sha256: 1.3.0
+
   tinypool@2.1.0: {}
+
+  ts-algebra@2.0.0: {}
 
   tsx@4.22.4:
     dependencies:
@@ -1077,5 +1040,3 @@ snapshots:
       '@fastify/busboy': 2.1.1
 
   ws@8.21.0: {}
-
-  zod@3.25.76: {}

@@ -5,7 +5,7 @@ import { createCommandRegistry } from '../core/command-registry.ts';
 import { createCursorUsageCommandHandler } from '../core/commands/cursor-usage-command.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
-import { createCursorUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
+import { createAIUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
 import { createCursorUsageClient } from '../adapters/cursor/cursor-usage-client.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
 import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
@@ -39,9 +39,10 @@ export function startBot(config: Config): void {
     });
     const reactions = createLarkReactionGateway(client);
 
-    const router = createCursorUnifiedRouterGateway({
-        apiKey: config.cursorApiKey,
-        model: config.cursorModel
+    const router = createAIUnifiedRouterGateway({
+        apiKey: config.aiApiKey,
+        baseURL: config.aiBaseUrl,
+        model: config.aiModel
     });
     const meetings = createManagerMeetingGateway(config.managerMeeting);
     const usage = createCursorUsageClient(config.cursorUsage);

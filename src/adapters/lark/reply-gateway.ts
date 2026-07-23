@@ -1,6 +1,6 @@
 import type { BotReply, ReplyStream } from '../../core/types.ts';
 import { isReplyStream } from '../../core/types.ts';
-import { CURSOR_REPLY_CARD_ELEMENT_ID, buildCursorReplyCard, buildMeetingCreateFailedCard, buildMeetingCreatedCard, formatMeetingCreateFailedReply, formatMeetingCreatedReply, summarizeCardText } from './renderers.ts';
+import { AI_REPLY_CARD_ELEMENT_ID, buildAIReplyCard, buildMeetingCreateFailedCard, buildMeetingCreatedCard, formatMeetingCreateFailedReply, formatMeetingCreatedReply, summarizeCardText } from './renderers.ts';
 import type { LarkCard } from './renderers.ts';
 import type { ReplyGateway } from '../../ports/reply.ts';
 import type { Logger } from '../../ports/runtime.ts';
@@ -65,20 +65,20 @@ async function sendBotReply(chatId: string, reply: BotReply, options: LarkReplyG
 type StreamReplyToLarkMessageOptions = Required<Pick<LarkReplyGatewayOptions, 'logger' | 'streamingUpdateIntervalMs'>> &
     Pick<LarkReplyGatewayOptions, 'finishCardStreaming' | 'sendCardMessage' | 'sendTextMessage' | 'updateCardElementContent' | 'updateTextMessage'>;
 
-async function streamReplyToLarkMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
+async function streamReplyToLarkMessage(chatId: string, reply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     if (options.sendCardMessage) {
-        await streamReplyToLarkCard(chatId, cursorReply, options);
+        await streamReplyToLarkCard(chatId, reply, options);
         return;
     }
 
-    await streamReplyToTextMessage(chatId, cursorReply, options);
+    await streamReplyToTextMessage(chatId, reply, options);
 }
 
-async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
+async function streamReplyToLarkCard(chatId: string, reply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     const sendCardMessage = options.sendCardMessage;
 
     if (!sendCardMessage) {
-        await streamReplyToTextMessage(chatId, cursorReply, options);
+        await streamReplyToTextMessage(chatId, reply, options);
         return;
     }
 
@@ -91,7 +91,7 @@ async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, o
     let sequence = 0;
 
     try {
-        for await (const replyChunk of cursorReply) {
+        for await (const replyChunk of reply) {
             if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
                 continue;
             }
@@ -105,7 +105,7 @@ async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, o
             if (!sentInitialCard) {
                 sentInitialCard = true;
                 initialCardText = replyText;
-                sentCardId = extractSentCardId(await sendCardMessage(chatId, buildCursorReplyCard(replyText, { streaming: true })));
+                sentCardId = extractSentCardId(await sendCardMessage(chatId, buildAIReplyCard(replyText, { streaming: true })));
 
                 if (!sentCardId) {
                     fallbackToFinalCard = true;
@@ -126,7 +126,7 @@ async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, o
                 }
             }
 
-            await options.updateCardElementContent(sentCardId, CURSOR_REPLY_CARD_ELEMENT_ID, replyText, ++sequence);
+            await options.updateCardElementContent(sentCardId, AI_REPLY_CARD_ELEMENT_ID, replyText, ++sequence);
             lastUpdateAt = Date.now();
         }
     } finally {
@@ -136,11 +136,11 @@ async function streamReplyToLarkCard(chatId: string, cursorReply: ReplyStream, o
     }
 
     if (!sentInitialCard && replyText.trim().length > 0) {
-        await sendCardMessage(chatId, buildCursorReplyCard(replyText));
+        await sendCardMessage(chatId, buildAIReplyCard(replyText));
     }
 
     if (fallbackToFinalCard && replyText !== initialCardText && replyText.trim().length > 0) {
-        await sendCardMessage(chatId, buildCursorReplyCard(replyText));
+        await sendCardMessage(chatId, buildAIReplyCard(replyText));
     }
 }
 
@@ -152,7 +152,7 @@ async function finishStreamingCardBestEffort(cardId: string, sequence: number, s
     }
 }
 
-async function streamReplyToTextMessage(chatId: string, cursorReply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
+async function streamReplyToTextMessage(chatId: string, reply: ReplyStream, options: StreamReplyToLarkMessageOptions): Promise<void> {
     let replyText = '';
     let sentInitialMessage = false;
     let sentMessageId: string | undefined;
@@ -160,7 +160,7 @@ async function streamReplyToTextMessage(chatId: string, cursorReply: ReplyStream
     let initialMessageText = '';
     let lastUpdateAt = 0;
 
-    for await (const replyChunk of cursorReply) {
+    for await (const replyChunk of reply) {
         if (replyChunk.length === 0 || (replyText.length === 0 && replyChunk.trim().length === 0)) {
             continue;
         }

@@ -9,8 +9,9 @@ export type SystemTraceConfig = {
 };
 
 export type Config = {
-    cursorApiKey: string;
-    cursorModel: string;
+    aiApiKey: string;
+    aiBaseUrl?: string;
+    aiModel: string;
     cursorUsage: CursorUsageClientConfig;
     larkAppId: string;
     larkAppSecret: string;
@@ -37,8 +38,9 @@ function parsePositiveIntegerEnv(name: string, value: string): number {
 
 export function loadConfig(): Config {
     return {
-        cursorApiKey: requireEnv('CURSOR_API_KEY'),
-        cursorModel: DEFAULT_CONFIG.cursorModel,
+        aiApiKey: requireEnv('ANTHROPIC_API_KEY'),
+        aiBaseUrl: process.env.ANTHROPIC_BASE_URL?.trim() || undefined,
+        aiModel: DEFAULT_CONFIG.aiModel,
         cursorUsage: {
             baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
             cookie: process.env.CURSOR_USAGE_COOKIE?.trim() || undefined,

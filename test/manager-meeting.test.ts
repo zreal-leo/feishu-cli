@@ -54,6 +54,7 @@ describe('buildMeetingPayload', () => {
         assert.equal(payload.serviceId, '1357');
         assert.equal(payload.isTest, 0);
         assert.equal(payload.isHide, 0);
+        assert.equal(payload.enableGuestWeb, 1);
         assert.deepEqual(payload.transDestLanguage, [0, 1, 2]);
         assert.deepEqual(payload.selectedTransChannels, ['cn', 'en', 'jp']);
     });

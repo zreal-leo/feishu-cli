@@ -1,16 +1,18 @@
 import type { AssistantGateway } from '../../ports/assistant.ts';
-import { streamCursorReply } from './cursor-agent.ts';
+import { streamAIReply } from './ai-agent.ts';
 
-export type CursorAssistantGatewayOptions = {
+export type AIAssistantGatewayOptions = {
     apiKey: string;
+    baseURL?: string;
     model: string;
 };
 
-export function createCursorAssistantGateway(options: CursorAssistantGatewayOptions): AssistantGateway {
+export function createAIAssistantGateway(options: AIAssistantGatewayOptions): AssistantGateway {
     return {
         streamReply(prompt) {
-            return streamCursorReply({
+            return streamAIReply({
                 apiKey: options.apiKey,
+                baseURL: options.baseURL,
                 model: options.model,
                 prompt
             });

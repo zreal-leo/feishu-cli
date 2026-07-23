@@ -1,5 +1,5 @@
 export const DEFAULT_CONFIG = {
-    cursorModel: 'composer-2.5',
+    aiModel: 'claude-sonnet-4-6',
     cursorUsage: {
         baseUrl: 'https://cursor.com',
         pageSize: 100

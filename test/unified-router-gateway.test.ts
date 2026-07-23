@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createCursorUnifiedRouterGateway } from '../src/adapters/cursor/unified-router-gateway.ts';
+import { createAIUnifiedRouterGateway } from '../src/adapters/cursor/unified-router-gateway.ts';
 
-describe('createCursorUnifiedRouterGateway', () => {
+describe('createAIUnifiedRouterGateway', () => {
     it('returns create_meeting when the model streams meeting JSON', async () => {
-        const gateway = createCursorUnifiedRouterGateway({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            streamCursorReply: async function* () {
+        const gateway = createAIUnifiedRouterGateway({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            streamAIReply: async function* () {
                 yield JSON.stringify({
                     action: 'create_meeting',
                     title: 'AI策略会',
@@ -34,10 +34,10 @@ describe('createCursorUnifiedRouterGateway', () => {
     });
 
     it('returns an assistant stream when the model replies in plain text', async () => {
-        const gateway = createCursorUnifiedRouterGateway({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            streamCursorReply: async function* () {
+        const gateway = createAIUnifiedRouterGateway({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            streamAIReply: async function* () {
                 yield '收到，';
                 yield '我在。';
             }
@@ -58,10 +58,10 @@ describe('createCursorUnifiedRouterGateway', () => {
     });
 
     it('falls back to assistant text when JSON mode does not contain a meeting intent', async () => {
-        const gateway = createCursorUnifiedRouterGateway({
-            apiKey: 'cursor_key',
-            model: 'composer-2.5',
-            streamCursorReply: async function* () {
+        const gateway = createAIUnifiedRouterGateway({
+            apiKey: 'test_key',
+            model: 'claude-haiku-4-5',
+            streamAIReply: async function* () {
                 yield '{"action":"assistant"}';
             }
         });

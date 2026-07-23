@@ -1,9 +1,9 @@
 import type { MeetingCreatedReplyData } from '../../core/meeting.ts';
 
-export const CURSOR_REPLY_CARD_ELEMENT_ID = 'cursor_reply_content';
-const CURSOR_REPLY_INITIAL_TEXT = '正在生成回复...';
-const CURSOR_REPLY_INITIAL_SUMMARY = '生成中...';
-const CURSOR_REPLY_EMPTY_TEXT = '（无内容）';
+export const AI_REPLY_CARD_ELEMENT_ID = 'ai_reply_content';
+const AI_REPLY_INITIAL_TEXT = '正在生成回复...';
+const AI_REPLY_INITIAL_SUMMARY = '生成中...';
+const AI_REPLY_EMPTY_TEXT = '（无内容）';
 const CARD_SUMMARY_MAX_LENGTH = 50;
 
 export type LarkCardText = {
@@ -73,7 +73,7 @@ export function formatMeetingCreateFailedReply(error: unknown): string {
     return `创建会议失败：${message}`;
 }
 
-export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: { streaming?: boolean } = {}): LarkCard {
+export function buildAIReplyCard(text = AI_REPLY_INITIAL_TEXT, options: { streaming?: boolean } = {}): LarkCard {
     const streaming = options.streaming ?? false;
     return {
         schema: '2.0',
@@ -81,7 +81,7 @@ export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: 
             wide_screen_mode: true,
             streaming_mode: streaming,
             summary: {
-                content: streaming ? CURSOR_REPLY_INITIAL_SUMMARY : summarizeCardText(text)
+                content: streaming ? AI_REPLY_INITIAL_SUMMARY : summarizeCardText(text)
             },
             ...(streaming
                 ? {
@@ -101,8 +101,8 @@ export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: 
             elements: [
                 {
                     tag: 'markdown',
-                    element_id: CURSOR_REPLY_CARD_ELEMENT_ID,
-                    content: text.trim().length > 0 ? text : CURSOR_REPLY_EMPTY_TEXT
+                    element_id: AI_REPLY_CARD_ELEMENT_ID,
+                    content: text.trim().length > 0 ? text : AI_REPLY_EMPTY_TEXT
                 }
             ]
         }
@@ -110,7 +110,7 @@ export function buildCursorReplyCard(text = CURSOR_REPLY_INITIAL_TEXT, options: 
 }
 
 export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard {
-    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**观看链接：** ${data.netLiveUrl}`];
+    const detailLines = [`**会议标题：** ${data.title}`, `**会议 ID：** ${data.roadshowId}`, `**观看链接：** \`${data.netLiveUrl}\``];
     if (data.cloudPlayerCreated) {
         detailLines.push('**云播：** 已创建');
     } else if (data.cloudPlayerError) {
