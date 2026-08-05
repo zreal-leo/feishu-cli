@@ -15,7 +15,10 @@
         "test": "tsx --test test/**/*.test.ts",
         "typecheck": "tsc --noEmit",
         "format": "oxfmt --write .",
-        "format:check": "oxfmt --check ."
+        "format:check": "oxfmt --check .",
+        "service:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 status",
+        "service:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 stop",
+        "service:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 start"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.115.0",
