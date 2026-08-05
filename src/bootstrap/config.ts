@@ -1,8 +1,11 @@
 import 'dotenv/config';
 
+import type { AIEffort } from '../adapters/cursor/ai-agent.ts';
 import type { CursorUsageClientConfig } from '../adapters/cursor/cursor-usage-client.ts';
 import type { ManagerMeetingConfig } from '../adapters/manager/manager-meeting.ts';
 import { DEFAULT_CONFIG } from './default-config.ts';
+
+export type { AIEffort };
 
 export type SystemTraceConfig = {
     logPath: string;
@@ -12,6 +15,7 @@ export type Config = {
     aiApiKey: string;
     aiBaseUrl?: string;
     aiModel: string;
+    aiEffort: AIEffort;
     cursorUsage: CursorUsageClientConfig;
     larkAppId: string;
     larkAppSecret: string;
@@ -41,6 +45,7 @@ export function loadConfig(): Config {
         aiApiKey: requireEnv('ANTHROPIC_API_KEY'),
         aiBaseUrl: process.env.ANTHROPIC_BASE_URL?.trim() || undefined,
         aiModel: DEFAULT_CONFIG.aiModel,
+        aiEffort: DEFAULT_CONFIG.aiEffort,
         cursorUsage: {
             baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
             cookie: process.env.CURSOR_USAGE_COOKIE?.trim() || undefined,

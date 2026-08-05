@@ -1,4 +1,4 @@
-import type { AskAIOptions } from './ai-agent.ts';
+import type { AskAIOptions, AIEffort } from './ai-agent.ts';
 import { askAI as defaultAskAI } from './ai-agent.ts';
 import { buildMeetingRoutingInstructions } from '../../core/meeting-routing-instructions.ts';
 import { MEETING_EVENT_MODE_LABELS, MEETING_EVENT_WAY_LABELS, MEETING_PERMISSION_OPTIONS } from '../../core/meeting.ts';
@@ -11,6 +11,7 @@ export type AIMeetingIntentParserOptions = {
     apiKey: string;
     baseURL?: string;
     model: string;
+    effort?: AIEffort;
     askAI?: AskAI;
 };
 
@@ -81,6 +82,7 @@ export function createAIMeetingIntentParser(options: AIMeetingIntentParserOption
                 apiKey: options.apiKey,
                 baseURL: options.baseURL,
                 model: options.model,
+                effort: options.effort,
                 prompt: buildMeetingIntentPrompt(input)
             });
             return parseMeetingIntentResponse(responseText);

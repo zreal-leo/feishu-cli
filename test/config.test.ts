@@ -47,6 +47,7 @@ describe('loadConfig', () => {
 
         assert.equal(config.aiApiKey, 'test_key');
         assert.equal(config.aiModel, DEFAULT_CONFIG.aiModel);
+        assert.equal(config.aiEffort, DEFAULT_CONFIG.aiEffort);
         assert.deepEqual(config.cursorUsage, {
             baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
             cookie: 'WorkosCursorSessionToken=session',

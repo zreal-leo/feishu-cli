@@ -42,7 +42,8 @@ export function startBot(config: Config): void {
     const router = createAIUnifiedRouterGateway({
         apiKey: config.aiApiKey,
         baseURL: config.aiBaseUrl,
-        model: config.aiModel
+        model: config.aiModel,
+        effort: config.aiEffort
     });
     const meetings = createManagerMeetingGateway(config.managerMeeting);
     const usage = createCursorUsageClient(config.cursorUsage);
