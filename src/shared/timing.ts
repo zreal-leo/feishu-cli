@@ -7,7 +7,7 @@ export function createSegmentTimer(now: () => number = () => performance.now()):
     mark: () => SegmentTiming;
 } {
     const startedAt = now();
-    let previousAt = startedAt;
+    let previousAt = startedAt
 
     return {
         mark() {
@@ -16,7 +16,7 @@ export function createSegmentTimer(now: () => number = () => performance.now()):
             const totalMs = Math.max(0, currentAt - startedAt);
             previousAt = currentAt;
 
-            return { segmentMs, totalMs };
+            return { segmentMs, totalMs }
         }
     };
 }
