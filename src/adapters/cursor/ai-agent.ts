@@ -1,9 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+export type AIEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 export type AskAIOptions = {
     apiKey: string;
     baseURL?: string;
     model: string;
+    effort?: AIEffort;
     prompt: string;
     cwd?: string;
 };
@@ -25,7 +28,11 @@ export async function* streamAIReply(options: AskAIOptions): AsyncGenerator<stri
 
     const stream = client.messages.stream({
         model: options.model,
-        max_tokens: 4096,
+        max_tokens: 16000,
+        thinking: { type: 'adaptive' },
+        output_config: {
+            effort: options.effort ?? 'high'
+        },
         messages: [{ role: 'user', content: options.prompt }]
     });
 

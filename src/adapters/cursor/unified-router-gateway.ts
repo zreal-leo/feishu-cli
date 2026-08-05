@@ -1,3 +1,4 @@
+import type { AIEffort } from './ai-agent.ts';
 import { buildUnifiedRouterPrompt } from '../../core/unified-router-prompt.ts';
 import type { ParseMeetingParametersInput, ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
 import type { MessageRouterGateway, RoutedMessage } from '../../ports/message-router.ts';
@@ -10,6 +11,7 @@ export type AIUnifiedRouterGatewayOptions = {
     apiKey: string;
     baseURL?: string;
     model: string;
+    effort?: AIEffort;
     streamAIReply?: typeof streamAIReply;
 };
 
@@ -20,16 +22,17 @@ export function createAIUnifiedRouterGateway(options: AIUnifiedRouterGatewayOpti
 
     return {
         route(input) {
-            return routeMessage(input, streamReply, options.apiKey, options.baseURL, options.model);
+            return routeMessage(input, streamReply, options.apiKey, options.baseURL, options.model, options.effort);
         }
     };
 }
 
-async function routeMessage(input: ParseMeetingParametersInput, streamReply: typeof streamAIReply, apiKey: string, baseURL: string | undefined, model: string): Promise<RoutedMessage> {
+async function routeMessage(input: ParseMeetingParametersInput, streamReply: typeof streamAIReply, apiKey: string, baseURL: string | undefined, model: string, effort: AIEffort | undefined): Promise<RoutedMessage> {
     const source = streamReply({
         apiKey,
         baseURL,
         model,
+        effort,
         prompt: buildUnifiedRouterPrompt(input)
     });
     const iterator = source[Symbol.asyncIterator]();

@@ -1,5 +1,6 @@
 export const DEFAULT_CONFIG = {
-    aiModel: 'claude-sonnet-4-6',
+    aiModel: 'gpt-5.6-luna',
+    aiEffort: 'high',
     cursorUsage: {
         baseUrl: 'https://cursor.com',
         pageSize: 100
