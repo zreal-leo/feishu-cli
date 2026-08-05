@@ -5,12 +5,16 @@ on:
         branches:
             - main
 
+concurrency:
+    group: pr-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
 permissions:
     contents: read
 
 jobs:
-    format:
-        name: Format
+    checks:
+        name: Checks
         runs-on: ubuntu-latest
 
         steps:
@@ -29,5 +33,14 @@ jobs:
                   node-version: 24
                   cache: pnpm
 
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --registry https://registry.npmjs.org
+
             - name: Check formatting
-              run: pnpm dlx oxfmt@0.55.0 --check .
+              run: pnpm format:check
+
+            - name: Typecheck
+              run: pnpm typecheck
+
+            - name: Test
+              run: pnpm test

@@ -15,8 +15,7 @@
         "test": "tsx --test test/**/*.test.ts",
         "typecheck": "tsc --noEmit",
         "format": "oxfmt --write .",
-        "format:check": "oxfmt --check .",
-        "git:prune-branches": "node scripts/prune-gone-branches.mjs"
+        "format:check": "oxfmt --check ."
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.115.0",
