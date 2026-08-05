@@ -1,13 +1,15 @@
 import { spawnSync } from 'node:child_process';
 import { rm, mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 
 import { build } from 'esbuild';
 
 const require = createRequire(import.meta.url);
 
 function runTypeCheck() {
-    const tscBin = require.resolve('typescript/bin/tsc');
+    const typescriptRoot = dirname(require.resolve('typescript/package.json'));
+    const tscBin = join(typescriptRoot, 'bin', 'tsc');
     const result = spawnSync(process.execPath, [tscBin, '-p', 'tsconfig.build.json', '--noEmit'], {
         stdio: 'inherit'
     });
