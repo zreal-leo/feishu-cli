@@ -111,8 +111,7 @@ describe('startWeeklyReportScheduler', () => {
             hour: 18,
             minute: 0,
             now: () => localDate(2026, 8, 6, 12, 0),
-            setTimeoutFn: (() =>
-                42 as unknown as ReturnType<typeof setTimeout>) as unknown as typeof setTimeout,
+            setTimeoutFn: (() => 42 as unknown as ReturnType<typeof setTimeout>) as unknown as typeof setTimeout,
             clearTimeoutFn: id => {
                 cleared.push(id as number);
             },

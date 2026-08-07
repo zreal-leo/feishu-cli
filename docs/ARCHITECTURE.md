@@ -17,6 +17,8 @@ src/
     bot-application.ts           # 去重 / 串行队列 / reaction / trace / 回复编排
     serial-job-queue.ts          # 串行任务队列
     in-memory-dedup-store.ts     # 消息去重存储
+    weekly-report-job.ts         # 周报任务：读 NDJSON、生成复盘、私聊推送
+    weekly-report-scheduler.ts   # 周五本地时刻调度（可配置 hour/minute）
   core/                          # 领域核心（不依赖任何 adapter）
     types.ts                     # MessageInput / BotReply / ReplyStream / CommandHandler
     command-registry.ts          # 命令注册表（按序匹配 + 兜底）
@@ -25,6 +27,8 @@ src/
     meeting.ts                   # 会议领域类型与枚举标签
     cursor-usage.ts              # 用量领域类型与格式化
     system-trace.ts              # Trace 记录类型 / 计时 / 输出捕获 / 序列化
+    weekly-commit-week.ts        # 周日至周六周界、YYYY-Month-Wn 文件名
+    weekly-commit.ts             # NDJSON 解析 / 按项目分组 / Prompt 与空周文案
     commands/
       meeting-router-command.ts  # 兜底命令：LLM 意图路由（创建会议 or 助手）
       cursor-usage-command.ts    # 查询 token 用量命令
@@ -32,6 +36,7 @@ src/
   ports/                         # 端口（核心 / 应用依赖的抽象接口）
     reply.ts  assistant.ts  meeting.ts  cursor-usage.ts
     reaction.ts  trace.ts  runtime.ts   # runtime 仅 Logger/DedupStore/JobQueue
+    weekly-commit-store.ts  weekly-report.ts
   adapters/                      # 适配器（端口的具体实现）
     lark/
       protocol.ts                # Lark 事件类型 + 内容/表情序列化
@@ -47,6 +52,8 @@ src/
     manager/
       manager-meeting.ts         # MeetingGateway 实现（登录/token/会议/云播）
     file-system-trace.ts         # SystemTraceCollector 实现（NDJSON 落盘）
+    file-system-weekly-commit-store.ts  # WeeklyCommitStore（只读 docs/weekly-commits）
+    ai-weekly-report-generator.ts       # WeeklyReportGenerator（AI 复盘文本）
   shared/
     timing.ts                    # 无业务依赖的计时工具
 ```
@@ -188,4 +195,4 @@ sequenceDiagram
 
 ## 测试组织
 
-测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `cursor-usage` / `cursor-agent`（cursor 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。
+测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `cursor-usage` / `cursor-agent`（cursor 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`weekly-commit` / `weekly-report-job` / `weekly-report-scheduler`（周报）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。

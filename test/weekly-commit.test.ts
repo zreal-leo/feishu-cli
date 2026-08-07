@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-    EMPTY_WEEKLY_REPORT_TEXT,
-    buildWeeklyReportPrompt,
-    groupWeeklyCommitsByProject,
-    parseWeeklyCommitNdjson
-} from '../src/core/weekly-commit.ts';
+import { EMPTY_WEEKLY_REPORT_TEXT, buildWeeklyReportPrompt, groupWeeklyCommitsByProject, parseWeeklyCommitNdjson } from '../src/core/weekly-commit.ts';
 
 describe('weekly-commit', () => {
     it('parses valid lines, skips bad lines, and groups by project', () => {

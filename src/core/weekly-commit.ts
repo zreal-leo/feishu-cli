@@ -10,15 +10,7 @@ export type WeeklyCommitEntry = {
 
 export const EMPTY_WEEKLY_REPORT_TEXT = '本周无提交记录';
 
-const REQUIRED_STRING_FIELDS: (keyof WeeklyCommitEntry)[] = [
-    'timestamp',
-    'project',
-    'projectPath',
-    'hash',
-    'branch',
-    'subject',
-    'body'
-];
+const REQUIRED_STRING_FIELDS: (keyof WeeklyCommitEntry)[] = ['timestamp', 'project', 'projectPath', 'hash', 'branch', 'subject', 'body'];
 
 function isWeeklyCommitEntry(value: unknown): value is WeeklyCommitEntry {
     if (typeof value !== 'object' || value === null) {
@@ -26,7 +18,7 @@ function isWeeklyCommitEntry(value: unknown): value is WeeklyCommitEntry {
     }
 
     const record = value as Record<string, unknown>;
-    return REQUIRED_STRING_FIELDS.every((field) => typeof record[field] === 'string');
+    return REQUIRED_STRING_FIELDS.every(field => typeof record[field] === 'string');
 }
 
 export function parseWeeklyCommitNdjson(text: string): {
@@ -72,12 +64,7 @@ export function groupWeeklyCommitsByProject(entries: WeeklyCommitEntry[]): Map<s
     return grouped;
 }
 
-export function buildWeeklyReportPrompt(input: {
-    weekFileName: string;
-    sunday: string;
-    saturday: string;
-    entries: WeeklyCommitEntry[];
-}): string {
+export function buildWeeklyReportPrompt(input: { weekFileName: string; sunday: string; saturday: string; entries: WeeklyCommitEntry[] }): string {
     const lines = [
         '根据下列 commit 生成复盘周报；按项目分节；每节含简短总结与关键提交摘录；不要编造对话；输出纯文本。',
         '',

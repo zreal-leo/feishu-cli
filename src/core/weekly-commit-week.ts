@@ -1,17 +1,4 @@
-export const ENGLISH_MONTH_NAMES = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-] as const;
+export const ENGLISH_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as const;
 
 export function getWeekSunday(date: Date): Date {
     const sunday = new Date(date);
