@@ -15,7 +15,10 @@ const managedEnvNames = [
     'ENV',
     'MANAGER_BASE_URL',
     'MANAGER_LOGIN_NAME',
-    'MANAGER_PASSWORD'
+    'MANAGER_PASSWORD',
+    'WEEKLY_REPORT_CHAT_ID',
+    'WEEKLY_REPORT_HOUR',
+    'WEEKLY_REPORT_MINUTE'
 ] as const;
 const originalEnv = new Map<string, string | undefined>(managedEnvNames.map(name => [name, process.env[name]]));
 
@@ -98,6 +101,42 @@ describe('loadConfig', () => {
 
         assert.deepEqual(config.systemTrace, {
             logPath: DEFAULT_CONFIG.systemTrace.logPath
+        });
+    });
+
+    it('loads weekly report defaults when WEEKLY_REPORT_CHAT_ID is missing', () => {
+        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.LARK_APP_ID = 'lark_app_id';
+        process.env.LARK_APP_SECRET = 'lark_app_secret';
+        delete process.env.WEEKLY_REPORT_CHAT_ID;
+        delete process.env.WEEKLY_REPORT_HOUR;
+        delete process.env.WEEKLY_REPORT_MINUTE;
+
+        const config = loadConfig();
+
+        assert.deepEqual(config.weeklyReport, {
+            chatId: undefined,
+            hour: DEFAULT_CONFIG.weeklyReport.hour,
+            minute: DEFAULT_CONFIG.weeklyReport.minute,
+            directory: DEFAULT_CONFIG.weeklyReport.directory
+        });
+    });
+
+    it('loads weekly report chatId and optional schedule overrides from env', () => {
+        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.LARK_APP_ID = 'lark_app_id';
+        process.env.LARK_APP_SECRET = 'lark_app_secret';
+        process.env.WEEKLY_REPORT_CHAT_ID = 'oc_chat_id';
+        process.env.WEEKLY_REPORT_HOUR = '9';
+        process.env.WEEKLY_REPORT_MINUTE = '30';
+
+        const config = loadConfig();
+
+        assert.deepEqual(config.weeklyReport, {
+            chatId: 'oc_chat_id',
+            hour: 9,
+            minute: 30,
+            directory: DEFAULT_CONFIG.weeklyReport.directory
         });
     });
 });
