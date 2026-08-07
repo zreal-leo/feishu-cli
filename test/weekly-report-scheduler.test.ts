@@ -35,6 +35,12 @@ describe('getNextFridayAtLocalTime', () => {
         const next = getNextFridayAtLocalTime(from, 18, 0);
         assertSameLocalTime(next, localDate(2026, 8, 14, 18, 0));
     });
+
+    it('returns next Friday 18:00 when from is Friday exactly at target time', () => {
+        const from = localDate(2026, 8, 7, 18, 0);
+        const next = getNextFridayAtLocalTime(from, 18, 0);
+        assertSameLocalTime(next, localDate(2026, 8, 14, 18, 0));
+    });
 });
 
 describe('startWeeklyReportScheduler', () => {

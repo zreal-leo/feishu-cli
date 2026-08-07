@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { EMPTY_WEEKLY_REPORT_TEXT } from '../src/core/weekly-commit.ts';
+import { EMPTY_WEEKLY_REPORT_TEXT, WEEKLY_REPORT_FAILURE_TEXT } from '../src/core/weekly-commit.ts';
 import { createWeeklyReportJob } from '../src/app/weekly-report-job.ts';
 import type { WeeklyCommitEntry } from '../src/core/weekly-commit.ts';
 
@@ -82,9 +82,46 @@ describe('createWeeklyReportJob', () => {
         assert.deepEqual(sent, [{ chatId: 'chat-2', text: '## 周报\n内容' }]);
     });
 
-    it('logs generator errors without rethrowing or sending', async () => {
+    it('sends a failure notice when generator fails after entries were loaded', async () => {
         const errors: unknown[] = [];
-        let sendCalled = false;
+        const sent: Array<{ chatId: string; text: string }> = [];
+
+        const job = createWeeklyReportJob({
+            store: {
+                listCommitsForWeekFile: async () => ({
+                    entries: [sampleEntry],
+                    skippedLines: 0,
+                    missing: false
+                })
+            },
+            generator: {
+                generate: async () => {
+                    throw new Error('generation failed');
+                }
+            },
+            sendText: async (chatId, text) => {
+                sent.push({ chatId, text });
+            },
+            chatId: 'chat-3',
+            now: fixedNow,
+            logger: {
+                info: () => {},
+                warn: () => {},
+                error: (_message, error) => {
+                    errors.push(error);
+                }
+            }
+        });
+
+        await assert.doesNotReject(async () => job.run());
+
+        assert.deepEqual(sent, [{ chatId: 'chat-3', text: WEEKLY_REPORT_FAILURE_TEXT }]);
+        assert.equal(errors.length, 1);
+        assert.equal((errors[0] as Error).message, 'generation failed');
+    });
+
+    it('logs when failure notice send also fails after generator error', async () => {
+        const errors: unknown[] = [];
 
         const job = createWeeklyReportJob({
             store: {
@@ -100,9 +137,9 @@ describe('createWeeklyReportJob', () => {
                 }
             },
             sendText: async () => {
-                sendCalled = true;
+                throw new Error('send failed');
             },
-            chatId: 'chat-3',
+            chatId: 'chat-4',
             now: fixedNow,
             logger: {
                 info: () => {},
@@ -115,8 +152,8 @@ describe('createWeeklyReportJob', () => {
 
         await assert.doesNotReject(async () => job.run());
 
-        assert.equal(sendCalled, false);
-        assert.equal(errors.length, 1);
+        assert.equal(errors.length, 2);
         assert.equal((errors[0] as Error).message, 'generation failed');
+        assert.equal((errors[1] as Error).message, 'send failed');
     });
 });

@@ -9,6 +9,7 @@ export type WeeklyCommitEntry = {
 };
 
 export const EMPTY_WEEKLY_REPORT_TEXT = '本周无提交记录';
+export const WEEKLY_REPORT_FAILURE_TEXT = '本周周报生成失败，请查看日志';
 
 const REQUIRED_STRING_FIELDS: (keyof WeeklyCommitEntry)[] = ['timestamp', 'project', 'projectPath', 'hash', 'branch', 'subject', 'body'];
 
@@ -28,7 +29,9 @@ export function parseWeeklyCommitNdjson(text: string): {
     const entries: WeeklyCommitEntry[] = [];
     let skippedLines = 0;
 
-    for (const line of text.split('\n')) {
+    const normalized = text.replace(/^\uFEFF/, '');
+
+    for (const line of normalized.split('\n')) {
         const trimmed = line.trim();
         if (trimmed === '') {
             continue;
@@ -65,6 +68,20 @@ export function groupWeeklyCommitsByProject(entries: WeeklyCommitEntry[]): Map<s
 }
 
 export function buildWeeklyReportPrompt(input: { weekFileName: string; sunday: string; saturday: string; entries: WeeklyCommitEntry[] }): string {
+    const grouped = groupWeeklyCommitsByProject(input.entries);
+    const projectSections: string[] = [];
+
+    for (const [project, commits] of grouped) {
+        const commitLines = commits.map(entry => {
+            const line = `${entry.hash} ${entry.subject}`;
+            if (entry.body.trim() !== '') {
+                return `${line}\n${entry.body}`;
+            }
+            return line;
+        });
+        projectSections.push(`${project}\n${commitLines.join('\n')}`);
+    }
+
     const lines = [
         '根据下列 commit 生成复盘周报；按项目分节；每节含简短总结与关键提交摘录；不要编造对话；输出纯文本。',
         '',
@@ -72,7 +89,7 @@ export function buildWeeklyReportPrompt(input: { weekFileName: string; sunday: s
         `原料文件：${input.weekFileName}`,
         '',
         '提交记录：',
-        JSON.stringify(input.entries, null, 2)
+        projectSections.join('\n\n')
     ];
 
     return lines.join('\n');

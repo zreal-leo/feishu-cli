@@ -27,3 +27,9 @@ pnpm-debug.log*
 # OS and editor metadata
 .DS_Store
 .vscode/
+
+# Superpowers SDD scratch
+.superpowers/
+
+# Weekly commit NDJSON (local-only; .gitkeep stays tracked)
+docs/weekly-commits/*.ndjson

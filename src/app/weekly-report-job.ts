@@ -1,4 +1,4 @@
-import { EMPTY_WEEKLY_REPORT_TEXT, buildWeeklyReportPrompt } from '../core/weekly-commit.ts';
+import { EMPTY_WEEKLY_REPORT_TEXT, WEEKLY_REPORT_FAILURE_TEXT, buildWeeklyReportPrompt } from '../core/weekly-commit.ts';
 import { formatWeeklyCommitFileName, getWeekRangeLabels } from '../core/weekly-commit-week.ts';
 import type { WeeklyCommitStore } from '../ports/weekly-commit-store.ts';
 import type { WeeklyReportGenerator } from '../ports/weekly-report.ts';
@@ -41,8 +41,18 @@ export function createWeeklyReportJob(options: WeeklyReportJobOptions): { run():
                     saturday,
                     entries
                 });
-                const text = await options.generator.generate(prompt);
-                await options.sendText(options.chatId, text);
+
+                try {
+                    const text = await options.generator.generate(prompt);
+                    await options.sendText(options.chatId, text);
+                } catch (generateError) {
+                    logger.error('[weekly-report-job] generate failed', generateError);
+                    try {
+                        await options.sendText(options.chatId, WEEKLY_REPORT_FAILURE_TEXT);
+                    } catch (sendError) {
+                        logger.error('[weekly-report-job] failure notice send failed', sendError);
+                    }
+                }
             } catch (error) {
                 logger.error('[weekly-report-job] run failed', error);
             }

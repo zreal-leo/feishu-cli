@@ -30,6 +30,33 @@ describe('createFileSystemWeeklyCommitStore', () => {
         assert.equal(result.skippedLines, 0);
     });
 
+    it('warns when invalid lines are skipped', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'lark-cli-weekly-'));
+        const fileName = '2026-August-W1.ndjson';
+        const entry = {
+            timestamp: '2026-08-07T10:00:00+08:00',
+            project: 'alpha',
+            projectPath: 'e:\\a',
+            hash: 'aaa',
+            branch: 'main',
+            subject: 'feat: a',
+            body: ''
+        };
+        await writeFile(join(directory, fileName), `${JSON.stringify(entry)}\n{not-json}\n`, 'utf8');
+
+        const warnings: string[] = [];
+        const store = createFileSystemWeeklyCommitStore({
+            directory,
+            logger: { warn: message => warnings.push(message) }
+        });
+        const result = await store.listCommitsForWeekFile(fileName);
+
+        assert.equal(result.entries.length, 1);
+        assert.equal(result.skippedLines, 1);
+        assert.equal(warnings.length, 1);
+        assert.match(warnings[0]!, /skipped 1 invalid lines/);
+    });
+
     it('returns empty result when the week file is missing', async () => {
         const directory = await mkdtemp(join(tmpdir(), 'lark-cli-weekly-'));
         const store = createFileSystemWeeklyCommitStore({ directory });
