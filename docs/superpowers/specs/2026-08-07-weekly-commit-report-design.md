@@ -11,7 +11,7 @@
 | 项 | 约定 |
 | --- | --- |
 | 触发 | 每周五定时（默认 18:00，可配置） |
-| 原料位置 | 仅 `feishu-cli` 下 `docs/weekly-commits/` |
+| 原料位置 | 仅 `feishu-cli` 下 `weekly-commits/` |
 | 投递 | 飞书私聊（配置 `chatId`） |
 | 内容风格 | 关键提交摘录 + 简短总结（复盘向） |
 | 项目区分 | 每条 NDJSON 含 `project`（及路径），周报按该字段分组 |
@@ -27,7 +27,7 @@
 ### 落盘根目录（固定为 feishu-cli）
 
 - 原料**始终**写入 `feishu-cli` 仓库，而不是当前提交所在仓库。
-- 目录：`<feishu-cli 根>/docs/weekly-commits/`（不存在则创建）
+- 目录：`<feishu-cli 根>/weekly-commits/`（不存在则创建）
 - `feishu-cli` 根路径解析顺序：
   1. 环境变量 `FEISHU_CLI_ROOT`（若已设置）
   2. 否则使用 skill 内约定的本机默认绝对路径（实现 skill 时写成可改的一处常量；当前开发机为 `e:\opensource\feishu-cli`）
@@ -85,7 +85,7 @@
 ### 目录示例（均在 feishu-cli 内）
 
 ```text
-feishu-cli/docs/weekly-commits/
+feishu-cli/weekly-commits/
   2026-July-W4.ndjson
   2026-August-W1.ndjson
 ```
@@ -97,7 +97,7 @@ feishu-cli/docs/weekly-commits/
 保持现有「模块化单体 + 端口适配器」：
 
 - `ports/`：周报原料读取、周报生成、定时调度抽象（按实现需要拆分，避免把文件系统细节泄漏进 `core`）
-- `adapters/`：只读本仓库 `docs/weekly-commits/<本周文件>`；复用现有 AI 能力生成摘要；Lark 按 `chatId` 发私聊文本（首版文本即可）
+- `adapters/`：只读本仓库 `weekly-commits/<本周文件>`；复用现有 AI 能力生成摘要；Lark 按 `chatId` 发私聊文本（首版文本即可）
 - `app/` 或 `bootstrap/`：注册周五定时任务；失败只打日志，不影响 WebSocket 收消息主路径
 - `core/`：周文件名计算、原料解析、按 `project` 分组、周报 Prompt 组装（纯逻辑，便于单测）
 
@@ -107,7 +107,7 @@ feishu-cli/docs/weekly-commits/
 | --- | --- |
 | 私聊 `chatId` | 周报投递目标 |
 | 触发时刻 | 默认周五 18:00（本地时区），可配置 |
-| 原料目录 | 默认 `docs/weekly-commits`（相对本仓库根；一般无需改） |
+| 原料目录 | 默认 `weekly-commits`（相对本仓库根；一般无需改） |
 | 启用条件 | 未配置 `chatId` 时不启动调度 |
 
 不再配置「多项目根路径列表」。敏感信息与 `chatId` 走环境变量，与现有 `config.ts` 模式一致。
@@ -117,7 +117,7 @@ feishu-cli/docs/weekly-commits/
 ```text
 周五定时器
   → 计算本周文件名（与 skill 同一规则）
-  → 读取本仓库 docs/weekly-commits/<本周文件>
+  → 读取本仓库 weekly-commits/<本周文件>
   → 按 project 字段分组
   → AI 生成复盘周报
   → Lark 发到私聊 chatId

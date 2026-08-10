@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 任意仓库经 commit skill 提交后，将带 `project` 的 commit 原料集中写入 `feishu-cli/docs/weekly-commits/`；进程每周五读取本周文件、用 AI 生成复盘周报并推送到配置的飞书私聊。
+**Goal:** 任意仓库经 commit skill 提交后，将带 `project` 的 commit 原料集中写入 `feishu-cli/weekly-commits/`；进程每周五读取本周文件、用 AI 生成复盘周报并推送到配置的飞书私聊。
 
 **Architecture:** 周界与文件名纯函数放在 `core/`；NDJSON 读取在 `adapters/`；周报生成复用现有 Anthropic `askAI`；`app/weekly-report-job.ts` 编排「读原料 → 生成 → 发送」；`bootstrap` 在配置了 `chatId` 时用无第三方依赖的定时器挂载周五任务。Commit skill（个人 skill）只负责提交成功后向 `feishu-cli` 追加一行。
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 一周：周日 00:00 ～ 周六 23:59（本地时区）；归属月按该周**周日**所在月；文件名 `YYYY-Month-Wn.ndjson`（英文月名）。
-- 原料只写/只读 `feishu-cli` 的 `docs/weekly-commits/`，不扫描其他项目路径。
+- 原料只写/只读 `feishu-cli` 的 `weekly-commits/`，不扫描其他项目路径。
 - 每条记录必须含 `project` 与 `projectPath`；周报按 `project` 分组。
 - 写入原料时永不 `git add`；落盘失败不回滚已成功的 git commit。
 - 未配置周报私聊 `chatId` 时不启动调度；空周仍发送「本周无提交记录」。
@@ -28,13 +28,13 @@
 | `src/core/weekly-commit.ts` | 条目类型、NDJSON 解析、按 project 分组、空周文案、周报 Prompt |
 | `src/ports/weekly-commit-store.ts` | `listCommitsForWeekFile(fileName)` |
 | `src/ports/weekly-report.ts` | `generateWeeklyReport(input)` |
-| `src/adapters/file-system-weekly-commit-store.ts` | 读本仓库 `docs/weekly-commits` |
+| `src/adapters/file-system-weekly-commit-store.ts` | 读本仓库 `weekly-commits` |
 | `src/adapters/ai-weekly-report-generator.ts` | 调用 `askAI` 生成周报正文 |
 | `src/app/weekly-report-job.ts` | 编排一次周报任务 |
 | `src/app/weekly-report-scheduler.ts` | 计算下次周五触发并 `setTimeout` 链式调度 |
 | `src/bootstrap/default-config.ts` / `config.ts` | `weeklyReport` 配置 |
 | `src/bootstrap/composition-root.ts` | 装配并启动调度 |
-| `docs/weekly-commits/.gitkeep` | 保证空目录可入库 |
+| `weekly-commits/.gitkeep` | 保证空目录可入库 |
 | `test/weekly-commit-week.test.ts` 等 | 单测 |
 | `.env.example` / `AGENTS.md` | 可选环境变量说明（内部） |
 
@@ -288,7 +288,7 @@ git add src/ports/weekly-commit-store.ts src/adapters/file-system-weekly-commit-
 $commitMessage = @'
 feat(weekly): 新增本仓库周报原料文件读取适配器
 
-只读 docs/weekly-commits 下指定周文件，缺失时返回空结果。
+只读 weekly-commits 下指定周文件，缺失时返回空结果。
 '@
 git commit -m $commitMessage
 ```
@@ -383,11 +383,11 @@ git commit -m $commitMessage
 - Modify: `src/bootstrap/composition-root.ts`
 - Modify: `test/config.test.ts`（补充：缺 `WEEKLY_REPORT_CHAT_ID` 时 `weeklyReport.enabled` 为 false / chatId 为空）
 - Modify: `.env.example`（若存在）与 `AGENTS.md` 环境变量表（可选内部说明：`WEEKLY_REPORT_CHAT_ID`、`WEEKLY_REPORT_HOUR`、`WEEKLY_REPORT_MINUTE`）
-- Create: `docs/weekly-commits/.gitkeep`
+- Create: `weekly-commits/.gitkeep`
 
 **Interfaces:**
 - `Config.weeklyReport = { chatId?: string; hour: number; minute: number; directory: string }`
-- 默认：`directory: 'docs/weekly-commits'`，`hour: 18`，`minute: 0`
+- 默认：`directory: 'weekly-commits'`，`hour: 18`，`minute: 0`
 - `chatId` 来自 `WEEKLY_REPORT_CHAT_ID`（可选，非必填启动项）
 - 仅当 `chatId` 非空时：创建 store（directory 相对 `process.cwd()` 或 `path.resolve`）、generator（复用 config AI）、`sendText` 用现有 `messageSender.sendTextMessage`、`startWeeklyReportScheduler`
 
@@ -417,7 +417,7 @@ git commit -m $commitMessage
 3. 取当前仓库：`git rev-parse --show-toplevel` → `projectPath`；`Split-Path -Leaf` → `project`
 4. `git rev-parse --short HEAD`、`git branch --show-current`（空则 `HEAD`）
 5. 用与仓库相同的周规则计算本周文件名（skill 内写明算法 + 示例；可用一小段 PowerShell 计算周日与 Wn，或调用仓库脚本——首版在 skill 内嵌 PowerShell，避免依赖 `pnpm`）
-6. `New-Item -Force` 创建 `docs/weekly-commits`
+6. `New-Item -Force` 创建 `weekly-commits`
 7. 将一条 JSON（含 `timestamp` ISO 本地偏移、`project`、`projectPath`、`hash`、`branch`、`subject`、`body`）`Add-Content` 追加到目标 `.ndjson`
 8. 提示用户目标路径；**禁止** `git add` 该文件
 9. 强调：仅实际 `git commit` 成功后执行；只生成文案时跳过
@@ -431,7 +431,7 @@ git commit -m $commitMessage
 ### Task 9: 冒烟与收尾
 
 **Files:**
-- 可选手动：在 `docs/weekly-commits/` 放入样例行，临时在 REPL/`tsx` 调用 `createWeeklyReportJob(...).run()`（不提交调试脚本除非有用）
+- 可选手动：在 `weekly-commits/` 放入样例行，临时在 REPL/`tsx` 调用 `createWeeklyReportJob(...).run()`（不提交调试脚本除非有用）
 - Modify: `docs/ARCHITECTURE.md` — 在目录结构中增加 weekly 相关文件一行（保持与实现一致）
 
 - [ ] **Step 1: Run full verification**
@@ -458,7 +458,7 @@ Expected: all pass
 | --- | --- |
 | 周日～周六周界、周日归属月、`YYYY-Month-Wn` | Task 1 |
 | NDJSON 字段含 project/projectPath、坏行跳过、按项目分组、Prompt/空周文案 | Task 2 |
-| 只读本仓库 docs/weekly-commits | Task 3 |
+| 只读本仓库 weekly-commits | Task 3 |
 | AI 生成复盘 | Task 4 |
 | 空周推送、错误不拖垮 | Task 5 |
 | 周五可配置时刻调度 | Task 6 |

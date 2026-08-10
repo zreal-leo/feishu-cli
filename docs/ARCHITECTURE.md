@@ -52,7 +52,7 @@ src/
     manager/
       manager-meeting.ts         # MeetingGateway 实现（登录/token/会议/云播）
     file-system-trace.ts         # SystemTraceCollector 实现（NDJSON 落盘）
-    file-system-weekly-commit-store.ts  # WeeklyCommitStore（只读 docs/weekly-commits）
+    file-system-weekly-commit-store.ts  # WeeklyCommitStore（只读 weekly-commits）
     ai-weekly-report-generator.ts       # WeeklyReportGenerator（AI 复盘文本）
   shared/
     timing.ts                    # 无业务依赖的计时工具

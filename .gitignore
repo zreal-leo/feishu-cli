@@ -32,4 +32,4 @@ pnpm-debug.log*
 .superpowers/
 
 # Weekly commit NDJSON (local-only; .gitkeep stays tracked)
-docs/weekly-commits/*.ndjson
+weekly-commits/*.ndjson
