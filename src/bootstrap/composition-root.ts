@@ -78,7 +78,11 @@ export function startBot(config: Config): void {
                 `[lark-bot] received message chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} senderId=${message.sender?.id ?? 'unknown'} senderName=${message.sender?.name ?? 'unknown'} textLength=${message.text.length}`
             );
             application.handleMessage(message);
-        }
+        },
+        // Subscribed in the developer console but unused; empty handlers silence SDK warnings.
+        'im.message.reaction.created_v1': () => undefined,
+        'im.message.reaction.deleted_v1': () => undefined,
+        'im.message.message_read_v1': () => undefined
     });
 
     const chatId = config.weeklyReport.chatId?.trim();
