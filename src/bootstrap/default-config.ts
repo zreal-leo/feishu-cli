@@ -14,7 +14,7 @@ export const DEFAULT_CONFIG = {
     },
     weeklyReport: {
         directory: 'weekly-commits',
-        hour: 18,
+        hour: 17,
         minute: 0
     }
 } as const;

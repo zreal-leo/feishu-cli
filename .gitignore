@@ -31,5 +31,5 @@ pnpm-debug.log*
 # Superpowers SDD scratch
 .superpowers/
 
-# Weekly commit NDJSON (local-only; .gitkeep stays tracked)
-weekly-commits/*.ndjson
+# Weekly commit materials (local-only)
+weekly-commits/
