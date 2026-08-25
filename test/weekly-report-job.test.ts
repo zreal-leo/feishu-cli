@@ -78,7 +78,11 @@ describe('createWeeklyReportJob', () => {
         assert.match(promptReceived, /2026-August-W1\.ndjson/);
         assert.match(promptReceived, /2026-08-02/);
         assert.match(promptReceived, /2026-08-08/);
-        assert.match(promptReceived, /feat: a/);
+        assert.match(promptReceived, /不要直接输出提交信息/);
+        assert.match(promptReceived, /本周完成/);
+        assert.match(promptReceived, /不要输出需求(?:链接|地址)/);
+        assert.match(promptReceived, /50 字/);
+        assert.match(promptReceived, /alpha/);
         assert.deepEqual(sent, [{ chatId: 'chat-2', text: '## 周报\n内容' }]);
     });
 
