@@ -11,5 +11,10 @@ export const DEFAULT_CONFIG = {
     },
     systemTrace: {
         logPath: 'logs/system-trace.ndjson'
+    },
+    weeklyReport: {
+        directory: 'weekly-commits',
+        hour: 17,
+        minute: 0
     }
 } as const;

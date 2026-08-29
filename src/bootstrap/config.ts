@@ -11,6 +11,13 @@ export type SystemTraceConfig = {
     logPath: string;
 };
 
+export type WeeklyReportConfig = {
+    chatId?: string;
+    hour: number;
+    minute: number;
+    directory: string;
+};
+
 export type Config = {
     aiApiKey: string;
     aiBaseUrl?: string;
@@ -22,6 +29,7 @@ export type Config = {
     larkEncryptKey?: string;
     managerMeeting: ManagerMeetingConfig;
     systemTrace: SystemTraceConfig;
+    weeklyReport: WeeklyReportConfig;
 };
 
 function requireEnv(name: string): string {
@@ -36,6 +44,22 @@ function parsePositiveIntegerEnv(name: string, value: string): number {
     const parsed = Number(value);
     if (!Number.isSafeInteger(parsed) || parsed <= 0) {
         throw new Error(`Invalid positive integer environment variable: ${name}`);
+    }
+    return parsed;
+}
+
+function parseHourEnv(name: string, value: string): number {
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 23) {
+        throw new Error(`Invalid hour environment variable: ${name}`);
+    }
+    return parsed;
+}
+
+function parseMinuteEnv(name: string, value: string): number {
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 59) {
+        throw new Error(`Invalid minute environment variable: ${name}`);
     }
     return parsed;
 }
@@ -64,6 +88,12 @@ export function loadConfig(): Config {
         },
         systemTrace: {
             logPath: DEFAULT_CONFIG.systemTrace.logPath
+        },
+        weeklyReport: {
+            chatId: process.env.WEEKLY_REPORT_CHAT_ID?.trim() || undefined,
+            hour: process.env.WEEKLY_REPORT_HOUR?.trim() ? parseHourEnv('WEEKLY_REPORT_HOUR', process.env.WEEKLY_REPORT_HOUR.trim()) : DEFAULT_CONFIG.weeklyReport.hour,
+            minute: process.env.WEEKLY_REPORT_MINUTE?.trim() ? parseMinuteEnv('WEEKLY_REPORT_MINUTE', process.env.WEEKLY_REPORT_MINUTE.trim()) : DEFAULT_CONFIG.weeklyReport.minute,
+            directory: DEFAULT_CONFIG.weeklyReport.directory
         }
     };
 }

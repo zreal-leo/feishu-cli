@@ -56,7 +56,7 @@ Cursor Agent 接到实现类任务时，若当前分支为 `main`，应先创建
 复制 `.env.example` 为 `.env`，或导出以下变量（`src/bootstrap/config.ts` 在启动时校验）：
 
 - **必填**：`ANTHROPIC_API_KEY`、`LARK_APP_ID`、`LARK_APP_SECRET`
-- **可选**：`LARK_ENCRYPT_KEY`（仅当 Lark 事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）
+- **可选**：`LARK_ENCRYPT_KEY`（仅当 Lark 事件订阅开启加密时）；`MANAGER_LOGIN_NAME`、`MANAGER_PASSWORD`（仅「创建会议」命令需要，见 `readme.md`）；`WEEKLY_REPORT_CHAT_ID`（周五周报私聊目标，未配置则跳过调度）；`WEEKLY_REPORT_HOUR`、`WEEKLY_REPORT_MINUTE`（周报触发本地时刻，默认 18:00）
 
 非敏感默认值（如 Cursor 模型和测试运营后台域名）在 `src/bootstrap/default-config.ts` 中维护。
 

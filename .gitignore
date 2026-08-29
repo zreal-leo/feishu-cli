@@ -28,6 +28,10 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 
-# Local questionnaire exports
 .tmp/
-weekly-commits
+
+# Superpowers SDD scratch
+.superpowers/
+
+# Weekly commit materials (local-only)
+weekly-commits/

@@ -1,13 +1,18 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
+import path from 'node:path';
 
 import { createBotApplication } from '../app/bot-application.ts';
+import { createWeeklyReportJob } from '../app/weekly-report-job.ts';
+import { startWeeklyReportScheduler } from '../app/weekly-report-scheduler.ts';
 import { createCommandRegistry } from '../core/command-registry.ts';
 import { createCursorUsageCommandHandler } from '../core/commands/cursor-usage-command.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
+import { createAIWeeklyReportGenerator } from '../adapters/ai-weekly-report-generator.ts';
 import { createAIUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
 import { createCursorUsageClient } from '../adapters/cursor/cursor-usage-client.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
+import { createFileSystemWeeklyCommitStore } from '../adapters/file-system-weekly-commit-store.ts';
 import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
 import { mapLarkIncomingMessage } from '../adapters/lark/inbound.ts';
 import type { LarkIncomingMessageEvent } from '../adapters/lark/protocol.ts';
@@ -73,8 +78,42 @@ export function startBot(config: Config): void {
                 `[lark-bot] received message chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} senderId=${message.sender?.id ?? 'unknown'} senderName=${message.sender?.name ?? 'unknown'} textLength=${message.text.length}`
             );
             application.handleMessage(message);
-        }
+        },
+        // Subscribed in the developer console but unused; empty handlers silence SDK warnings.
+        'im.message.reaction.created_v1': () => undefined,
+        'im.message.reaction.deleted_v1': () => undefined,
+        'im.message.message_read_v1': () => undefined
     });
+
+    const chatId = config.weeklyReport.chatId?.trim();
+    if (chatId) {
+        const directory = path.resolve(process.cwd(), config.weeklyReport.directory);
+        const store = createFileSystemWeeklyCommitStore({ directory, logger });
+        const generator = createAIWeeklyReportGenerator({
+            apiKey: config.aiApiKey,
+            baseURL: config.aiBaseUrl,
+            model: config.aiModel,
+            effort: config.aiEffort
+        });
+        const job = createWeeklyReportJob({
+            store,
+            generator,
+            chatId,
+            sendText: async (targetChatId, text) => {
+                await messageSender.sendTextMessage(targetChatId, text);
+            },
+            logger
+        });
+        startWeeklyReportScheduler({
+            hour: config.weeklyReport.hour,
+            minute: config.weeklyReport.minute,
+            run: () => job.run(),
+            logger
+        });
+        logger.info(`weekly report scheduler started chatId=${chatId}`);
+    } else {
+        logger.info('weekly report scheduler skipped');
+    }
 
     wsClient.start({ eventDispatcher });
 }
