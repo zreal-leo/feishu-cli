@@ -27,3 +27,7 @@ pnpm-debug.log*
 # OS and editor metadata
 .DS_Store
 .vscode/
+
+# Local questionnaire exports
+.tmp/
+weekly-commits

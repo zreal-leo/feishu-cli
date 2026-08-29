@@ -37,7 +37,7 @@ describe('createMeetingRouterCommandHandler', () => {
                         length: 60
                     });
                     return {
-                        title: 'BOT: AI策略会 10:00',
+                        title: 'AI策略会 10:00',
                         roadshowId: 123,
                         eventId: 456,
                         netLiveUrl: 'http://s.comein.cn/live'
@@ -54,7 +54,7 @@ describe('createMeetingRouterCommandHandler', () => {
         assert.deepEqual(reply, {
             type: 'meeting_created',
             data: {
-                title: 'BOT: AI策略会 10:00',
+                title: 'AI策略会 10:00',
                 roadshowId: 123,
                 eventId: 456,
                 netLiveUrl: 'http://s.comein.cn/live'

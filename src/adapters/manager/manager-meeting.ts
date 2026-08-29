@@ -381,7 +381,7 @@ function formatMeetingTitle(topic: string, date: Date): string {
     const parts = MEETING_TITLE_TIME_FORMATTER.formatToParts(date);
     const hours = parts.find(part => part.type === 'hour')?.value ?? '00';
     const minutes = parts.find(part => part.type === 'minute')?.value ?? '00';
-    return `BOT: ${topic} ${hours}:${minutes}`;
+    return `${topic} ${hours}:${minutes}`;
 }
 
 function getNestedString(value: unknown, path: string[]): string | undefined {
