@@ -96,7 +96,10 @@ function titleFromBodyPrefix(body: string, urlIndex: number): string | undefined
         return undefined;
     }
 
-    const lines = before.split('\n').map(line => line.trim()).filter(line => line !== '');
+    const lines = before
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line !== '');
     const lastLine = lines.at(-1);
     if (!lastLine) {
         return undefined;

@@ -1,22 +1,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-    EMPTY_WEEKLY_REPORT_TEXT,
-    buildWeeklyReportPrompt,
-    groupWeeklyCommitsByProject,
-    groupWeeklyCommitsByRequirement,
-    parseWeeklyCommitNdjson
-} from '../src/core/weekly-commit.ts';
+import { EMPTY_WEEKLY_REPORT_TEXT, buildWeeklyReportPrompt, groupWeeklyCommitsByProject, groupWeeklyCommitsByRequirement, parseWeeklyCommitNdjson } from '../src/core/weekly-commit.ts';
 
-function entry(overrides: Partial<{
-    timestamp: string;
-    project: string;
-    projectPath: string;
-    hash: string;
-    branch: string;
-    subject: string;
-    body: string;
-}>): {
+function entry(
+    overrides: Partial<{
+        timestamp: string;
+        project: string;
+        projectPath: string;
+        hash: string;
+        branch: string;
+        subject: string;
+        body: string;
+    }>
+): {
     timestamp: string;
     project: string;
     projectPath: string;
