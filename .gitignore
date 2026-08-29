@@ -28,6 +28,8 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 
+.tmp/
+
 # Superpowers SDD scratch
 .superpowers/
 

@@ -42,7 +42,7 @@ describe('buildMeetingPayload', () => {
         const payload = buildMeetingPayload('AI总结', stimeMs);
 
         assert.equal(payload.stime, stimeMs);
-        assert.equal(payload.title, 'BOT: AI总结 15:33');
+        assert.equal(payload.title, 'AI总结 15:33');
         assert.equal(payload.logo, expectedLogoUrl);
         assert.equal(payload.logoWeb, expectedLogoUrl);
         assert.equal(payload.logoWall, expectedLogoUrl);
@@ -71,8 +71,8 @@ describe('buildMeetingPayload', () => {
         });
 
         assert.equal(payload.stime, stimeMs);
-        assert.equal(payload.title, 'BOT: AI策略会 10:00');
-        assert.equal(payload.audioTitle, 'BOT: AI策略会 10:00');
+        assert.equal(payload.title, 'AI策略会 10:00');
+        assert.equal(payload.audioTitle, 'AI策略会 10:00');
         assert.equal(payload.eventWays, 1);
         assert.equal(payload.length, 60);
         assert.equal(payload.eventMode, 567);
@@ -141,7 +141,7 @@ describe('createManagerMeeting', () => {
         const result = await createManagerMeeting(createTestConfig(), { title: '跨项目接入测试会议', now: new Date('2026-05-30T15:30:00+08:00') }, 'manager_token', fetchImpl);
 
         assert.deepEqual(result, {
-            title: 'BOT: 跨项目接入测试会议 15:33',
+            title: '跨项目接入测试会议 15:33',
             roadshowId: 123456,
             eventId: 789012,
             netLiveUrl: 'http://s.comein.cn/live'
@@ -154,7 +154,7 @@ describe('createManagerMeeting', () => {
 
         const payload = JSON.parse(String(requestInit?.body)) as Record<string, unknown>;
         assert.equal(payload.stime, new Date('2026-05-30T15:33:00+08:00').getTime());
-        assert.equal(payload.title, 'BOT: 跨项目接入测试会议 15:33');
+        assert.equal(payload.title, '跨项目接入测试会议 15:33');
         assert.equal(payload.uid, 15281329);
         assert.equal(payload.organizationId, 747);
     });
@@ -243,7 +243,7 @@ describe('createManagerMeeting', () => {
         );
 
         assert.deepEqual(result, {
-            title: 'BOT: 云播失败会议 15:33',
+            title: '云播失败会议 15:33',
             roadshowId: 123456,
             eventId: 789012,
             netLiveUrl: 'http://s.comein.cn/live',
@@ -321,7 +321,7 @@ describe('createManagerMeetingClient', () => {
         const result = await client.createMeeting({ title: '刷新 token 会议', stimeMs: new Date('2026-05-30T15:33:00+08:00').getTime() });
 
         assert.deepEqual(result, {
-            title: 'BOT: 刷新 token 会议 15:33',
+            title: '刷新 token 会议 15:33',
             roadshowId: 1,
             eventId: 2,
             netLiveUrl: 'http://s.comein.cn/live'
