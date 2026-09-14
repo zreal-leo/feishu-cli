@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import type { AIEffort } from '../adapters/cursor/ai-agent.ts';
-import type { CursorUsageClientConfig } from '../adapters/cursor/cursor-usage-client.ts';
 import type { ManagerMeetingConfig } from '../adapters/manager/manager-meeting.ts';
 import { DEFAULT_CONFIG } from './default-config.ts';
 
@@ -23,7 +22,6 @@ export type Config = {
     aiBaseUrl?: string;
     aiModel: string;
     aiEffort: AIEffort;
-    cursorUsage: CursorUsageClientConfig;
     larkAppId: string;
     larkAppSecret: string;
     larkEncryptKey?: string;
@@ -38,14 +36,6 @@ function requireEnv(name: string): string {
         throw new Error(`Missing required environment variable: ${name}`);
     }
     return value;
-}
-
-function parsePositiveIntegerEnv(name: string, value: string): number {
-    const parsed = Number(value);
-    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-        throw new Error(`Invalid positive integer environment variable: ${name}`);
-    }
-    return parsed;
 }
 
 function parseHourEnv(name: string, value: string): number {
@@ -70,13 +60,6 @@ export function loadConfig(): Config {
         aiBaseUrl: process.env.ANTHROPIC_BASE_URL?.trim() || undefined,
         aiModel: DEFAULT_CONFIG.aiModel,
         aiEffort: DEFAULT_CONFIG.aiEffort,
-        cursorUsage: {
-            baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
-            cookie: process.env.CURSOR_USAGE_COOKIE?.trim() || undefined,
-            pageSize: DEFAULT_CONFIG.cursorUsage.pageSize,
-            teamId: process.env.CURSOR_USAGE_TEAM_ID?.trim() ? parsePositiveIntegerEnv('CURSOR_USAGE_TEAM_ID', process.env.CURSOR_USAGE_TEAM_ID.trim()) : undefined,
-            userId: process.env.CURSOR_USAGE_USER_ID?.trim() ? parsePositiveIntegerEnv('CURSOR_USAGE_USER_ID', process.env.CURSOR_USAGE_USER_ID.trim()) : undefined
-        },
         larkAppId: requireEnv('LARK_APP_ID'),
         larkAppSecret: requireEnv('LARK_APP_SECRET'),
         larkEncryptKey: process.env.LARK_ENCRYPT_KEY?.trim() || undefined,

@@ -25,16 +25,13 @@ src/
     reactions.ts                 # 默认 reaction emoji
     assistant-prompt.ts          # 助手回复 Prompt 构建
     meeting.ts                   # 会议领域类型与枚举标签
-    cursor-usage.ts              # 用量领域类型与格式化
     system-trace.ts              # Trace 记录类型 / 计时 / 输出捕获 / 序列化
     weekly-commit-week.ts        # 周日至周六周界、YYYY-Month-Wn 文件名
     weekly-commit.ts             # NDJSON 解析 / 按项目分组 / Prompt 与空周文案
     commands/
       meeting-router-command.ts  # 兜底命令：LLM 意图路由（创建会议 or 助手）
-      cursor-usage-command.ts    # 查询 token 用量命令
-      cursor-usage-parser.ts     # 用量命令文本解析
   ports/                         # 端口（核心 / 应用依赖的抽象接口）
-    reply.ts  assistant.ts  meeting.ts  cursor-usage.ts
+    reply.ts  assistant.ts  meeting.ts
     reaction.ts  trace.ts  runtime.ts   # runtime 仅 Logger/DedupStore/JobQueue
     weekly-commit-store.ts  weekly-report.ts
   adapters/                      # 适配器（端口的具体实现）
@@ -48,7 +45,6 @@ src/
       cursor-agent.ts            # @cursor/sdk 加载 + streamCursorReply/askCursor
       assistant-gateway.ts       # AssistantGateway 实现
       meeting-intent-parser.ts   # MeetingIntentParser 实现（含参数归一化）
-      cursor-usage-client.ts     # CursorUsageGateway 实现
     manager/
       manager-meeting.ts         # MeetingGateway 实现（登录/token/会议/云播）
     file-system-trace.ts         # SystemTraceCollector 实现（NDJSON 落盘）
@@ -77,7 +73,7 @@ flowchart TB
 
     subgraph AdapterLayer["适配器层"]
         Lark["adapters/lark<br/>事件映射 / 回复 / 卡片"]
-        Cursor["adapters/cursor<br/>LLM / 用量 / 意图解析"]
+        Cursor["adapters/cursor<br/>LLM / 意图解析"]
         Manager["adapters/manager<br/>会议后台"]
         Trace["file-system-trace<br/>trace 落盘"]
     end
@@ -122,16 +118,13 @@ flowchart TD
     BotApp --> Dedup["DedupStore"]
     BotApp --> Queue["SerialJobQueue"]
     BotApp --> Registry["core/CommandRegistry"]
-    Registry --> UsageCmd["cursor-usage-command"]
     Registry --> Router["meeting-router-command 兜底"]
     Router --> IntentPort["MeetingIntentParser 端口"]
     Router --> MeetingPort["MeetingGateway 端口"]
     Router --> AssistantPort["AssistantGateway 端口"]
-    UsageCmd --> UsagePort["CursorUsageGateway 端口"]
     IntentPort --> CursorIntent["cursor/meeting-intent-parser"]
     AssistantPort --> CursorAssistant["cursor/assistant-gateway"]
     MeetingPort --> Manager["manager/manager-meeting"]
-    UsagePort --> CursorUsage["cursor/cursor-usage-client"]
     BotApp --> ReplyPort["ReplyGateway 端口"]
     ReplyPort --> LarkReply["lark/reply-gateway + renderers"]
     BotApp --> TracePort["SystemTraceCollector 端口"]
@@ -171,8 +164,7 @@ sequenceDiagram
 
 `CommandRegistry` 按注册顺序逐个调用 `handler.match(message)`，命中即返回；都未命中再尝试兜底 handler。当前装配为：
 
-- 显式命令：`cursor-usage-command`（匹配「cursor …」）。
-- 兜底：`meeting-router-command`。它调用 `MeetingIntentParser`（Cursor）对消息做意图判定：
+- 当前没有显式命令，所有消息都交给兜底的 `meeting-router-command`。它调用 `MeetingIntentParser`（Cursor）对消息做意图判定：
     - `create_meeting`：归一化参数后调用 `MeetingGateway`（运营后台）创建会议 / 云播，返回 `meeting_created` / `meeting_failed`。
     - 其它（含解析失败）：调用 `AssistantGateway`（Cursor）以流式文本兜底回复。
 
@@ -195,4 +187,4 @@ sequenceDiagram
 
 ## 测试组织
 
-测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `cursor-usage` / `cursor-agent`（cursor 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`weekly-commit` / `weekly-report-job` / `weekly-report-scheduler`（周报）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。
+测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `cursor-agent`（cursor 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`weekly-commit` / `weekly-report-job` / `weekly-report-scheduler`（周报）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。

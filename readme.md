@@ -30,24 +30,3 @@ MANAGER_PASSWORD=password
 ```
 
 非敏感默认值（如默认视频 URL、Cursor 模型和测试运营后台域名）在 `src/bootstrap/default-config.ts` 中维护。
-
-### 查询 Cursor Token 用量
-
-机器人收到以下文本时会跳过 Cursor fallback，调用 Cursor Dashboard usage API 查询 token 用量：
-
-```text
-cursor
-cursor 2026-05-06 2026-06-04
-```
-
-`cursor` 默认查询最近 30 天；带两个日期时按 `YYYY-MM-DD` 闭区间查询。回复返回时间范围、记录数和总 Token 数。
-
-这个功能需要 Cursor 网页端 Dashboard 的登录 Cookie 和账号参数，但这些变量只在执行 `cursor` 时才需要；不配置也可以正常 `pnpm dev` 启动机器人。需要使用时，在 `.env` 中填写：
-
-```bash
-CURSOR_USAGE_COOKIE='WorkosCursorSessionToken=...; team_id=...'
-CURSOR_USAGE_TEAM_ID=xxx
-CURSOR_USAGE_USER_ID=xxx
-```
-
-`CURSOR_USAGE_COOKIE` 可从浏览器访问 Cursor Dashboard usage 页面时的请求 Cookie 中复制；Cookie 属于敏感凭证，不要提交到仓库。分页大小固定在 `src/bootstrap/default-config.ts` 的 `cursorUsage.pageSize` 中，当前默认每页 100 条。
