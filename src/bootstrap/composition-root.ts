@@ -5,12 +5,10 @@ import { createBotApplication } from '../app/bot-application.ts';
 import { createWeeklyReportJob } from '../app/weekly-report-job.ts';
 import { startWeeklyReportScheduler } from '../app/weekly-report-scheduler.ts';
 import { createCommandRegistry } from '../core/command-registry.ts';
-import { createCursorUsageCommandHandler } from '../core/commands/cursor-usage-command.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import { createAIWeeklyReportGenerator } from '../adapters/ai-weekly-report-generator.ts';
 import { createAIUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
-import { createCursorUsageClient } from '../adapters/cursor/cursor-usage-client.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
 import { createFileSystemWeeklyCommitStore } from '../adapters/file-system-weekly-commit-store.ts';
 import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
@@ -51,10 +49,9 @@ export function startBot(config: Config): void {
         effort: config.aiEffort
     });
     const meetings = createManagerMeetingGateway(config.managerMeeting);
-    const usage = createCursorUsageClient(config.cursorUsage);
     const systemTraceCollector = createFileSystemTraceCollector(config.systemTrace);
 
-    const commandRegistry = createCommandRegistry([createCursorUsageCommandHandler(usage)], createMeetingRouterCommandHandler({ router, meetings }));
+    const commandRegistry = createCommandRegistry([], createMeetingRouterCommandHandler({ router, meetings }));
 
     const application = createBotApplication({
         commandRegistry,

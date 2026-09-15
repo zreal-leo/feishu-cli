@@ -6,9 +6,6 @@ import { DEFAULT_CONFIG } from '../src/bootstrap/default-config.ts';
 
 const managedEnvNames = [
     'ANTHROPIC_API_KEY',
-    'CURSOR_USAGE_COOKIE',
-    'CURSOR_USAGE_TEAM_ID',
-    'CURSOR_USAGE_USER_ID',
     'LARK_APP_ID',
     'LARK_APP_SECRET',
     'LARK_ENCRYPT_KEY',
@@ -35,9 +32,6 @@ afterEach(() => {
 describe('loadConfig', () => {
     it('loads secrets from env and non-sensitive defaults from the default config file', () => {
         process.env.ANTHROPIC_API_KEY = 'test_key';
-        process.env.CURSOR_USAGE_COOKIE = 'WorkosCursorSessionToken=session';
-        process.env.CURSOR_USAGE_TEAM_ID = '11326557';
-        process.env.CURSOR_USAGE_USER_ID = '208513979';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.LARK_ENCRYPT_KEY = 'encrypt_key';
@@ -51,13 +45,6 @@ describe('loadConfig', () => {
         assert.equal(config.aiApiKey, 'test_key');
         assert.equal(config.aiModel, DEFAULT_CONFIG.aiModel);
         assert.equal(config.aiEffort, DEFAULT_CONFIG.aiEffort);
-        assert.deepEqual(config.cursorUsage, {
-            baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
-            cookie: 'WorkosCursorSessionToken=session',
-            pageSize: DEFAULT_CONFIG.cursorUsage.pageSize,
-            teamId: 11326557,
-            userId: 208513979
-        });
         assert.deepEqual(config.systemTrace, {
             logPath: DEFAULT_CONFIG.systemTrace.logPath
         });
@@ -69,25 +56,6 @@ describe('loadConfig', () => {
             baseUrl: DEFAULT_CONFIG.managerMeeting.baseUrl,
             loginName: 'admin',
             password: 'password'
-        });
-    });
-
-    it('does not require Cursor usage credentials during startup', () => {
-        process.env.ANTHROPIC_API_KEY = 'test_key';
-        delete process.env.CURSOR_USAGE_COOKIE;
-        delete process.env.CURSOR_USAGE_TEAM_ID;
-        delete process.env.CURSOR_USAGE_USER_ID;
-        process.env.LARK_APP_ID = 'lark_app_id';
-        process.env.LARK_APP_SECRET = 'lark_app_secret';
-
-        const config = loadConfig();
-
-        assert.deepEqual(config.cursorUsage, {
-            baseUrl: DEFAULT_CONFIG.cursorUsage.baseUrl,
-            cookie: undefined,
-            pageSize: DEFAULT_CONFIG.cursorUsage.pageSize,
-            teamId: undefined,
-            userId: undefined
         });
     });
 

@@ -196,7 +196,7 @@ describe('createBotApplication', () => {
         );
     });
 
-    it('records command sub-steps for meeting-router and cursor-usage handlers', async () => {
+    it('records command sub-steps for the meeting-router handler', async () => {
         const traces: SystemTraceRecord[] = [];
         const timestamps = [100, 101, 104, 114, 116, 130, 150, 155, 160, 170, 180, 190, 200, 210];
         const meetingRouterHandler: CommandHandler = {
@@ -211,18 +211,8 @@ describe('createBotApplication', () => {
                 })();
             }
         };
-        const usageHandler: CommandHandler = {
-            name: 'cursor-usage',
-            match(message) {
-                return message.text === 'cursor' ? { commandName: 'cursor-usage', data: { ok: true, command: { type: 'cursor_usage', query: { startDate: '2026-05-26', endDate: '2026-06-18' } } } } : null;
-            },
-            async execute(context) {
-                context.trace?.markStep('usage.fetch');
-                return { type: 'text', text: '用量' };
-            }
-        };
         const application = createBotApplication({
-            commandRegistry: createCommandRegistry([usageHandler], meetingRouterHandler),
+            commandRegistry: createCommandRegistry([], meetingRouterHandler),
             logger: silentLogger,
             now: () => timestamps.shift() ?? 210,
             reactions: {
@@ -248,26 +238,16 @@ describe('createBotApplication', () => {
         });
 
         application.handleMessage({ ...input, messageId: 'om_router', text: '你好' });
-        application.handleMessage({ ...input, messageId: 'om_usage', text: 'cursor' });
         await application.drain();
 
         const routerTrace = traces.find(trace => trace.messageId === 'om_router');
-        const usageTrace = traces.find(trace => trace.messageId === 'om_usage');
 
         assert.deepEqual(
             routerTrace?.steps.map(step => step.name),
             ['添加响应表情', '解析命令', '路由调用', '发送回复', '移除响应表情']
         );
-        assert.deepEqual(
-            usageTrace?.steps.map(step => step.name),
-            ['添加响应表情', '解析命令', '查询用量', '发送回复', '移除响应表情']
-        );
         assert.equal(
             routerTrace?.steps.some(step => step.name === '执行命令'),
-            false
-        );
-        assert.equal(
-            usageTrace?.steps.some(step => step.name === '执行命令'),
             false
         );
     });

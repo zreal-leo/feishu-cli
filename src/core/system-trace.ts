@@ -73,8 +73,7 @@ const SYSTEM_TRACE_STEP_NAMES: Record<string, string> = {
     'reaction.add': '添加响应表情',
     'reaction.remove': '移除响应表情',
     'reply.send': '发送回复',
-    'router.invoke': '路由调用',
-    'usage.fetch': '查询用量'
+    'router.invoke': '路由调用'
 };
 
 export async function runCommandTraceStep<T>(trace: CommandTrace | undefined, name: string, operation: () => T | Promise<T>): Promise<T> {
