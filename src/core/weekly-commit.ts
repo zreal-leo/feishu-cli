@@ -123,7 +123,21 @@ function workTitleFromEntry(entry: WeeklyCommitEntry): string {
 
 function extractRequirementRef(entry: WeeklyCommitEntry): { key: string; title: string; url?: string } {
     const subjectTitle = stripConventionalCommitPrefix(entry.subject);
+    const branch = entry.branch.trim();
     const urlMatch = STORY_URL_PATTERN.exec(entry.body);
+
+    // 同一需求的不同提交可能引用不同需求链接，完整分支名比单条提交正文更稳定，因此优先按分支归并。
+    if (branch !== '') {
+        const branchMatch = BRANCH_STORY_PATTERN.exec(branch);
+        const branchTitle = branchMatch?.[2] ? titleFromBranchSlug(branchMatch[2]) : undefined;
+
+        return {
+            key: `branch:${branch}`,
+            title: preferChineseTitle(urlMatch ? titleFromBodyPrefix(entry.body, urlMatch.index) : undefined, branchTitle, subjectTitle) ?? entry.subject,
+            url: urlMatch?.[0]
+        };
+    }
+
     if (urlMatch?.[1]) {
         return {
             key: urlMatch[1],
@@ -201,6 +215,18 @@ function uniquePreserveOrder(values: string[]): string[] {
     return result;
 }
 
+function requirementIdFromGroupKey(key: string): string | undefined {
+    if (/^\d+$/.test(key)) {
+        return key;
+    }
+
+    if (!key.startsWith('branch:')) {
+        return undefined;
+    }
+
+    return BRANCH_STORY_PATTERN.exec(key.slice('branch:'.length))?.[1];
+}
+
 function formatRequirementSource(group: RequirementCommitGroup): string {
     const projects = uniquePreserveOrder(group.entries.map(entry => entry.project));
     const notes: string[] = [];
@@ -231,7 +257,8 @@ export function buildWeeklyReportPrompt(input: { weekFileName: string; sunday: s
     const requirementSections: string[] = [];
 
     for (const group of grouped) {
-        const header = /^\d+$/.test(group.key) ? `需求 ${group.key} ${group.title}` : group.title;
+        const requirementId = requirementIdFromGroupKey(group.key);
+        const header = requirementId ? `需求 ${requirementId} ${group.title}` : group.title;
         requirementSections.push(`${header}\n${formatRequirementSource(group)}`);
     }
 
@@ -239,7 +266,7 @@ export function buildWeeklyReportPrompt(input: { weekFileName: string; sunday: s
         '根据下列工作原料生成可供他人审阅的周报。',
         '输出固定两段纯文本：本周工作、本周完成。不要增加风险、下周计划或需要支持等章节，也不要编造下周计划、风险或量化指标。',
         '第一段第一行写：本周工作（区间与下方周报区间一致）；下一行用一句话概括本周最重要的完成事项。',
-        '第二段第一行写：本周完成；随后用无序列表，每条以 - 开头，一项对应一个需求（同一需求可跨项目合并）。没有需求编号时，用中文工作标题作为需求名称，不要写「未关联需求」。',
+        '第二段第一行写：本周完成；随后用无序列表，每条以 - 开头，一项对应一个需求（同一分支视为同一需求，跨项目也只输出一条）。没有需求编号时，用中文工作标题作为需求名称，不要写「未关联需求」。',
         '每个需求只写一条简短进展，把该需求下的改动整合成一条列表项；不要将全部 commit 简单罗列，也不要按提交或项目逐条展开。',
         '每条以【需求名称】开头，接着写本周完成内容与影响。需求名称须含中文，不要使用纯英文名称；产品专有名词可保留英文。不要输出需求链接、需求地址或任何 URL。',
         '每条列表项全文控制在 50 字以内；细小问题、文案或样式微调无需输出，若某需求只剩细小改动则整条省略。',
