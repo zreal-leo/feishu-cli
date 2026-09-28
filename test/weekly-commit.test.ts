@@ -81,7 +81,7 @@ describe('weekly-commit', () => {
         assert.equal(parsed.entries[0]?.subject, 'feat: a');
     });
 
-    it('groups commits by story URL or branch id and titles unlinked work from the subject', () => {
+    it('groups commits by branch before story URL and titles unlinked work from the subject', () => {
         const grouped = groupWeeklyCommitsByRequirement([
             entry({
                 hash: 'url1',
@@ -95,7 +95,7 @@ describe('weekly-commit', () => {
                 project: 'portal',
                 branch: 'feature-7068122779-路演-路演通知分身参会',
                 subject: 'feat(reminder): 路演日程提醒支持分身参会',
-                body: '路演通知分身参会：https://project.feishu.cn/brm/story/detail/7068122779'
+                body: '路演通知分身参会：https://project.feishu.cn/brm/story/detail/7069999999'
             }),
             entry({
                 hash: 'branch1',
@@ -130,28 +130,28 @@ describe('weekly-commit', () => {
             })),
             [
                 {
-                    key: '7068122779',
+                    key: 'branch:feature-7068122779-路演-路演通知分身参会',
                     title: '路演分身参会',
                     url: 'https://project.feishu.cn/brm/story/detail/7068122779',
                     hashes: ['url1', 'url2'],
                     projects: ['brm', 'portal']
                 },
                 {
-                    key: '7065290750',
+                    key: 'branch:feature-7065290750-路演-专题推广',
                     title: '路演 专题推广',
                     url: undefined,
                     hashes: ['branch1'],
                     projects: ['mobile']
                 },
                 {
-                    key: '7070245081',
+                    key: 'branch:feature/7070245081/workbuddy-entry',
                     title: 'WorkBuddy 嵌入时禁用微博分享',
                     url: undefined,
                     hashes: ['slash1'],
                     projects: ['portal']
                 },
                 {
-                    key: 'unlinked:行业专家路演改用专题活动接口',
+                    key: 'branch:August-week3',
                     title: '行业专家路演改用专题活动接口',
                     url: undefined,
                     hashes: ['none1'],
@@ -199,6 +199,7 @@ describe('weekly-commit', () => {
         assert.match(prompt, /不要编造下周计划/);
         assert.match(prompt, /不要输出需求(?:链接|地址)/);
         assert.match(prompt, /整合成一条列表项/);
+        assert.match(prompt, /同一分支视为同一需求/);
         assert.match(prompt, /不要将全部 commit 简单罗列/);
         assert.match(prompt, /无序列表/);
         assert.match(prompt, /每条以 - 开头/);
