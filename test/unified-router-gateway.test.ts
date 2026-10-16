@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createAIUnifiedRouterGateway } from '../src/adapters/cursor/unified-router-gateway.ts';
+import { createAIUnifiedRouterGateway } from '../src/adapters/ai/unified-router-gateway.ts';
 
 describe('createAIUnifiedRouterGateway', () => {
     it('returns create_meeting when the model streams meeting JSON', async () => {

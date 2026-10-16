@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { askAI, streamAIReply } from '../src/adapters/cursor/ai-agent.ts';
+import { askAI, streamAIReply } from '../src/adapters/ai/ai-agent.ts';
 
 describe('ai-agent exports', () => {
     it('exports askAI and streamAIReply functions', () => {

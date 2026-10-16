@@ -97,7 +97,7 @@ async function routeMessage(input: ParseMeetingParametersInput, streamReply: typ
     const text = buffer.trim();
     return {
         action: 'assistant',
-        stream: text ? singleChunkStream(text) : singleChunkStream('Cursor 没有返回可回复的内容。')
+        stream: text ? singleChunkStream(text) : singleChunkStream('AI 没有返回可回复的内容。')
     };
 }
 

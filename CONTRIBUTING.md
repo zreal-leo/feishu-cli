@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for helping improve `lark-cli`. This repository runs a single-package Node.js Lark bot that routes text messages to built-in commands or Cursor fallback replies.
+Thanks for helping improve `lark-cli`. This repository runs a single-package Node.js Lark bot that routes text messages to built-in commands or AI assistant replies.
 
 ## Prerequisites
 
 - Node.js 24 or newer.
 - pnpm 11.5.0, as declared in `package.json`.
-- Local environment variables only when running the bot against real Lark, Cursor, or manager services. Unit tests use mocks and do not require real credentials.
+- Local environment variables only when running the bot against real Lark, AI, or manager services. Unit tests use mocks and do not require real credentials.
 
 ## Branch Workflow
 

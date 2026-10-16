@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createAIMeetingIntentParser } from '../src/adapters/cursor/meeting-intent-parser.ts';
+import { createAIMeetingIntentParser } from '../src/adapters/ai/meeting-intent-parser.ts';
 
 describe('createAIMeetingIntentParser', () => {
     it('normalizes a create meeting intent into backend meeting parameters', async () => {

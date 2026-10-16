@@ -61,7 +61,7 @@ git push -u origin HEAD
 直接跑脚本（内部完成：解析 `origin` 仓库、准备 `gh.exe`、取 credential、创建 PR、清除 token）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .cursor/skills/create-pull-request/scripts/create-pr.ps1 `
+powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/create-pull-request/scripts/create-pr.ps1 `
   -Title 'feat(scope): 中文摘要' `
   -Body @"
 ## Summary
