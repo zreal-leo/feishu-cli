@@ -170,6 +170,10 @@ sequenceDiagram
     - 其它（含结构化 JSON 无法解析）：将该次模型调用的文本流作为助手回复。
     - 模型调用失败：错误交给应用层记录 trace。
 
+疯狂星期四文案请求仍走同一条路由。`core/crazy-thursday` 识别文案创作、改写、拆解及简写请求，`ai/unified-router-gateway` 按需通过 `CrazyThursdaySkillProvider` 加载共享 skill 原文和原创示例，再加入该次模型调用的提示词。创作或改写每次只输出一条文案，即使请求多条也不增加数量。菜单、价格等普通问题不加载写作参考，会议 / 云播路由规则保持优先。
+
+`file-system-crazy-thursday-skill` 在开发时读取 `.agents/skills/crazy-thursday`；构建脚本将该目录复制到 `dist/skills/crazy-thursday`，构建产物从模块相对路径读取，无需依赖进程的启动目录。skill 文件缺失或为空时，加载失败交给应用层记录 trace，不静默退回未使用 skill 的生成结果。
+
 ## 扩展指南
 
 ### 新增一个命令

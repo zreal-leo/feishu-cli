@@ -1,6 +1,8 @@
 import type { AIEffort } from './ai-agent.ts';
 import { buildUnifiedRouterPrompt } from '../../core/unified-router-prompt.ts';
-import type { ParseMeetingParametersInput, ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
+import { isCrazyThursdayWritingRequest } from '../../core/crazy-thursday.ts';
+import type { CrazyThursdaySkillProvider } from '../../ports/crazy-thursday-skill.ts';
+import type { ParsedMeetingIntentParameters } from '../../ports/meeting.ts';
 import type { MessageRouterGateway, RoutedMessage } from '../../ports/message-router.ts';
 import { parseMeetingIntentResponse } from './meeting-intent-parser.ts';
 import { streamAIReply } from './ai-agent.ts';
@@ -12,6 +14,7 @@ export type AIUnifiedRouterGatewayOptions = {
     baseURL?: string;
     model: string;
     effort?: AIEffort;
+    crazyThursdaySkill: CrazyThursdaySkillProvider;
     streamAIReply?: typeof streamAIReply;
 };
 
@@ -21,19 +24,20 @@ export function createAIUnifiedRouterGateway(options: AIUnifiedRouterGatewayOpti
     const streamReply = options.streamAIReply ?? streamAIReply;
 
     return {
-        route(input) {
-            return routeMessage(input, streamReply, options.apiKey, options.baseURL, options.model, options.effort);
+        async route(input) {
+            const skill = isCrazyThursdayWritingRequest(input.text) ? await options.crazyThursdaySkill.load() : undefined;
+            return routeMessage(buildUnifiedRouterPrompt(input, skill), streamReply, options.apiKey, options.baseURL, options.model, options.effort);
         }
     };
 }
 
-async function routeMessage(input: ParseMeetingParametersInput, streamReply: typeof streamAIReply, apiKey: string, baseURL: string | undefined, model: string, effort: AIEffort | undefined): Promise<RoutedMessage> {
+async function routeMessage(prompt: string, streamReply: typeof streamAIReply, apiKey: string, baseURL: string | undefined, model: string, effort: AIEffort | undefined): Promise<RoutedMessage> {
     const source = streamReply({
         apiKey,
         baseURL,
         model,
         effort,
-        prompt: buildUnifiedRouterPrompt(input)
+        prompt
     });
     const iterator = source[Symbol.asyncIterator]();
 
