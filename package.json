@@ -9,7 +9,7 @@
         "node": ">=24"
     },
     "scripts": {
-        "build": "node scripts/build.mjs",
+        "build": "tsx scripts/build.ts",
         "dev": "tsx src/index.ts",
         "start": "pnpm build && node dist/index.js",
         "test": "tsx --test test/**/*.test.ts",
