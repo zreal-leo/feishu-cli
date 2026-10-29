@@ -87,10 +87,10 @@ export function buildAIReplyCard(text = AI_REPLY_INITIAL_TEXT, options: { stream
                 ? {
                       streaming_config: {
                           print_frequency_ms: {
-                              default: 70
+                              default: 10
                           },
                           print_step: {
-                              default: 1
+                              default: 8
                           },
                           print_strategy: 'fast' as const
                       }

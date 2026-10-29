@@ -8,7 +8,9 @@ import type { Logger } from '../../ports/runtime.ts';
 type SendTextMessageResult = { messageId?: string } | void;
 type SendCardMessageResult = { messageId?: string; cardId?: string } | void;
 
-const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 250;
+// 流式卡片更新的最小间隔（节流）。0 表示不节流：每次模型增量都立即推给 Lark，
+// 调用频率随模型吐字速度，可能触发飞书接口限流；如遇限流再设回 30~50 作为兜底。
+const DEFAULT_STREAMING_UPDATE_INTERVAL_MS = 0;
 
 export type LarkReplyGatewayOptions = {
     finishCardStreaming?: (cardId: string, sequence: number, summary: string) => Promise<void>;
