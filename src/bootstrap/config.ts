@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import type { AIEffort } from '../adapters/cursor/ai-agent.ts';
+import type { AIEffort } from '../adapters/ai/ai-agent.ts';
 import type { ManagerMeetingConfig } from '../adapters/manager/manager-meeting.ts';
 import { DEFAULT_CONFIG } from './default-config.ts';
 

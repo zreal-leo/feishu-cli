@@ -128,7 +128,7 @@ describe('mapLarkIncomingMessage', () => {
 });
 
 describe('toLarkTextContent', () => {
-    it('serializes Cursor text as Lark text content', () => {
+    it('serializes AI text as Lark text content', () => {
         assert.equal(toLarkTextContent('收到，我来处理。'), JSON.stringify({ text: '收到，我来处理。' }));
     });
 });

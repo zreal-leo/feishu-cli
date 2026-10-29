@@ -2,7 +2,7 @@
 
 `lark-cli` 是一个单进程、可扩展的 Lark 机器人框架：通过 Lark WebSocket 接收文本消息，经命令注册表路由到内置命令或经 LLM 意图路由兜底，再把回复（文本 / 交互卡片 / 流式卡片）发回同一会话。没有独立 HTTP 服务、数据库或多进程。
 
-代码遵循「模块化单体 + 端口适配器（Ports & Adapters / Hexagonal）」：核心业务（`core`）只依赖抽象接口（`ports`），所有外部系统（Lark、Cursor、运营后台、文件系统）都在 `adapters` 中实现，由 `bootstrap` 统一装配。
+代码遵循「模块化单体 + 端口适配器（Ports & Adapters / Hexagonal）」：核心业务（`core`）只依赖抽象接口（`ports`），所有外部系统（Lark、AI 服务、运营后台、文件系统）都在 `adapters` 中实现，由 `bootstrap` 统一装配。
 
 ## 目录结构
 
@@ -12,7 +12,7 @@ src/
   bootstrap/                     # 装配层：配置加载 + 唯一组合根
     config.ts                    # 环境变量加载与校验
     default-config.ts            # 非敏感默认值
-    composition-root.ts          # 唯一装配点（构建 Lark/Cursor/Manager 依赖并启动 WS）
+    composition-root.ts          # 唯一装配点（构建 Lark/AI/Manager 依赖并启动 WS）
   app/                           # 应用编排层
     bot-application.ts           # 去重 / 串行队列 / reaction / trace / 回复编排
     serial-job-queue.ts          # 串行任务队列
@@ -31,7 +31,7 @@ src/
     commands/
       meeting-router-command.ts  # 兜底命令：LLM 意图路由（创建会议 or 助手）
   ports/                         # 端口（核心 / 应用依赖的抽象接口）
-    reply.ts  assistant.ts  meeting.ts
+    reply.ts  assistant.ts  meeting.ts  message-router.ts
     reaction.ts  trace.ts  runtime.ts   # runtime 仅 Logger/DedupStore/JobQueue
     weekly-commit-store.ts  weekly-report.ts
   adapters/                      # 适配器（端口的具体实现）
@@ -41,10 +41,11 @@ src/
       gateways.ts                # Lark.Client -> reaction/消息/卡片底层操作
       reply-gateway.ts           # ReplyGateway：文本/卡片/流式回复
       renderers.ts               # 卡片与文本渲染
-    cursor/
-      cursor-agent.ts            # @cursor/sdk 加载 + streamCursorReply/askCursor
+    ai/
+      ai-agent.ts                # Anthropic SDK 调用 + streamAIReply/askAI
       assistant-gateway.ts       # AssistantGateway 实现
       meeting-intent-parser.ts   # MeetingIntentParser 实现（含参数归一化）
+      unified-router-gateway.ts  # MessageRouterGateway：同一次调用完成意图路由 / 助手回复
     manager/
       manager-meeting.ts         # MeetingGateway 实现（登录/token/会议/云播）
     file-system-trace.ts         # SystemTraceCollector 实现（NDJSON 落盘）
@@ -73,7 +74,7 @@ flowchart TB
 
     subgraph AdapterLayer["适配器层"]
         Lark["adapters/lark<br/>事件映射 / 回复 / 卡片"]
-        Cursor["adapters/cursor<br/>LLM / 意图解析"]
+        AI["adapters/ai<br/>LLM / 意图解析 / 回复"]
         Manager["adapters/manager<br/>会议后台"]
         Trace["file-system-trace<br/>trace 落盘"]
     end
@@ -84,7 +85,7 @@ flowchart TB
     Bootstrap --> Core
     Bootstrap --> Ports
     Bootstrap --> Lark
-    Bootstrap --> Cursor
+    Bootstrap --> AI
     Bootstrap --> Manager
     Bootstrap --> Trace
 
@@ -95,16 +96,16 @@ flowchart TB
     Core --> Shared
 
     Lark --> Ports
-    Cursor --> Ports
+    AI --> Ports
     Manager --> Ports
     Trace --> Ports
 
     Lark --> Core
-    Cursor --> Core
+    AI --> Core
     Manager --> Core
 
     Lark --> Shared
-    Cursor --> Shared
+    AI --> Shared
     Manager --> Shared
     Trace --> Shared
 ```
@@ -119,11 +120,11 @@ flowchart TD
     BotApp --> Queue["SerialJobQueue"]
     BotApp --> Registry["core/CommandRegistry"]
     Registry --> Router["meeting-router-command 兜底"]
-    Router --> IntentPort["MeetingIntentParser 端口"]
+    Router --> RouterPort["MessageRouterGateway 端口"]
+    RouterPort --> AIRouter["ai/unified-router-gateway"]
+    AIRouter --> AIClient["ai/ai-agent"]
+    AIRouter --> IntentParser["ai/meeting-intent-parser<br/>结构化参数归一化"]
     Router --> MeetingPort["MeetingGateway 端口"]
-    Router --> AssistantPort["AssistantGateway 端口"]
-    IntentPort --> CursorIntent["cursor/meeting-intent-parser"]
-    AssistantPort --> CursorAssistant["cursor/assistant-gateway"]
     MeetingPort --> Manager["manager/manager-meeting"]
     BotApp --> ReplyPort["ReplyGateway 端口"]
     ReplyPort --> LarkReply["lark/reply-gateway + renderers"]
@@ -164,9 +165,10 @@ sequenceDiagram
 
 `CommandRegistry` 按注册顺序逐个调用 `handler.match(message)`，命中即返回；都未命中再尝试兜底 handler。当前装配为：
 
-- 当前没有显式命令，所有消息都交给兜底的 `meeting-router-command`。它调用 `MeetingIntentParser`（Cursor）对消息做意图判定：
+- 当前没有显式命令，所有消息都交给兜底的 `meeting-router-command`。它调用 `MessageRouterGateway`，由 `ai/unified-router-gateway` 在同一次模型流式调用中完成意图判定或助手回复：
     - `create_meeting`：归一化参数后调用 `MeetingGateway`（运营后台）创建会议 / 云播，返回 `meeting_created` / `meeting_failed`。
-    - 其它（含解析失败）：调用 `AssistantGateway`（Cursor）以流式文本兜底回复。
+    - 其它（含结构化 JSON 无法解析）：将该次模型调用的文本流作为助手回复。
+    - 模型调用失败：错误交给应用层记录 trace。
 
 ## 扩展指南
 
@@ -187,4 +189,4 @@ sequenceDiagram
 
 ## 测试组织
 
-测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `cursor-agent`（cursor 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`weekly-commit` / `weekly-report-job` / `weekly-report-scheduler`（周报）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。
+测试位于 `test/`，按分层与适配器划分：`bot-application`（编排）、`command-handlers` / `command-registry`（核心命令）、`meeting-intent-parser` / `ai-agent` / `unified-router-gateway`（AI 适配器）、`manager-meeting`（运营后台适配器）、`lark-adapter`（inbound / protocol / renderers / reply-gateway）、`file-system-trace`（trace 落盘）、`weekly-commit` / `weekly-report-job` / `weekly-report-scheduler`（周报）、`config`、`timing`、`assistant-prompt`。单测全部使用 fake 端口 / fake `fetch`，无需真实凭证。

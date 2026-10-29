@@ -19,7 +19,7 @@ Please include:
 
 ## Credential Handling
 
-This project may use Lark app credentials, Cursor API keys, Cursor Dashboard cookies, and manager service credentials during local or production runs.
+This project may use Lark app credentials, AI API keys, and manager service credentials during local or production runs.
 
 - Keep secrets in `.env` or the deployment secret store.
 - Do not commit `.env`, copied cookies, API keys, generated logs, or NDJSON trace files.

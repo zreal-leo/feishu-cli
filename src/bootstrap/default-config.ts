@@ -1,6 +1,6 @@
 export const DEFAULT_CONFIG = {
-    aiModel: 'gpt-5.6-luna',
-    aiEffort: 'high',
+    aiModel: 'gpt-6-luna',
+    aiEffort: 'xhigh',
     managerMeeting: {
         env: 'test',
         baseUrl: 'https://testserver.comein.cn/comein/manager'

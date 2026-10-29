@@ -172,7 +172,7 @@ describe('weekly-commit', () => {
                     project: 'brm',
                     branch: 'feature-7068122779-roadshow',
                     subject: 'feat(roadshow): 预约提醒支持分身参会',
-                    body: '路演分身参会：https://project.feishu.cn/brm/story/detail/7068122779\n\nCo-authored-by: Cursor <cursoragent@cursor.com>'
+                    body: '路演分身参会：https://project.feishu.cn/brm/story/detail/7068122779\n\nCo-authored-by: Test Contributor <contributor@example.com>'
                 }),
                 entry({
                     hash: 'url2',

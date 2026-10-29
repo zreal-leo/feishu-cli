@@ -7,7 +7,7 @@ body:
     - type: markdown
       attributes:
           value: |
-              Thanks for reporting a bug. Do not include real Lark messages, Cursor tokens, cookies, app secrets, or manager credentials.
+              Thanks for reporting a bug. Do not include real Lark messages, AI API keys, cookies, app secrets, or manager credentials.
     - type: textarea
       id: impact
       attributes:

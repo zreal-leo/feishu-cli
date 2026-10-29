@@ -224,11 +224,11 @@ function parseJSON<T extends Record<string, unknown> = RawMeetingParameters>(res
     try {
         parsed = JSON.parse(jsonText);
     } catch {
-        throw new Error(`Cursor 参数解析失败：返回内容不是合法 JSON。`);
+        throw new Error('AI 参数解析失败：返回内容不是合法 JSON。');
     }
 
     if (!isRecord(parsed)) {
-        throw new Error('Cursor 参数解析失败：返回内容不是 JSON 对象。');
+        throw new Error('AI 参数解析失败：返回内容不是 JSON 对象。');
     }
 
     return parsed as T;

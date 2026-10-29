@@ -1,5 +1,5 @@
-import type { AskAIOptions, AIEffort } from './cursor/ai-agent.ts';
-import { askAI as defaultAskAI } from './cursor/ai-agent.ts';
+import type { AskAIOptions, AIEffort } from './ai/ai-agent.ts';
+import { askAI as defaultAskAI } from './ai/ai-agent.ts';
 import type { WeeklyReportGenerator } from '../ports/weekly-report.ts';
 
 type AskAI = (options: AskAIOptions) => Promise<string>;

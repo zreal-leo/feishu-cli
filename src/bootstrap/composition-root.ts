@@ -8,7 +8,7 @@ import { createCommandRegistry } from '../core/command-registry.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
 import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import { createAIWeeklyReportGenerator } from '../adapters/ai-weekly-report-generator.ts';
-import { createAIUnifiedRouterGateway } from '../adapters/cursor/unified-router-gateway.ts';
+import { createAIUnifiedRouterGateway } from '../adapters/ai/unified-router-gateway.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
 import { createFileSystemWeeklyCommitStore } from '../adapters/file-system-weekly-commit-store.ts';
 import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
