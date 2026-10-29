@@ -33,13 +33,25 @@ export function startBot(config: Config): void {
     });
 
     const messageSender = createLarkMessageSender(client);
+    const streamingChannel = new Lark.LarkChannel({
+        appId: baseConfig.appId,
+        appSecret: baseConfig.appSecret,
+        outbound: {
+            streamInitialText: '正在生成回复...'
+        }
+    });
     const replies = createLarkReplyGateway({
-        finishCardStreaming: messageSender.finishCardStreaming,
-        logger,
         sendCardMessage: messageSender.sendCardMessage,
         sendTextMessage: messageSender.sendTextMessage,
-        updateCardElementContent: messageSender.updateCardElementContent,
-        updateTextMessage: messageSender.updateTextMessage
+        streamReply: async (chatId, reply) => {
+            await streamingChannel.stream(chatId, {
+                markdown: async controller => {
+                    for await (const chunk of reply) {
+                        await controller.append(chunk);
+                    }
+                }
+            });
+        }
     });
     const reactions = createLarkReactionGateway(client);
 
