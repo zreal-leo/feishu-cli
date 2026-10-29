@@ -1,36 +1,12 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
-import type { ReactionGateway } from '../../ports/reaction.ts';
-import { toLarkCardReferenceContent, toLarkReactionPayload, toLarkTextContent } from './protocol.ts';
+import { toLarkCardReferenceContent, toLarkTextContent } from './protocol.ts';
 import type { LarkCard } from './renderers.ts';
 
 export type LarkMessageSender = {
     sendTextMessage: (chatId: string, text: string) => Promise<{ messageId?: string }>;
     sendCardMessage: (chatId: string, card: LarkCard) => Promise<{ cardId: string; messageId?: string }>;
 };
-
-export function createLarkReactionGateway(client: Lark.Client): ReactionGateway {
-    return {
-        async add(messageId, emojiType) {
-            const response = await client.im.v1.messageReaction.create({
-                path: {
-                    message_id: messageId
-                },
-                data: toLarkReactionPayload(emojiType)
-            });
-
-            return { reactionId: response.data?.reaction_id };
-        },
-        async remove(messageId, reactionId) {
-            await client.im.v1.messageReaction.delete({
-                path: {
-                    message_id: messageId,
-                    reaction_id: reactionId
-                }
-            });
-        }
-    };
-}
 
 export function createLarkMessageSender(client: Lark.Client): LarkMessageSender {
     return {

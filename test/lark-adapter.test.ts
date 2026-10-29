@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { extractIncomingText, mapLarkIncomingMessage } from '../src/adapters/lark/inbound.ts';
 import { createLarkReplyGateway } from '../src/adapters/lark/reply-gateway.ts';
 import { buildMeetingCreatedCard, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
-import { DEFAULT_REACTION_EMOJI_TYPE, toLarkReactionPayload, toLarkTextContent } from '../src/adapters/lark/protocol.ts';
+import { toLarkTextContent } from '../src/adapters/lark/protocol.ts';
 import type { LarkIncomingMessageEvent } from '../src/adapters/lark/protocol.ts';
 
 describe('extractIncomingText', () => {
@@ -125,25 +125,6 @@ describe('mapLarkIncomingMessage', () => {
 describe('toLarkTextContent', () => {
     it('serializes AI text as Lark text content', () => {
         assert.equal(toLarkTextContent('收到，我来处理。'), JSON.stringify({ text: '收到，我来处理。' }));
-    });
-});
-
-describe('toLarkReactionPayload', () => {
-    it('defaults to Lark Typing emoji', () => {
-        assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'Typing');
-        assert.deepEqual(toLarkReactionPayload(), {
-            reaction_type: {
-                emoji_type: 'Typing'
-            }
-        });
-    });
-
-    it('builds a Lark message reaction payload', () => {
-        assert.deepEqual(toLarkReactionPayload('THUMBSUP'), {
-            reaction_type: {
-                emoji_type: 'THUMBSUP'
-            }
-        });
     });
 });
 

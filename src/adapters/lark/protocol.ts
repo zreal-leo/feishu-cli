@@ -1,5 +1,3 @@
-import { DEFAULT_REACTION_EMOJI_TYPE } from '../../core/reactions.ts';
-
 export type LarkMessageMention = {
     key?: string;
     name?: string;
@@ -39,13 +37,3 @@ export function toLarkCardReferenceContent(cardId: string): string {
         }
     });
 }
-
-export function toLarkReactionPayload(emojiType = DEFAULT_REACTION_EMOJI_TYPE): { reaction_type: { emoji_type: string } } {
-    return {
-        reaction_type: {
-            emoji_type: emojiType
-        }
-    };
-}
-
-export { DEFAULT_REACTION_EMOJI_TYPE };
