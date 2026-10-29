@@ -1,0 +1,4 @@
+interface:
+  display_name: "疯狂星期四"
+  short_description: "原创疯狂星期四段子，支持铺垫反转、职场吐槽和朋友圈文案改写"
+  default_prompt: "使用 $crazy-thursday 写一条适合朋友群的原创疯狂星期四文案，铺垫和反转自然。"

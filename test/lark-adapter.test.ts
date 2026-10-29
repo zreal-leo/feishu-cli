@@ -3,14 +3,9 @@ import { describe, it } from 'node:test';
 
 import { extractIncomingText, mapLarkIncomingMessage } from '../src/adapters/lark/inbound.ts';
 import { createLarkReplyGateway } from '../src/adapters/lark/reply-gateway.ts';
-import { buildMeetingCreatedCard, AI_REPLY_CARD_ELEMENT_ID, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
-import { DEFAULT_REACTION_EMOJI_TYPE, toLarkReactionPayload, toLarkTextContent } from '../src/adapters/lark/protocol.ts';
+import { buildMeetingCreatedCard, formatMeetingCreatedReply } from '../src/adapters/lark/renderers.ts';
+import { toLarkTextContent } from '../src/adapters/lark/protocol.ts';
 import type { LarkIncomingMessageEvent } from '../src/adapters/lark/protocol.ts';
-
-const silentLogger = {
-    info() {},
-    error() {}
-};
 
 describe('extractIncomingText', () => {
     it('extracts text from a Lark text message event', () => {
@@ -133,25 +128,6 @@ describe('toLarkTextContent', () => {
     });
 });
 
-describe('toLarkReactionPayload', () => {
-    it('defaults to Lark Typing emoji', () => {
-        assert.equal(DEFAULT_REACTION_EMOJI_TYPE, 'Typing');
-        assert.deepEqual(toLarkReactionPayload(), {
-            reaction_type: {
-                emoji_type: 'Typing'
-            }
-        });
-    });
-
-    it('builds a Lark message reaction payload', () => {
-        assert.deepEqual(toLarkReactionPayload('THUMBSUP'), {
-            reaction_type: {
-                emoji_type: 'THUMBSUP'
-            }
-        });
-    });
-});
-
 describe('formatMeetingCreatedReply', () => {
     it('formats the manager meeting result for Lark', () => {
         assert.equal(
@@ -200,7 +176,6 @@ describe('createLarkReplyGateway', () => {
     it('renders semantic meeting replies through Lark cards when card sending is available', async () => {
         const actions: string[] = [];
         const gateway = createLarkReplyGateway({
-            logger: silentLogger,
             sendTextMessage: async () => {
                 actions.push('send-text:fallback');
             },
@@ -209,6 +184,9 @@ describe('createLarkReplyGateway', () => {
                 assert.equal(card.card_link, undefined);
                 actions.push(`send-card:${chatId}:${card.header?.title.content}:${actionButton?.url}`);
                 return { messageId: 'om_reply', cardId: 'card_reply' };
+            },
+            streamReply: async () => {
+                actions.push('stream-reply:unexpected');
             }
         });
 
@@ -225,134 +203,16 @@ describe('createLarkReplyGateway', () => {
         assert.deepEqual(actions, ['send-card:chat_1:会议创建成功:http://s.comein.cn/live']);
     });
 
-    it('streams assistant replies into a Lark card', async () => {
-        const actions: string[] = [];
+    it('delegates stream replies to the streaming sender without buffering', async () => {
+        const received: string[] = [];
+        let streamedChatId = '';
         const gateway = createLarkReplyGateway({
-            logger: silentLogger,
-            streamingUpdateIntervalMs: 0,
-            sendTextMessage: async () => {
-                actions.push('send-text:fallback');
-            },
-            sendCardMessage: async (chatId, card) => {
-                actions.push(`send-card:${chatId}:${String(card.body.elements[0].content)}:${String(card.config.streaming_mode)}`);
-                return { messageId: 'om_reply', cardId: 'card_reply' };
-            },
-            updateCardElementContent: async (cardId, elementId, content, sequence) => {
-                actions.push(`update-card:${cardId}:${elementId}:${content}:${sequence}`);
-            },
-            finishCardStreaming: async (cardId, sequence, summary) => {
-                actions.push(`finish-card:${cardId}:${sequence}:${summary}`);
-            }
-        });
-
-        await gateway.send(
-            'chat_1',
-            (async function* () {
-                yield '第一段';
-                yield '第二段';
-            })()
-        );
-
-        assert.deepEqual(actions, ['send-card:chat_1:第一段:true', `update-card:card_reply:${AI_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
-    });
-
-    it('finishes a streaming Lark card even when a card update fails', async () => {
-        const actions: string[] = [];
-        const gateway = createLarkReplyGateway({
-            logger: silentLogger,
-            streamingUpdateIntervalMs: 0,
-            sendTextMessage: async () => {
-                actions.push('send-text:fallback');
-            },
-            sendCardMessage: async (chatId, card) => {
-                actions.push(`send-card:${chatId}:${String(card.body.elements[0].content)}`);
-                return { messageId: 'om_reply', cardId: 'card_reply' };
-            },
-            updateCardElementContent: async (cardId, elementId, content, sequence) => {
-                actions.push(`update-card:${cardId}:${elementId}:${content}:${sequence}`);
-                throw new Error('Lark 卡片更新失败');
-            },
-            finishCardStreaming: async (cardId, sequence, summary) => {
-                actions.push(`finish-card:${cardId}:${sequence}:${summary}`);
-            }
-        });
-
-        await assert.rejects(
-            () =>
-                gateway.send(
-                    'chat_1',
-                    (async function* () {
-                        yield '第一段';
-                        yield '第二段';
-                    })()
-                ),
-            /Lark 卡片更新失败/
-        );
-
-        assert.deepEqual(actions, ['send-card:chat_1:第一段', `update-card:card_reply:${AI_REPLY_CARD_ELEMENT_ID}:第一段第二段:1`, 'finish-card:card_reply:2:第一段第二段']);
-    });
-
-    it('streams assistant replies into a single Lark text message when cards are unavailable', async () => {
-        const actions: string[] = [];
-        const gateway = createLarkReplyGateway({
-            logger: silentLogger,
-            streamingUpdateIntervalMs: 0,
-            sendTextMessage: async (chatId, text) => {
-                actions.push(`send:${chatId}:${text}`);
-                return { messageId: 'om_reply' };
-            },
-            updateTextMessage: async (messageId, text) => {
-                actions.push(`update:${messageId}:${text}`);
-            }
-        });
-
-        await gateway.send(
-            'chat_1',
-            (async function* () {
-                yield '第一段';
-                yield '第二段';
-            })()
-        );
-
-        assert.deepEqual(actions, ['send:chat_1:第一段', 'update:om_reply:第一段第二段']);
-    });
-
-    it('sends one complete text message when message updates are unavailable', async () => {
-        const actions: string[] = [];
-        const gateway = createLarkReplyGateway({
-            logger: silentLogger,
-            streamingUpdateIntervalMs: 0,
-            sendTextMessage: async (chatId, text) => {
-                actions.push(`send:${chatId}:${text}`);
-            }
-        });
-
-        await gateway.send(
-            'chat_1',
-            (async function* () {
-                yield '第一段';
-                yield '第二段';
-            })()
-        );
-
-        assert.deepEqual(actions, ['send:chat_1:第一段第二段']);
-    });
-
-    it('falls back to a complete final text message when the sent message id is missing', async () => {
-        const actions: string[] = [];
-        const gateway = createLarkReplyGateway({
-            logger: {
-                info() {},
-                error(message: string) {
-                    actions.push(`error:${message}`);
+            sendTextMessage: async () => undefined,
+            streamReply: async (chatId, reply) => {
+                streamedChatId = chatId;
+                for await (const chunk of reply) {
+                    received.push(chunk);
                 }
-            },
-            streamingUpdateIntervalMs: 0,
-            sendTextMessage: async (chatId, text) => {
-                actions.push(`send:${chatId}:${text}`);
-            },
-            updateTextMessage: async (messageId, text) => {
-                actions.push(`update:${messageId}:${text}`);
             }
         });
 
@@ -364,6 +224,21 @@ describe('createLarkReplyGateway', () => {
             })()
         );
 
-        assert.deepEqual(actions, ['send:chat_1:第一段', 'error:[lark-bot] streaming update skipped because sent message_id is missing chatId=chat_1', 'send:chat_1:第一段第二段']);
+        assert.equal(streamedChatId, 'chat_1');
+        assert.deepEqual(received, ['第一段', '第二段']);
+    });
+
+    it('sends a plain text reply through the text sender', async () => {
+        const actions: string[] = [];
+        const gateway = createLarkReplyGateway({
+            sendTextMessage: async (chatId, text) => {
+                actions.push(`send-text:${chatId}:${text}`);
+            },
+            streamReply: async () => undefined
+        });
+
+        await gateway.send('chat_1', { type: 'text', text: '收到，我来处理。' });
+
+        assert.deepEqual(actions, ['send-text:chat_1:收到，我来处理。']);
     });
 });

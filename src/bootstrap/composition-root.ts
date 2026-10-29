@@ -6,12 +6,12 @@ import { createWeeklyReportJob } from '../app/weekly-report-job.ts';
 import { startWeeklyReportScheduler } from '../app/weekly-report-scheduler.ts';
 import { createCommandRegistry } from '../core/command-registry.ts';
 import { createMeetingRouterCommandHandler } from '../core/commands/meeting-router-command.ts';
-import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import { createAIWeeklyReportGenerator } from '../adapters/ai-weekly-report-generator.ts';
 import { createAIUnifiedRouterGateway } from '../adapters/ai/unified-router-gateway.ts';
 import { createFileSystemTraceCollector } from '../adapters/file-system-trace.ts';
+import { createFileSystemCrazyThursdaySkillProvider } from '../adapters/file-system-crazy-thursday-skill.ts';
 import { createFileSystemWeeklyCommitStore } from '../adapters/file-system-weekly-commit-store.ts';
-import { createLarkMessageSender, createLarkReactionGateway } from '../adapters/lark/gateways.ts';
+import { createLarkMessageSender } from '../adapters/lark/gateways.ts';
 import { mapLarkIncomingMessage } from '../adapters/lark/inbound.ts';
 import type { LarkIncomingMessageEvent } from '../adapters/lark/protocol.ts';
 import { createLarkReplyGateway } from '../adapters/lark/reply-gateway.ts';
@@ -32,21 +32,32 @@ export function startBot(config: Config): void {
     });
 
     const messageSender = createLarkMessageSender(client);
+    const streamingChannel = new Lark.LarkChannel({
+        appId: baseConfig.appId,
+        appSecret: baseConfig.appSecret,
+        outbound: {
+            streamInitialText: '正在生成回复...'
+        }
+    });
     const replies = createLarkReplyGateway({
-        finishCardStreaming: messageSender.finishCardStreaming,
-        logger,
         sendCardMessage: messageSender.sendCardMessage,
         sendTextMessage: messageSender.sendTextMessage,
-        updateCardElementContent: messageSender.updateCardElementContent,
-        updateTextMessage: messageSender.updateTextMessage
+        streamReply: async (chatId, reply) => {
+            await streamingChannel.stream(chatId, {
+                markdown: async controller => {
+                    for await (const chunk of reply) {
+                        await controller.append(chunk);
+                    }
+                }
+            });
+        }
     });
-    const reactions = createLarkReactionGateway(client);
-
     const router = createAIUnifiedRouterGateway({
         apiKey: config.aiApiKey,
         baseURL: config.aiBaseUrl,
         model: config.aiModel,
-        effort: config.aiEffort
+        effort: config.aiEffort,
+        crazyThursdaySkill: createFileSystemCrazyThursdaySkillProvider()
     });
     const meetings = createManagerMeetingGateway(config.managerMeeting);
     const systemTraceCollector = createFileSystemTraceCollector(config.systemTrace);
@@ -56,8 +67,6 @@ export function startBot(config: Config): void {
     const application = createBotApplication({
         commandRegistry,
         logger,
-        reactionEmojiType: DEFAULT_REACTION_EMOJI_TYPE,
-        reactions,
         replies,
         systemTraceCollector
     });

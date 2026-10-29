@@ -1,10 +1,8 @@
 import type { CommandRegistry } from '../core/command-registry.ts';
 import type { MessageInput } from '../core/types.ts';
-import { DEFAULT_REACTION_EMOJI_TYPE } from '../core/reactions.ts';
 import { captureReplyOutput, createSystemTraceContext } from '../core/system-trace.ts';
 import type { CommandTrace, SystemTraceContext, SystemTraceOutput, SystemTraceStatus } from '../core/system-trace.ts';
 import type { ReplyGateway } from '../ports/reply.ts';
-import type { ReactionGateway } from '../ports/reaction.ts';
 import type { SystemTraceCollector } from '../ports/trace.ts';
 import type { DedupStore, JobQueue, Logger } from '../ports/runtime.ts';
 import { createInMemoryDedupStore } from './in-memory-dedup-store.ts';
@@ -21,8 +19,6 @@ export type BotApplicationOptions = {
     jobQueue?: JobQueue;
     logger?: Logger;
     now?: () => number;
-    reactionEmojiType?: string;
-    reactions?: ReactionGateway;
     replies: ReplyGateway;
     systemTraceCollector?: SystemTraceCollector;
 };
@@ -31,7 +27,6 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
     const dedupStore = options.dedupStore ?? createInMemoryDedupStore();
     const jobQueue = options.jobQueue ?? createSerialJobQueue();
     const logger = options.logger ?? console;
-    const reactionEmojiType = options.reactionEmojiType ?? DEFAULT_REACTION_EMOJI_TYPE;
 
     return {
         handleMessage(message) {
@@ -43,7 +38,7 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
                 return;
             }
 
-            jobQueue.add(() => processMessage(message, options, logger, reactionEmojiType, trace));
+            jobQueue.add(() => processMessage(message, options, logger, trace));
         },
 
         drain() {
@@ -52,17 +47,12 @@ export function createBotApplication(options: BotApplicationOptions): BotApplica
     };
 }
 
-async function processMessage(message: MessageInput, options: BotApplicationOptions, logger: Logger, reactionEmojiType: string, trace?: SystemTraceContext): Promise<void> {
-    let addedReactionId: string | undefined;
+async function processMessage(message: MessageInput, options: BotApplicationOptions, logger: Logger, trace?: SystemTraceContext): Promise<void> {
     let status: SystemTraceStatus = 'success';
     let handlingError: unknown;
     let getOutput: (() => SystemTraceOutput) | undefined;
 
     try {
-        if (message.messageId && options.reactions) {
-            addedReactionId = extractReactionId(await runAsyncStep(trace, 'reaction.add', () => options.reactions?.add(message.messageId as string, reactionEmojiType) ?? Promise.resolve()));
-        }
-
         const resolved = runSyncStep(trace, 'command.resolve', () => options.commandRegistry.resolve(message));
         if (!resolved) {
             status = 'no_command';
@@ -85,25 +75,7 @@ async function processMessage(message: MessageInput, options: BotApplicationOpti
         }
         logger.error(`[bot-app] message handling failed chatId=${message.chatId} messageId=${message.messageId ?? 'unknown'} ${formatSenderLogFields(message)}`, error);
     } finally {
-        if (message.messageId && addedReactionId && options.reactions) {
-            await removeReactionBestEffort(message.messageId, addedReactionId, options.reactions, logger, message.chatId, trace);
-        }
-
         await recordTraceBestEffort(options.systemTraceCollector, trace?.finish(status, handlingError), logger);
-    }
-}
-
-function extractReactionId(result: { reactionId?: string } | void): string | undefined {
-    return result?.reactionId?.trim() || undefined;
-}
-
-async function removeReactionBestEffort(messageId: string, reactionId: string, reactions: ReactionGateway, logger: Logger, chatId: string, trace?: SystemTraceContext): Promise<void> {
-    try {
-        await reactions.remove(messageId, reactionId);
-        trace?.markStep('reaction.remove');
-    } catch (error) {
-        trace?.markStep('reaction.remove', error);
-        logger.error(`[bot-app] reaction removal failed chatId=${chatId} messageId=${messageId} reactionId=${reactionId}`, error);
     }
 }
 

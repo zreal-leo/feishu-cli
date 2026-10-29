@@ -22,7 +22,7 @@ const silentLogger = {
 };
 
 describe('createBotApplication', () => {
-    it('deduplicates messages, wraps command execution with reactions, and sends the command reply', async () => {
+    it('deduplicates messages, executes the command, and sends the command reply', async () => {
         const actions: string[] = [];
         const handler: CommandHandler = {
             name: 'create-meeting',
@@ -37,15 +37,6 @@ describe('createBotApplication', () => {
         const application = createBotApplication({
             commandRegistry: createCommandRegistry([handler]),
             logger: silentLogger,
-            reactions: {
-                async add(messageId, emojiType) {
-                    actions.push(`reaction:add:${messageId}:${emojiType}`);
-                    return { reactionId: 'reaction_1' };
-                },
-                async remove(messageId, reactionId) {
-                    actions.push(`reaction:remove:${messageId}:${reactionId}`);
-                }
-            },
             replies: {
                 async send(chatId, reply) {
                     actions.push(`reply:${chatId}:${readTextReply(reply)}`);
@@ -57,7 +48,7 @@ describe('createBotApplication', () => {
         application.handleMessage(input);
         await application.drain();
 
-        assert.deepEqual(actions, ['reaction:add:om_1:Typing', 'handler:execute', 'reply:chat_1:会议创建成功', 'reaction:remove:om_1:reaction_1']);
+        assert.deepEqual(actions, ['handler:execute', 'reply:chat_1:会议创建成功']);
     });
 
     it('logs and does not send a reply when no command is resolved', async () => {
@@ -85,7 +76,7 @@ describe('createBotApplication', () => {
 
     it('records simplified input, output, status, command name, and step timings for a handled message', async () => {
         const traces: SystemTraceRecord[] = [];
-        const timestamps = [100, 110, 112, 126, 146, 151];
+        const timestamps = [100, 102, 116, 136];
         const handler: CommandHandler = {
             name: 'create-meeting',
             match(message) {
@@ -99,12 +90,6 @@ describe('createBotApplication', () => {
             commandRegistry: createCommandRegistry([handler]),
             logger: silentLogger,
             now: () => timestamps.shift() ?? 155,
-            reactions: {
-                async add() {
-                    return { reactionId: 'reaction_1' };
-                },
-                async remove() {}
-            },
             replies: {
                 async send() {}
             },
@@ -142,11 +127,9 @@ describe('createBotApplication', () => {
                 },
                 status: 'success',
                 steps: [
-                    { name: '添加响应表情', durationMs: 10, elapsedMs: 10 },
-                    { name: '解析命令', durationMs: 2, elapsedMs: 12 },
-                    { name: '执行命令', durationMs: 14, elapsedMs: 26 },
-                    { name: '发送回复', durationMs: 20, elapsedMs: 46 },
-                    { name: '移除响应表情', durationMs: 5, elapsedMs: 51 }
+                    { name: '解析命令', durationMs: 2, elapsedMs: 2 },
+                    { name: '执行命令', durationMs: 14, elapsedMs: 16 },
+                    { name: '发送回复', durationMs: 20, elapsedMs: 36 }
                 ]
             }
         );
@@ -215,12 +198,6 @@ describe('createBotApplication', () => {
             commandRegistry: createCommandRegistry([], meetingRouterHandler),
             logger: silentLogger,
             now: () => timestamps.shift() ?? 210,
-            reactions: {
-                async add() {
-                    return { reactionId: 'reaction_1' };
-                },
-                async remove() {}
-            },
             replies: {
                 async send(_chatId, reply) {
                     if (Symbol.asyncIterator in reply) {
@@ -244,7 +221,7 @@ describe('createBotApplication', () => {
 
         assert.deepEqual(
             routerTrace?.steps.map(step => step.name),
-            ['添加响应表情', '解析命令', '路由调用', '发送回复', '移除响应表情']
+            ['解析命令', '路由调用', '发送回复']
         );
         assert.equal(
             routerTrace?.steps.some(step => step.name === '执行命令'),

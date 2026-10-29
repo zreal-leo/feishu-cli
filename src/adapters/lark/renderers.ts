@@ -1,11 +1,5 @@
 import type { MeetingCreatedReplyData } from '../../core/meeting.ts';
 
-export const AI_REPLY_CARD_ELEMENT_ID = 'ai_reply_content';
-const AI_REPLY_INITIAL_TEXT = '正在生成回复...';
-const AI_REPLY_INITIAL_SUMMARY = '生成中...';
-const AI_REPLY_EMPTY_TEXT = '（无内容）';
-const CARD_SUMMARY_MAX_LENGTH = 50;
-
 export type LarkCardText = {
     tag: 'plain_text' | 'lark_md';
     content: string;
@@ -14,19 +8,9 @@ export type LarkCardText = {
 export type LarkCard = {
     schema: '2.0';
     config: {
-        streaming_mode?: boolean;
         wide_screen_mode?: boolean;
         summary?: {
             content: string;
-        };
-        streaming_config?: {
-            print_frequency_ms: {
-                default: number;
-            };
-            print_step: {
-                default: number;
-            };
-            print_strategy: 'fast';
         };
     };
     card_link?: {
@@ -71,42 +55,6 @@ export function formatMeetingCreatedReply(data: MeetingCreatedReplyData): string
 export function formatMeetingCreateFailedReply(error: unknown): string {
     const message = error instanceof Error ? error.message : String(error);
     return `创建会议失败：${message}`;
-}
-
-export function buildAIReplyCard(text = AI_REPLY_INITIAL_TEXT, options: { streaming?: boolean } = {}): LarkCard {
-    const streaming = options.streaming ?? false;
-    return {
-        schema: '2.0',
-        config: {
-            wide_screen_mode: true,
-            streaming_mode: streaming,
-            summary: {
-                content: streaming ? AI_REPLY_INITIAL_SUMMARY : summarizeCardText(text)
-            },
-            ...(streaming
-                ? {
-                      streaming_config: {
-                          print_frequency_ms: {
-                              default: 70
-                          },
-                          print_step: {
-                              default: 1
-                          },
-                          print_strategy: 'fast' as const
-                      }
-                  }
-                : {})
-        },
-        body: {
-            elements: [
-                {
-                    tag: 'markdown',
-                    element_id: AI_REPLY_CARD_ELEMENT_ID,
-                    content: text.trim().length > 0 ? text : AI_REPLY_EMPTY_TEXT
-                }
-            ]
-        }
-    };
 }
 
 export function buildMeetingCreatedCard(data: MeetingCreatedReplyData): LarkCard {
@@ -181,12 +129,4 @@ export function buildMeetingCreateFailedCard(error: unknown): LarkCard {
             ]
         }
     };
-}
-
-export function summarizeCardText(text: string, maxLength = CARD_SUMMARY_MAX_LENGTH): string {
-    const cleaned = text.replace(/\s+/g, ' ').trim();
-    if (cleaned.length <= maxLength) {
-        return cleaned;
-    }
-    return `${cleaned.slice(0, maxLength - 1)}…`;
 }

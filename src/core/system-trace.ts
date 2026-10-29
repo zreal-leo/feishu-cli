@@ -70,8 +70,6 @@ const SYSTEM_TRACE_STEP_NAMES: Record<string, string> = {
     'command.resolve': '解析命令',
     'intent.parse': '意图解析',
     'meeting.create': '创建会议',
-    'reaction.add': '添加响应表情',
-    'reaction.remove': '移除响应表情',
     'reply.send': '发送回复',
     'router.invoke': '路由调用'
 };
