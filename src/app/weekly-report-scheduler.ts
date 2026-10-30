@@ -1,8 +1,4 @@
-type SchedulerLogger = {
-    info(message: string, ...args: unknown[]): void;
-    warn(message: string, ...args: unknown[]): void;
-    error(message: string, ...args: unknown[]): void;
-};
+import type { Logger } from '../shared/logger.ts';
 
 export type WeeklyReportSchedulerOptions = {
     hour: number;
@@ -11,9 +7,10 @@ export type WeeklyReportSchedulerOptions = {
     now?: () => Date;
     setTimeoutFn?: typeof setTimeout;
     clearTimeoutFn?: typeof clearTimeout;
-    logger?: SchedulerLogger;
+    logger?: Logger;
 };
 
+// 按部署机的「本地钟表时刻」计算下一个周五触发点；WEEKLY_REPORT_HOUR / MINUTE 即本地时刻（见 AGENTS.md）。
 export function getNextFridayAtLocalTime(from: Date, hour: number, minute: number): Date {
     const day = from.getDay();
     const currentMinutes = from.getHours() * 60 + from.getMinutes();
