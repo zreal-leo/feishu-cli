@@ -1,19 +1,6 @@
-import type { AskAIOptions, AIEffort } from './ai-agent.ts';
-import { askAI as defaultAskAI } from './ai-agent.ts';
-import { buildMeetingRoutingInstructions } from '../../core/meeting-routing-instructions.ts';
-import { MEETING_EVENT_MODE_LABELS, MEETING_EVENT_WAY_LABELS, MEETING_PERMISSION_OPTIONS } from '../../core/meeting.ts';
+import { MEETING_EVENT_MODE_LABELS, MEETING_PERMISSION_OPTIONS } from '../../core/meeting.ts';
 import type { CloudPlayerCommandOptions, CloudPlayerMediaStreamType, CloudPlayerPlayType, CloudPlayerRepeatMode, CloudPlayerType, MeetingEventMode, MeetingEventWay } from '../../core/meeting.ts';
-import type { MeetingIntentParser, ParseMeetingParametersInput, ParsedMeetingIntent, ParsedMeetingIntentParameters, ParsedMeetingParameters } from '../../ports/meeting.ts';
-
-type AskAI = (options: AskAIOptions) => Promise<string>;
-
-export type AIMeetingIntentParserOptions = {
-    apiKey: string;
-    baseURL?: string;
-    model: string;
-    effort?: AIEffort;
-    askAI?: AskAI;
-};
+import type { ParsedMeetingIntent, ParsedMeetingIntentParameters, ParsedMeetingParameters } from '../../ports/meeting.ts';
 
 type RawMeetingParameters = {
     title?: unknown;
@@ -35,6 +22,7 @@ const DEFAULT_CLOUD_PLAYER_PLAY_TYPE = 1;
 const DEFAULT_CLOUD_PLAYER_REPEAT_MODE = -1;
 const DEFAULT_CLOUD_PLAYER_REPEAT_TIME = 1;
 const DEFAULT_CLOUD_PLAYER_TYPE = 1;
+// 视频云播未提供地址时的兜底示例片源，仅用于测试环境。
 const DEFAULT_CLOUD_PLAYER_VIDEO_URL = 'https://media.comein.cn/video/344317-1740031837920.mp4';
 
 const CLOUD_PLAYER_MEDIA_STREAM_TYPE_ALIASES = new Map<string, CloudPlayerMediaStreamType>([
@@ -73,36 +61,9 @@ const EVENT_MODE_ALIASES = new Map<string, MeetingEventMode>(
 
 const PERMISSION_ALIASES = new Map<string, MeetingPermissionOption>(buildPermissionAliases());
 
-export function createAIMeetingIntentParser(options: AIMeetingIntentParserOptions): MeetingIntentParser {
-    const askAI = options.askAI ?? defaultAskAI;
-
-    return {
-        async parse(input) {
-            const responseText = await askAI({
-                apiKey: options.apiKey,
-                baseURL: options.baseURL,
-                model: options.model,
-                effort: options.effort,
-                prompt: buildMeetingIntentPrompt(input)
-            });
-            return parseMeetingIntentResponse(responseText);
-        }
-    };
-}
-
 export function parseMeetingIntentResponse(responseText: string): ParsedMeetingIntent {
     const rawIntent = parseJSON<RawMeetingIntent>(responseText);
     return normalizeMeetingIntent(rawIntent);
-}
-
-function buildMeetingIntentPrompt(input: ParseMeetingParametersInput): string {
-    const now = input.now ?? new Date();
-    return [
-        '你是一个飞书机器人消息路由器。只输出 JSON，不要输出 Markdown、解释或代码块。',
-        ...buildMeetingRoutingInstructions(now),
-        'JSON schema: {"action":"create_meeting"|"assistant","title":string|null,"startTime":string|null,"eventWays":-1|0|1|null,"length":number|null,"eventMode":number|null,"permission":string|number|null,"cloudPlayer":{"mediaStreamType":1|2|string|null,"streamUrl":string|null}|null}',
-        `用户消息：${input.text}`
-    ].join('\n');
 }
 
 function normalizeMeetingIntent(rawIntent: RawMeetingIntent): ParsedMeetingIntent {

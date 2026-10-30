@@ -27,10 +27,6 @@ export type ParsedMeetingIntent =
           parameters: ParsedMeetingIntentParameters;
       };
 
-export type MeetingIntentParser = {
-    parse: (input: ParseMeetingParametersInput) => Promise<ParsedMeetingIntent>;
-};
-
 export type MeetingGateway = {
     createMeeting: (request: CreateMeetingRequest) => Promise<MeetingCreatedReplyData>;
 };

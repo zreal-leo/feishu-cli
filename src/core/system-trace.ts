@@ -93,6 +93,7 @@ export function createSystemTraceContext(
 ): SystemTraceContext {
     const timer = createSegmentTimer(options.now);
     const record: SystemTraceRecord = {
+        // 时间戳固定用 UTC（ISO 8601），落盘按该时间的日期分文件。
         timestamp: new Date().toISOString(),
         chatId: message.chatId,
         messageId: message.messageId,

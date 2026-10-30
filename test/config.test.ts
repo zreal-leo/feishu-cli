@@ -6,6 +6,7 @@ import { DEFAULT_CONFIG } from '../src/bootstrap/default-config.ts';
 
 const managedEnvNames = [
     'ANTHROPIC_API_KEY',
+    'ANTHROPIC_BASE_URL',
     'LARK_APP_ID',
     'LARK_APP_SECRET',
     'LARK_ENCRYPT_KEY',

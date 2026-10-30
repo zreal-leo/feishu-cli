@@ -5,10 +5,16 @@ import type { SystemTraceCollector } from '../ports/trace.ts';
 import { formatSystemTraceDate, serializeSystemTraceRecord } from '../core/system-trace.ts';
 
 export function createFileSystemTraceCollector(options: { logPath: string }): SystemTraceCollector {
+    const createdDirectories = new Set<string>();
+
     return {
         async record(trace) {
             const logPath = createDatedLogPath(options.logPath, trace.timestamp);
-            await mkdir(dirname(logPath), { recursive: true });
+            const directory = dirname(logPath);
+            if (!createdDirectories.has(directory)) {
+                await mkdir(directory, { recursive: true });
+                createdDirectories.add(directory);
+            }
             await appendFile(logPath, serializeSystemTraceRecord(trace), 'utf8');
         }
     };
