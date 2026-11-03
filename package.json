@@ -18,7 +18,8 @@
         "format:check": "oxfmt --check .",
         "service:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 status",
         "service:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 stop",
-        "service:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 start"
+        "service:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 start",
+        "service:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows-service.ps1 restart"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.128.0",
