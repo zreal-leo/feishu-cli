@@ -19,7 +19,7 @@ export type WeeklyReportConfig = {
 
 export type Config = {
     aiApiKey: string;
-    aiBaseUrl?: string;
+    aiBaseUrl: string;
     aiModel: string;
     aiEffort: AIEffort;
     larkAppId: string;
@@ -57,7 +57,7 @@ function parseMinuteEnv(name: string, value: string): number {
 export function loadConfig(): Config {
     return {
         aiApiKey: requireEnv('AI_API_KEY'),
-        aiBaseUrl: process.env.AI_BASE_URL?.trim() || undefined,
+        aiBaseUrl: requireEnv('AI_BASE_URL'),
         aiModel: DEFAULT_CONFIG.aiModel,
         aiEffort: DEFAULT_CONFIG.aiEffort,
         larkAppId: requireEnv('LARK_APP_ID'),

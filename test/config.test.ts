@@ -33,6 +33,7 @@ afterEach(() => {
 describe('loadConfig', () => {
     it('loads secrets from env and non-sensitive defaults from the default config file', () => {
         process.env.AI_API_KEY = 'test_key';
+        process.env.AI_BASE_URL = 'https://api.example.com';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.LARK_ENCRYPT_KEY = 'encrypt_key';
@@ -44,6 +45,7 @@ describe('loadConfig', () => {
         const config = loadConfig();
 
         assert.equal(config.aiApiKey, 'test_key');
+        assert.equal(config.aiBaseUrl, 'https://api.example.com');
         assert.equal(config.aiModel, DEFAULT_CONFIG.aiModel);
         assert.equal(config.aiEffort, DEFAULT_CONFIG.aiEffort);
         assert.deepEqual(config.systemTrace, {
@@ -62,6 +64,7 @@ describe('loadConfig', () => {
 
     it('keeps the default system trace log path even if an old env var is present', () => {
         process.env.AI_API_KEY = 'test_key';
+        process.env.AI_BASE_URL = 'https://api.example.com';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.SYSTEM_TRACE_LOG_PATH = 'tmp/system-trace.ndjson';
@@ -75,6 +78,7 @@ describe('loadConfig', () => {
 
     it('loads weekly report defaults when WEEKLY_REPORT_CHAT_ID is missing', () => {
         process.env.AI_API_KEY = 'test_key';
+        process.env.AI_BASE_URL = 'https://api.example.com';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         delete process.env.WEEKLY_REPORT_CHAT_ID;
@@ -93,6 +97,7 @@ describe('loadConfig', () => {
 
     it('loads weekly report chatId and optional schedule overrides from env', () => {
         process.env.AI_API_KEY = 'test_key';
+        process.env.AI_BASE_URL = 'https://api.example.com';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.WEEKLY_REPORT_CHAT_ID = 'oc_chat_id';
