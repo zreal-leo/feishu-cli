@@ -56,8 +56,8 @@ function parseMinuteEnv(name: string, value: string): number {
 
 export function loadConfig(): Config {
     return {
-        aiApiKey: requireEnv('ANTHROPIC_API_KEY'),
-        aiBaseUrl: process.env.ANTHROPIC_BASE_URL?.trim() || undefined,
+        aiApiKey: requireEnv('AI_API_KEY'),
+        aiBaseUrl: process.env.AI_BASE_URL?.trim() || undefined,
         aiModel: DEFAULT_CONFIG.aiModel,
         aiEffort: DEFAULT_CONFIG.aiEffort,
         larkAppId: requireEnv('LARK_APP_ID'),

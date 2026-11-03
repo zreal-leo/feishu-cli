@@ -5,8 +5,8 @@ import { loadConfig } from '../src/bootstrap/config.ts';
 import { DEFAULT_CONFIG } from '../src/bootstrap/default-config.ts';
 
 const managedEnvNames = [
-    'ANTHROPIC_API_KEY',
-    'ANTHROPIC_BASE_URL',
+    'AI_API_KEY',
+    'AI_BASE_URL',
     'LARK_APP_ID',
     'LARK_APP_SECRET',
     'LARK_ENCRYPT_KEY',
@@ -32,7 +32,7 @@ afterEach(() => {
 
 describe('loadConfig', () => {
     it('loads secrets from env and non-sensitive defaults from the default config file', () => {
-        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.AI_API_KEY = 'test_key';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.LARK_ENCRYPT_KEY = 'encrypt_key';
@@ -61,7 +61,7 @@ describe('loadConfig', () => {
     });
 
     it('keeps the default system trace log path even if an old env var is present', () => {
-        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.AI_API_KEY = 'test_key';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.SYSTEM_TRACE_LOG_PATH = 'tmp/system-trace.ndjson';
@@ -74,7 +74,7 @@ describe('loadConfig', () => {
     });
 
     it('loads weekly report defaults when WEEKLY_REPORT_CHAT_ID is missing', () => {
-        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.AI_API_KEY = 'test_key';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         delete process.env.WEEKLY_REPORT_CHAT_ID;
@@ -92,7 +92,7 @@ describe('loadConfig', () => {
     });
 
     it('loads weekly report chatId and optional schedule overrides from env', () => {
-        process.env.ANTHROPIC_API_KEY = 'test_key';
+        process.env.AI_API_KEY = 'test_key';
         process.env.LARK_APP_ID = 'lark_app_id';
         process.env.LARK_APP_SECRET = 'lark_app_secret';
         process.env.WEEKLY_REPORT_CHAT_ID = 'oc_chat_id';
