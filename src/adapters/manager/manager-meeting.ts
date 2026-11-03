@@ -31,9 +31,17 @@ export type ManagerMeetingClient = {
 };
 
 const DEFAULT_START_AFTER_MINUTES = 3;
+// 运营后台 roadshow/create 接口的固定字段快照。uid / adminId / adminName / verifyCode
+// 为该测试环境的账号信息，切换生产环境时需整体重拍（见 buildMeetingPayload）。
+const MANAGER_MEETING_UID = 15281329;
+const MANAGER_MEETING_ADMIN_ID = 22;
+const MANAGER_MEETING_ADMIN_NAME = '管理员账号';
+const MANAGER_MEETING_VERIFY_CODE = '1234';
+const MANAGER_MEETING_SERVICE_ID = '1357';
 const MANAGER_LOGIN_ORIGIN = 'manager-test.comein.cn';
 const DEFAULT_MEETING_LOGO = 'https://image.comein.cn/comein-files/img/1ead173108694842bcbea9227c70b4ce.jpg';
 const MANAGER_BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36';
+// 会议标题里的时间改用中国时区展示，与运营后台及面向中文用户的约定一致。
 const MEETING_TITLE_TIME_ZONE = 'Asia/Shanghai';
 const MEETING_TITLE_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
     timeZone: MEETING_TITLE_TIME_ZONE,
@@ -234,7 +242,7 @@ export function buildMeetingPayload(title: string, stimeMs: number, options: Mee
         length: options.length ?? 120,
         title: fullTitle,
         preparationMode: 0,
-        uid: 15281329,
+        uid: MANAGER_MEETING_UID,
         industryTagIds: '565,558',
         submit: 1,
         openStatus: options.openStatus ?? 1,
@@ -253,11 +261,11 @@ export function buildMeetingPayload(title: string, stimeMs: number, options: Mee
         isSupportConf: 1,
         isSyncAdvance: 1,
         subTitle: '   ',
-        adminId: 22,
-        adminName: '管理员账号',
+        adminId: MANAGER_MEETING_ADMIN_ID,
+        adminName: MANAGER_MEETING_ADMIN_NAME,
         contentInfo: '测试使用123',
         serviceType: options.serviceType ?? 0,
-        serviceId: '1357',
+        serviceId: MANAGER_MEETING_SERVICE_ID,
         eventMode: options.eventMode ?? 567,
         marketTagIds: '519,520',
         researchDirectionTagIds: '1056',
@@ -274,7 +282,7 @@ export function buildMeetingPayload(title: string, stimeMs: number, options: Mee
         delQuartzTime: '',
         limitRegionType: 1,
         chargeType: 1,
-        verifyCode: '1234',
+        verifyCode: MANAGER_MEETING_VERIFY_CODE,
         whiteIds: '',
         filterType: 2,
         meetingUserSetting: 1,

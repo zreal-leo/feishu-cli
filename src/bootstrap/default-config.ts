@@ -1,5 +1,7 @@
 export const DEFAULT_CONFIG = {
+    // 走 Anthropic 兼容网关的模型标识。
     aiModel: 'gpt-6-luna',
+    // Anthropic output_config.effort 取值。
     aiEffort: 'xhigh',
     managerMeeting: {
         env: 'test',

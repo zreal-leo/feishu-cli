@@ -2,12 +2,7 @@ import { EMPTY_WEEKLY_REPORT_TEXT, WEEKLY_REPORT_FAILURE_TEXT, buildWeeklyReport
 import { formatWeeklyCommitFileName, getWeekRangeLabels } from '../core/weekly-commit-week.ts';
 import type { WeeklyCommitStore } from '../ports/weekly-commit-store.ts';
 import type { WeeklyReportGenerator } from '../ports/weekly-report.ts';
-
-type JobLogger = {
-    info(message: string, ...args: unknown[]): void;
-    warn(message: string, ...args: unknown[]): void;
-    error(message: string, ...args: unknown[]): void;
-};
+import type { Logger } from '../shared/logger.ts';
 
 export type WeeklyReportJobOptions = {
     store: WeeklyCommitStore;
@@ -15,7 +10,7 @@ export type WeeklyReportJobOptions = {
     sendText: (chatId: string, text: string) => Promise<void>;
     chatId: string;
     now?: () => Date;
-    logger?: JobLogger;
+    logger?: Logger;
 };
 
 export function createWeeklyReportJob(options: WeeklyReportJobOptions): { run(): Promise<void> } {

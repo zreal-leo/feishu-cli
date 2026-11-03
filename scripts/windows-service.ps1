@@ -1,9 +1,9 @@
 # Requires: Windows + scheduled task "fei-cli-dev" (SYSTEM, AtStartup).
-# Usage: windows-service.ps1 <stop|start|status>
+# Usage: windows-service.ps1 <stop|start|restart|status>
 
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('stop', 'start', 'status')]
+    [ValidateSet('stop', 'start', 'restart', 'status')]
     [string]$Action
 )
 
@@ -93,37 +93,50 @@ function Show-Status {
     }
 }
 
+function Invoke-Stop {
+    $task = Get-ServiceTask
+    if ($task.State -eq 'Running') {
+        Write-Host "Stopping scheduled task '$TaskName'..."
+        Stop-ScheduledTask -TaskName $TaskName
+    } else {
+        Write-Host "Scheduled task '$TaskName' is $($task.State)."
+    }
+
+    # Disable so reboot won't bring it back during local debugging.
+    Disable-ScheduledTask -TaskName $TaskName | Out-Null
+    Write-Host "Disabled scheduled task '$TaskName'."
+
+    Start-Sleep -Milliseconds 500
+    Stop-SystemBotProcesses
+}
+
+function Invoke-Start {
+    $task = Get-ServiceTask
+    if ($task.State -eq 'Disabled') {
+        Enable-ScheduledTask -TaskName $TaskName | Out-Null
+        Write-Host "Enabled scheduled task '$TaskName'."
+    }
+
+    Write-Host "Starting scheduled task '$TaskName'..."
+    Start-ScheduledTask -TaskName $TaskName
+    Start-Sleep -Seconds 2
+}
+
 switch ($Action) {
     'status' {
         Show-Status
     }
     'stop' {
-        $task = Get-ServiceTask
-        if ($task.State -eq 'Running') {
-            Write-Host "Stopping scheduled task '$TaskName'..."
-            Stop-ScheduledTask -TaskName $TaskName
-        } else {
-            Write-Host "Scheduled task '$TaskName' is $($task.State)."
-        }
-
-        # Disable so reboot won't bring it back during local debugging.
-        Disable-ScheduledTask -TaskName $TaskName | Out-Null
-        Write-Host "Disabled scheduled task '$TaskName'."
-
-        Start-Sleep -Milliseconds 500
-        Stop-SystemBotProcesses
+        Invoke-Stop
         Show-Status
     }
     'start' {
-        $task = Get-ServiceTask
-        if ($task.State -eq 'Disabled') {
-            Enable-ScheduledTask -TaskName $TaskName | Out-Null
-            Write-Host "Enabled scheduled task '$TaskName'."
-        }
-
-        Write-Host "Starting scheduled task '$TaskName'..."
-        Start-ScheduledTask -TaskName $TaskName
-        Start-Sleep -Seconds 2
+        Invoke-Start
+        Show-Status
+    }
+    'restart' {
+        Invoke-Stop
+        Invoke-Start
         Show-Status
     }
 }
